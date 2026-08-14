@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/database.dart';
 import 'data/repository.dart';
+import 'screens/profile_picker.dart';
+import 'screens/shell.dart';
+import 'screens/unlock.dart';
 import 'theme/catppuccin.dart';
 
-/// Master passphrase entered on the unlock screen (Step 4). The database
-/// provider stays unusable until it's set.
+/// Master passphrase entered on the unlock screen. The database provider
+/// stays unusable until it's set.
 final masterPassphraseProvider = StateProvider<String?>((ref) => null);
 
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -25,8 +28,14 @@ final repositoryProvider = Provider<HomebaseRepository>(
 /// Mocha (dark) by default; toggled to Latte from the UI.
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 
-/// The profile whose data is on screen. Null until login (Step 4).
-final activeProfileIdProvider = StateProvider<int?>((ref) => null);
+/// Who authenticated at the profile picker. Determines admin powers.
+final loggedInProfileProvider = StateProvider<Profile?>((ref) => null);
+
+/// Whose data is on screen. Same as logged-in for non-admins; admins can
+/// switch it. Reset on login change.
+final activeProfileProvider = StateProvider<Profile?>((ref) {
+  return ref.watch(loggedInProfileProvider);
+});
 
 void main() {
   runApp(const ProviderScope(child: HomebaseApp()));
@@ -43,33 +52,20 @@ class HomebaseApp extends ConsumerWidget {
       theme: latteTheme(),
       darkTheme: mochaTheme(),
       themeMode: mode,
-      home: const _PlaceholderHome(),
+      home: const _Root(),
     );
   }
 }
 
-/// Temporary shell until Step 4 screens land.
-class _PlaceholderHome extends ConsumerWidget {
-  const _PlaceholderHome();
+class _Root extends ConsumerWidget {
+  const _Root();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Homebase'),
-        actions: [
-          IconButton(
-            tooltip: mode == ThemeMode.dark ? 'Switch to Latte' : 'Switch to Mocha',
-            icon: Icon(mode == ThemeMode.dark
-                ? Icons.light_mode_outlined
-                : Icons.dark_mode_outlined),
-            onPressed: () => ref.read(themeModeProvider.notifier).state =
-                mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
-          ),
-        ],
-      ),
-      body: const Center(child: Text('Schema ready — screens coming in Step 4')),
-    );
+    final unlocked = ref.watch(masterPassphraseProvider) != null;
+    if (!unlocked) return const UnlockScreen();
+    final profile = ref.watch(loggedInProfileProvider);
+    if (profile == null) return const ProfilePickerScreen();
+    return const AppShell();
   }
 }

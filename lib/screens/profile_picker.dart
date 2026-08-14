@@ -184,15 +184,16 @@ class _FirstRunSetupState extends ConsumerState<_FirstRunSetup> {
                     style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 8),
                 Text(
-                    'Create your own profile first. You can add more profiles '
-                    'later from the Profiles screen.',
+                    'This first profile is the admin profile: it can view and '
+                    'switch into every other profile. You can add more '
+                    'profiles later from the Profiles screen.',
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 20),
                 TextField(
                     controller: _name,
                     autofocus: true,
                     decoration: const InputDecoration(
-                        labelText: 'Your name',
+                        labelText: 'Your name (admin)',
                         border: OutlineInputBorder())),
                 const SizedBox(height: 12),
                 TextField(
@@ -204,7 +205,7 @@ class _FirstRunSetupState extends ConsumerState<_FirstRunSetup> {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _busy ? null : _create,
-                  child: const Text('Create profile'),
+                  child: const Text('Create admin profile'),
                 ),
               ],
             ),

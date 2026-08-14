@@ -107,4 +107,76 @@ class HomebaseRepository {
       (_db.delete(_db.budgetEntries)
             ..where((e) => e.profileId.equals(profileId) & e.id.equals(id)))
           .go();
+
+  // ---- Budget targets (spent-vs-target) ----
+
+  Stream<List<BudgetTarget>> watchBudgetTargets({required int profileId}) =>
+      (_db.select(_db.budgetTargets)
+            ..where((t) => t.profileId.equals(profileId)))
+          .watch();
+
+  Future<int> upsertBudgetTarget(BudgetTargetsCompanion entry) =>
+      _db.into(_db.budgetTargets).insertOnConflictUpdate(entry);
+
+  Future<int> deleteBudgetTarget({required int profileId, required int id}) =>
+      (_db.delete(_db.budgetTargets)
+            ..where((t) => t.profileId.equals(profileId) & t.id.equals(id)))
+          .go();
+
+  /// Live map of category -> total expenses for [month]. The budget screen
+  /// pairs this with [watchBudgetTargets]; it re-emits on every entry change,
+  /// so progress bars are always current — no scheduled refresh.
+  Stream<Map<String, double>> watchSpentByCategory(
+      {required int profileId, required DateTime month}) {
+    return watchBudgetForMonth(profileId: profileId, month: month).map((rows) {
+      final sums = <String, double>{};
+      for (final e in rows.where((e) => e.type == EntryType.expense)) {
+        sums[e.category] = (sums[e.category] ?? 0) + e.amount;
+      }
+      return sums;
+    });
+  }
+
+  // ---- Category rules (auto-categorization) ----
+
+  Stream<List<CategoryRule>> watchRules({required int profileId}) =>
+      (_db.select(_db.categoryRules)
+            ..where((r) => r.profileId.equals(profileId))
+            ..orderBy([(r) => OrderingTerm.asc(r.priority)]))
+          .watch();
+
+  Future<int> upsertRule(CategoryRulesCompanion entry) =>
+      _db.into(_db.categoryRules).insertOnConflictUpdate(entry);
+
+  Future<int> deleteRule({required int profileId, required int id}) =>
+      (_db.delete(_db.categoryRules)
+            ..where((r) => r.profileId.equals(profileId) & r.id.equals(id)))
+          .go();
+
+  /// First matching rule's category, or null. Description rules match as a
+  /// case-insensitive substring; amount rules match the exact value.
+  Future<String?> categorize({
+    required int profileId,
+    String? description,
+    double? amount,
+  }) async {
+    final rules = await (_db.select(_db.categoryRules)
+          ..where((r) => r.profileId.equals(profileId))
+          ..orderBy([(r) => OrderingTerm.asc(r.priority)]))
+        .get();
+    for (final rule in rules) {
+      switch (rule.field) {
+        case RuleField.description:
+          if (description != null &&
+              description.toLowerCase().contains(rule.pattern.toLowerCase())) {
+            return rule.category;
+          }
+        case RuleField.amount:
+          if (amount != null && double.tryParse(rule.pattern) == amount) {
+            return rule.category;
+          }
+      }
+    }
+    return null;
+  }
 }

@@ -2368,6 +2368,17 @@ class $BudgetEntriesTable extends BudgetEntries
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<EntryType>($BudgetEntriesTable.$convertertype);
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2376,6 +2387,7 @@ class $BudgetEntriesTable extends BudgetEntries
     category,
     amount,
     type,
+    description,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2422,6 +2434,15 @@ class $BudgetEntriesTable extends BudgetEntries
     } else if (isInserting) {
       context.missing(_amountMeta);
     }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2457,6 +2478,10 @@ class $BudgetEntriesTable extends BudgetEntries
           data['${effectivePrefix}type'],
         )!,
       ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
     );
   }
 
@@ -2476,6 +2501,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
   final String category;
   final double amount;
   final EntryType type;
+  final String? description;
   const BudgetEntry({
     required this.id,
     required this.profileId,
@@ -2483,6 +2509,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     required this.category,
     required this.amount,
     required this.type,
+    this.description,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2497,6 +2524,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
         $BudgetEntriesTable.$convertertype.toSql(type),
       );
     }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
     return map;
   }
 
@@ -2508,6 +2538,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       category: Value(category),
       amount: Value(amount),
       type: Value(type),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
     );
   }
 
@@ -2525,6 +2558,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       type: $BudgetEntriesTable.$convertertype.fromJson(
         serializer.fromJson<String>(json['type']),
       ),
+      description: serializer.fromJson<String?>(json['description']),
     );
   }
   @override
@@ -2539,6 +2573,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       'type': serializer.toJson<String>(
         $BudgetEntriesTable.$convertertype.toJson(type),
       ),
+      'description': serializer.toJson<String?>(description),
     };
   }
 
@@ -2549,6 +2584,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     String? category,
     double? amount,
     EntryType? type,
+    Value<String?> description = const Value.absent(),
   }) => BudgetEntry(
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
@@ -2556,6 +2592,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     category: category ?? this.category,
     amount: amount ?? this.amount,
     type: type ?? this.type,
+    description: description.present ? description.value : this.description,
   );
   BudgetEntry copyWithCompanion(BudgetEntriesCompanion data) {
     return BudgetEntry(
@@ -2565,6 +2602,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       category: data.category.present ? data.category.value : this.category,
       amount: data.amount.present ? data.amount.value : this.amount,
       type: data.type.present ? data.type.value : this.type,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
     );
   }
 
@@ -2576,13 +2616,15 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
           ..write('date: $date, ')
           ..write('category: $category, ')
           ..write('amount: $amount, ')
-          ..write('type: $type')
+          ..write('type: $type, ')
+          ..write('description: $description')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, profileId, date, category, amount, type);
+  int get hashCode =>
+      Object.hash(id, profileId, date, category, amount, type, description);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2592,7 +2634,8 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
           other.date == this.date &&
           other.category == this.category &&
           other.amount == this.amount &&
-          other.type == this.type);
+          other.type == this.type &&
+          other.description == this.description);
 }
 
 class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
@@ -2602,6 +2645,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
   final Value<String> category;
   final Value<double> amount;
   final Value<EntryType> type;
+  final Value<String?> description;
   const BudgetEntriesCompanion({
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
@@ -2609,6 +2653,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     this.category = const Value.absent(),
     this.amount = const Value.absent(),
     this.type = const Value.absent(),
+    this.description = const Value.absent(),
   });
   BudgetEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -2617,6 +2662,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     this.category = const Value.absent(),
     required double amount,
     required EntryType type,
+    this.description = const Value.absent(),
   }) : profileId = Value(profileId),
        date = Value(date),
        amount = Value(amount),
@@ -2628,6 +2674,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     Expression<String>? category,
     Expression<double>? amount,
     Expression<String>? type,
+    Expression<String>? description,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2636,6 +2683,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
       if (category != null) 'category': category,
       if (amount != null) 'amount': amount,
       if (type != null) 'type': type,
+      if (description != null) 'description': description,
     });
   }
 
@@ -2646,6 +2694,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     Value<String>? category,
     Value<double>? amount,
     Value<EntryType>? type,
+    Value<String?>? description,
   }) {
     return BudgetEntriesCompanion(
       id: id ?? this.id,
@@ -2654,6 +2703,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
       category: category ?? this.category,
       amount: amount ?? this.amount,
       type: type ?? this.type,
+      description: description ?? this.description,
     );
   }
 
@@ -2680,6 +2730,9 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
         $BudgetEntriesTable.$convertertype.toSql(type.value),
       );
     }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
     return map;
   }
 
@@ -2691,7 +2744,743 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
           ..write('date: $date, ')
           ..write('category: $category, ')
           ..write('amount: $amount, ')
-          ..write('type: $type')
+          ..write('type: $type, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BudgetTargetsTable extends BudgetTargets
+    with TableInfo<$BudgetTargetsTable, BudgetTarget> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetTargetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthlyTargetMeta = const VerificationMeta(
+    'monthlyTarget',
+  );
+  @override
+  late final GeneratedColumn<double> monthlyTarget = GeneratedColumn<double>(
+    'monthly_target',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    category,
+    monthlyTarget,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_targets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BudgetTarget> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('monthly_target')) {
+      context.handle(
+        _monthlyTargetMeta,
+        monthlyTarget.isAcceptableOrUnknown(
+          data['monthly_target']!,
+          _monthlyTargetMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_monthlyTargetMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {profileId, category},
+  ];
+  @override
+  BudgetTarget map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetTarget(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      monthlyTarget: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}monthly_target'],
+      )!,
+    );
+  }
+
+  @override
+  $BudgetTargetsTable createAlias(String alias) {
+    return $BudgetTargetsTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetTarget extends DataClass implements Insertable<BudgetTarget> {
+  final int id;
+  final int profileId;
+  final String category;
+  final double monthlyTarget;
+  const BudgetTarget({
+    required this.id,
+    required this.profileId,
+    required this.category,
+    required this.monthlyTarget,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['category'] = Variable<String>(category);
+    map['monthly_target'] = Variable<double>(monthlyTarget);
+    return map;
+  }
+
+  BudgetTargetsCompanion toCompanion(bool nullToAbsent) {
+    return BudgetTargetsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      category: Value(category),
+      monthlyTarget: Value(monthlyTarget),
+    );
+  }
+
+  factory BudgetTarget.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetTarget(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      category: serializer.fromJson<String>(json['category']),
+      monthlyTarget: serializer.fromJson<double>(json['monthlyTarget']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'category': serializer.toJson<String>(category),
+      'monthlyTarget': serializer.toJson<double>(monthlyTarget),
+    };
+  }
+
+  BudgetTarget copyWith({
+    int? id,
+    int? profileId,
+    String? category,
+    double? monthlyTarget,
+  }) => BudgetTarget(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    category: category ?? this.category,
+    monthlyTarget: monthlyTarget ?? this.monthlyTarget,
+  );
+  BudgetTarget copyWithCompanion(BudgetTargetsCompanion data) {
+    return BudgetTarget(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      category: data.category.present ? data.category.value : this.category,
+      monthlyTarget: data.monthlyTarget.present
+          ? data.monthlyTarget.value
+          : this.monthlyTarget,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetTarget(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('category: $category, ')
+          ..write('monthlyTarget: $monthlyTarget')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, profileId, category, monthlyTarget);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetTarget &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.category == this.category &&
+          other.monthlyTarget == this.monthlyTarget);
+}
+
+class BudgetTargetsCompanion extends UpdateCompanion<BudgetTarget> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<String> category;
+  final Value<double> monthlyTarget;
+  const BudgetTargetsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.monthlyTarget = const Value.absent(),
+  });
+  BudgetTargetsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required String category,
+    required double monthlyTarget,
+  }) : profileId = Value(profileId),
+       category = Value(category),
+       monthlyTarget = Value(monthlyTarget);
+  static Insertable<BudgetTarget> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? category,
+    Expression<double>? monthlyTarget,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (category != null) 'category': category,
+      if (monthlyTarget != null) 'monthly_target': monthlyTarget,
+    });
+  }
+
+  BudgetTargetsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<String>? category,
+    Value<double>? monthlyTarget,
+  }) {
+    return BudgetTargetsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      category: category ?? this.category,
+      monthlyTarget: monthlyTarget ?? this.monthlyTarget,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (monthlyTarget.present) {
+      map['monthly_target'] = Variable<double>(monthlyTarget.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetTargetsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('category: $category, ')
+          ..write('monthlyTarget: $monthlyTarget')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CategoryRulesTable extends CategoryRules
+    with TableInfo<$CategoryRulesTable, CategoryRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RuleField, String> field =
+      GeneratedColumn<String>(
+        'field',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<RuleField>($CategoryRulesTable.$converterfield);
+  static const VerificationMeta _patternMeta = const VerificationMeta(
+    'pattern',
+  );
+  @override
+  late final GeneratedColumn<String> pattern = GeneratedColumn<String>(
+    'pattern',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 128,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    field,
+    pattern,
+    category,
+    priority,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('pattern')) {
+      context.handle(
+        _patternMeta,
+        pattern.isAcceptableOrUnknown(data['pattern']!, _patternMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_patternMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CategoryRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryRule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      field: $CategoryRulesTable.$converterfield.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}field'],
+        )!,
+      ),
+      pattern: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pattern'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryRulesTable createAlias(String alias) {
+    return $CategoryRulesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<RuleField, String, String> $converterfield =
+      const EnumNameConverter<RuleField>(RuleField.values);
+}
+
+class CategoryRule extends DataClass implements Insertable<CategoryRule> {
+  final int id;
+  final int profileId;
+  final RuleField field;
+  final String pattern;
+  final String category;
+  final int priority;
+  const CategoryRule({
+    required this.id,
+    required this.profileId,
+    required this.field,
+    required this.pattern,
+    required this.category,
+    required this.priority,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    {
+      map['field'] = Variable<String>(
+        $CategoryRulesTable.$converterfield.toSql(field),
+      );
+    }
+    map['pattern'] = Variable<String>(pattern);
+    map['category'] = Variable<String>(category);
+    map['priority'] = Variable<int>(priority);
+    return map;
+  }
+
+  CategoryRulesCompanion toCompanion(bool nullToAbsent) {
+    return CategoryRulesCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      field: Value(field),
+      pattern: Value(pattern),
+      category: Value(category),
+      priority: Value(priority),
+    );
+  }
+
+  factory CategoryRule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryRule(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      field: $CategoryRulesTable.$converterfield.fromJson(
+        serializer.fromJson<String>(json['field']),
+      ),
+      pattern: serializer.fromJson<String>(json['pattern']),
+      category: serializer.fromJson<String>(json['category']),
+      priority: serializer.fromJson<int>(json['priority']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'field': serializer.toJson<String>(
+        $CategoryRulesTable.$converterfield.toJson(field),
+      ),
+      'pattern': serializer.toJson<String>(pattern),
+      'category': serializer.toJson<String>(category),
+      'priority': serializer.toJson<int>(priority),
+    };
+  }
+
+  CategoryRule copyWith({
+    int? id,
+    int? profileId,
+    RuleField? field,
+    String? pattern,
+    String? category,
+    int? priority,
+  }) => CategoryRule(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    field: field ?? this.field,
+    pattern: pattern ?? this.pattern,
+    category: category ?? this.category,
+    priority: priority ?? this.priority,
+  );
+  CategoryRule copyWithCompanion(CategoryRulesCompanion data) {
+    return CategoryRule(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      field: data.field.present ? data.field.value : this.field,
+      pattern: data.pattern.present ? data.pattern.value : this.pattern,
+      category: data.category.present ? data.category.value : this.category,
+      priority: data.priority.present ? data.priority.value : this.priority,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryRule(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('field: $field, ')
+          ..write('pattern: $pattern, ')
+          ..write('category: $category, ')
+          ..write('priority: $priority')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, profileId, field, pattern, category, priority);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryRule &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.field == this.field &&
+          other.pattern == this.pattern &&
+          other.category == this.category &&
+          other.priority == this.priority);
+}
+
+class CategoryRulesCompanion extends UpdateCompanion<CategoryRule> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<RuleField> field;
+  final Value<String> pattern;
+  final Value<String> category;
+  final Value<int> priority;
+  const CategoryRulesCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.field = const Value.absent(),
+    this.pattern = const Value.absent(),
+    this.category = const Value.absent(),
+    this.priority = const Value.absent(),
+  });
+  CategoryRulesCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required RuleField field,
+    required String pattern,
+    required String category,
+    this.priority = const Value.absent(),
+  }) : profileId = Value(profileId),
+       field = Value(field),
+       pattern = Value(pattern),
+       category = Value(category);
+  static Insertable<CategoryRule> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? field,
+    Expression<String>? pattern,
+    Expression<String>? category,
+    Expression<int>? priority,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (field != null) 'field': field,
+      if (pattern != null) 'pattern': pattern,
+      if (category != null) 'category': category,
+      if (priority != null) 'priority': priority,
+    });
+  }
+
+  CategoryRulesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<RuleField>? field,
+    Value<String>? pattern,
+    Value<String>? category,
+    Value<int>? priority,
+  }) {
+    return CategoryRulesCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      field: field ?? this.field,
+      pattern: pattern ?? this.pattern,
+      category: category ?? this.category,
+      priority: priority ?? this.priority,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (field.present) {
+      map['field'] = Variable<String>(
+        $CategoryRulesTable.$converterfield.toSql(field.value),
+      );
+    }
+    if (pattern.present) {
+      map['pattern'] = Variable<String>(pattern.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryRulesCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('field: $field, ')
+          ..write('pattern: $pattern, ')
+          ..write('category: $category, ')
+          ..write('priority: $priority')
           ..write(')'))
         .toString();
   }
@@ -2707,6 +3496,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CreditScoreSnapshotsTable creditScoreSnapshots =
       $CreditScoreSnapshotsTable(this);
   late final $BudgetEntriesTable budgetEntries = $BudgetEntriesTable(this);
+  late final $BudgetTargetsTable budgetTargets = $BudgetTargetsTable(this);
+  late final $CategoryRulesTable categoryRules = $CategoryRulesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2718,6 +3509,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     bills,
     creditScoreSnapshots,
     budgetEntries,
+    budgetTargets,
+    categoryRules,
   ];
 }
 
@@ -2832,6 +3625,42 @@ final class $$ProfilesTableReferences
     ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_budgetEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$BudgetTargetsTable, List<BudgetTarget>>
+  _budgetTargetsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.budgetTargets,
+    aliasName: 'profiles__id__budget_targets__profile_id',
+  );
+
+  $$BudgetTargetsTableProcessedTableManager get budgetTargetsRefs {
+    final manager = $$BudgetTargetsTableTableManager(
+      $_db,
+      $_db.budgetTargets,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_budgetTargetsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$CategoryRulesTable, List<CategoryRule>>
+  _categoryRulesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.categoryRules,
+    aliasName: 'profiles__id__category_rules__profile_id',
+  );
+
+  $$CategoryRulesTableProcessedTableManager get categoryRulesRefs {
+    final manager = $$CategoryRulesTableTableManager(
+      $_db,
+      $_db.categoryRules,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_categoryRulesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2983,6 +3812,56 @@ class $$ProfilesTableFilterComposer
           }) => $$BudgetEntriesTableFilterComposer(
             $db: $db,
             $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> budgetTargetsRefs(
+    Expression<bool> Function($$BudgetTargetsTableFilterComposer f) f,
+  ) {
+    final $$BudgetTargetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetTargets,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetTargetsTableFilterComposer(
+            $db: $db,
+            $table: $db.budgetTargets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> categoryRulesRefs(
+    Expression<bool> Function($$CategoryRulesTableFilterComposer f) f,
+  ) {
+    final $$CategoryRulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categoryRules,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoryRulesTableFilterComposer(
+            $db: $db,
+            $table: $db.categoryRules,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3169,6 +4048,56 @@ class $$ProfilesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> budgetTargetsRefs<T extends Object>(
+    Expression<T> Function($$BudgetTargetsTableAnnotationComposer a) f,
+  ) {
+    final $$BudgetTargetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetTargets,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetTargetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.budgetTargets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> categoryRulesRefs<T extends Object>(
+    Expression<T> Function($$CategoryRulesTableAnnotationComposer a) f,
+  ) {
+    final $$CategoryRulesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categoryRules,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoryRulesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categoryRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ProfilesTableTableManager
@@ -3190,6 +4119,8 @@ class $$ProfilesTableTableManager
             bool billsRefs,
             bool creditScoreSnapshotsRefs,
             bool budgetEntriesRefs,
+            bool budgetTargetsRefs,
+            bool categoryRulesRefs,
           })
         > {
   $$ProfilesTableTableManager(_$AppDatabase db, $ProfilesTable table)
@@ -3242,6 +4173,8 @@ class $$ProfilesTableTableManager
                 billsRefs = false,
                 creditScoreSnapshotsRefs = false,
                 budgetEntriesRefs = false,
+                budgetTargetsRefs = false,
+                categoryRulesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -3251,6 +4184,8 @@ class $$ProfilesTableTableManager
                     if (billsRefs) db.bills,
                     if (creditScoreSnapshotsRefs) db.creditScoreSnapshots,
                     if (budgetEntriesRefs) db.budgetEntries,
+                    if (budgetTargetsRefs) db.budgetTargets,
+                    if (categoryRulesRefs) db.categoryRules,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -3360,6 +4295,48 @@ class $$ProfilesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (budgetTargetsRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          BudgetTarget
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._budgetTargetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).budgetTargetsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (categoryRulesRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          CategoryRule
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._categoryRulesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).categoryRulesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3386,6 +4363,8 @@ typedef $$ProfilesTableProcessedTableManager =
         bool billsRefs,
         bool creditScoreSnapshotsRefs,
         bool budgetEntriesRefs,
+        bool budgetTargetsRefs,
+        bool categoryRulesRefs,
       })
     >;
 typedef $$CreditCardsTableCreateCompanionBuilder =
@@ -4868,6 +5847,7 @@ typedef $$BudgetEntriesTableCreateCompanionBuilder =
       Value<String> category,
       required double amount,
       required EntryType type,
+      Value<String?> description,
     });
 typedef $$BudgetEntriesTableUpdateCompanionBuilder =
     BudgetEntriesCompanion Function({
@@ -4877,6 +5857,7 @@ typedef $$BudgetEntriesTableUpdateCompanionBuilder =
       Value<String> category,
       Value<double> amount,
       Value<EntryType> type,
+      Value<String?> description,
     });
 
 final class $$BudgetEntriesTableReferences
@@ -4940,6 +5921,11 @@ class $$BudgetEntriesTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ProfilesTableFilterComposer get profileId {
     final $$ProfilesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -4998,6 +5984,11 @@ class $$BudgetEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProfilesTableOrderingComposer get profileId {
     final $$ProfilesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5045,6 +6036,11 @@ class $$BudgetEntriesTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<EntryType, String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   $$ProfilesTableAnnotationComposer get profileId {
     final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
@@ -5104,6 +6100,7 @@ class $$BudgetEntriesTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<EntryType> type = const Value.absent(),
+                Value<String?> description = const Value.absent(),
               }) => BudgetEntriesCompanion(
                 id: id,
                 profileId: profileId,
@@ -5111,6 +6108,7 @@ class $$BudgetEntriesTableTableManager
                 category: category,
                 amount: amount,
                 type: type,
+                description: description,
               ),
           createCompanionCallback:
               ({
@@ -5120,6 +6118,7 @@ class $$BudgetEntriesTableTableManager
                 Value<String> category = const Value.absent(),
                 required double amount,
                 required EntryType type,
+                Value<String?> description = const Value.absent(),
               }) => BudgetEntriesCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -5127,6 +6126,7 @@ class $$BudgetEntriesTableTableManager
                 category: category,
                 amount: amount,
                 type: type,
+                description: description,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -5193,6 +6193,635 @@ typedef $$BudgetEntriesTableProcessedTableManager =
       BudgetEntry,
       PrefetchHooks Function({bool profileId})
     >;
+typedef $$BudgetTargetsTableCreateCompanionBuilder =
+    BudgetTargetsCompanion Function({
+      Value<int> id,
+      required int profileId,
+      required String category,
+      required double monthlyTarget,
+    });
+typedef $$BudgetTargetsTableUpdateCompanionBuilder =
+    BudgetTargetsCompanion Function({
+      Value<int> id,
+      Value<int> profileId,
+      Value<String> category,
+      Value<double> monthlyTarget,
+    });
+
+final class $$BudgetTargetsTableReferences
+    extends BaseReferences<_$AppDatabase, $BudgetTargetsTable, BudgetTarget> {
+  $$BudgetTargetsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('budget_targets__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BudgetTargetsTableFilterComposer
+    extends Composer<_$AppDatabase, $BudgetTargetsTable> {
+  $$BudgetTargetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get monthlyTarget => $composableBuilder(
+    column: $table.monthlyTarget,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BudgetTargetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BudgetTargetsTable> {
+  $$BudgetTargetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get monthlyTarget => $composableBuilder(
+    column: $table.monthlyTarget,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BudgetTargetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BudgetTargetsTable> {
+  $$BudgetTargetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<double> get monthlyTarget => $composableBuilder(
+    column: $table.monthlyTarget,
+    builder: (column) => column,
+  );
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BudgetTargetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BudgetTargetsTable,
+          BudgetTarget,
+          $$BudgetTargetsTableFilterComposer,
+          $$BudgetTargetsTableOrderingComposer,
+          $$BudgetTargetsTableAnnotationComposer,
+          $$BudgetTargetsTableCreateCompanionBuilder,
+          $$BudgetTargetsTableUpdateCompanionBuilder,
+          (BudgetTarget, $$BudgetTargetsTableReferences),
+          BudgetTarget,
+          PrefetchHooks Function({bool profileId})
+        > {
+  $$BudgetTargetsTableTableManager(_$AppDatabase db, $BudgetTargetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetTargetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BudgetTargetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BudgetTargetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<double> monthlyTarget = const Value.absent(),
+              }) => BudgetTargetsCompanion(
+                id: id,
+                profileId: profileId,
+                category: category,
+                monthlyTarget: monthlyTarget,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required String category,
+                required double monthlyTarget,
+              }) => BudgetTargetsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                category: category,
+                monthlyTarget: monthlyTarget,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BudgetTargetsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$BudgetTargetsTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$BudgetTargetsTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BudgetTargetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BudgetTargetsTable,
+      BudgetTarget,
+      $$BudgetTargetsTableFilterComposer,
+      $$BudgetTargetsTableOrderingComposer,
+      $$BudgetTargetsTableAnnotationComposer,
+      $$BudgetTargetsTableCreateCompanionBuilder,
+      $$BudgetTargetsTableUpdateCompanionBuilder,
+      (BudgetTarget, $$BudgetTargetsTableReferences),
+      BudgetTarget,
+      PrefetchHooks Function({bool profileId})
+    >;
+typedef $$CategoryRulesTableCreateCompanionBuilder =
+    CategoryRulesCompanion Function({
+      Value<int> id,
+      required int profileId,
+      required RuleField field,
+      required String pattern,
+      required String category,
+      Value<int> priority,
+    });
+typedef $$CategoryRulesTableUpdateCompanionBuilder =
+    CategoryRulesCompanion Function({
+      Value<int> id,
+      Value<int> profileId,
+      Value<RuleField> field,
+      Value<String> pattern,
+      Value<String> category,
+      Value<int> priority,
+    });
+
+final class $$CategoryRulesTableReferences
+    extends BaseReferences<_$AppDatabase, $CategoryRulesTable, CategoryRule> {
+  $$CategoryRulesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('category_rules__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CategoryRulesTableFilterComposer
+    extends Composer<_$AppDatabase, $CategoryRulesTable> {
+  $$CategoryRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<RuleField, RuleField, String> get field =>
+      $composableBuilder(
+        column: $table.field,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get pattern => $composableBuilder(
+    column: $table.pattern,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryRulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CategoryRulesTable> {
+  $$CategoryRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get field => $composableBuilder(
+    column: $table.field,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pattern => $composableBuilder(
+    column: $table.pattern,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryRulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CategoryRulesTable> {
+  $$CategoryRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<RuleField, String> get field =>
+      $composableBuilder(column: $table.field, builder: (column) => column);
+
+  GeneratedColumn<String> get pattern =>
+      $composableBuilder(column: $table.pattern, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryRulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CategoryRulesTable,
+          CategoryRule,
+          $$CategoryRulesTableFilterComposer,
+          $$CategoryRulesTableOrderingComposer,
+          $$CategoryRulesTableAnnotationComposer,
+          $$CategoryRulesTableCreateCompanionBuilder,
+          $$CategoryRulesTableUpdateCompanionBuilder,
+          (CategoryRule, $$CategoryRulesTableReferences),
+          CategoryRule,
+          PrefetchHooks Function({bool profileId})
+        > {
+  $$CategoryRulesTableTableManager(_$AppDatabase db, $CategoryRulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoryRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CategoryRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CategoryRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<RuleField> field = const Value.absent(),
+                Value<String> pattern = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+              }) => CategoryRulesCompanion(
+                id: id,
+                profileId: profileId,
+                field: field,
+                pattern: pattern,
+                category: category,
+                priority: priority,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required RuleField field,
+                required String pattern,
+                required String category,
+                Value<int> priority = const Value.absent(),
+              }) => CategoryRulesCompanion.insert(
+                id: id,
+                profileId: profileId,
+                field: field,
+                pattern: pattern,
+                category: category,
+                priority: priority,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CategoryRulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$CategoryRulesTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$CategoryRulesTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CategoryRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CategoryRulesTable,
+      CategoryRule,
+      $$CategoryRulesTableFilterComposer,
+      $$CategoryRulesTableOrderingComposer,
+      $$CategoryRulesTableAnnotationComposer,
+      $$CategoryRulesTableCreateCompanionBuilder,
+      $$CategoryRulesTableUpdateCompanionBuilder,
+      (CategoryRule, $$CategoryRulesTableReferences),
+      CategoryRule,
+      PrefetchHooks Function({bool profileId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5209,4 +6838,8 @@ class $AppDatabaseManager {
       $$CreditScoreSnapshotsTableTableManager(_db, _db.creditScoreSnapshots);
   $$BudgetEntriesTableTableManager get budgetEntries =>
       $$BudgetEntriesTableTableManager(_db, _db.budgetEntries);
+  $$BudgetTargetsTableTableManager get budgetTargets =>
+      $$BudgetTargetsTableTableManager(_db, _db.budgetTargets);
+  $$CategoryRulesTableTableManager get categoryRules =>
+      $$CategoryRulesTableTableManager(_db, _db.categoryRules);
 }

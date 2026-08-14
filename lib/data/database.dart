@@ -68,6 +68,35 @@ class BudgetEntries extends Table {
   TextColumn get category => text().withDefault(const Constant('Other'))();
   RealColumn get amount => real()();
   TextColumn get type => textEnum<EntryType>()();
+  TextColumn get description => text().nullable()(); // matched by CategoryRules
+}
+
+/// Per-category monthly spending target for the budget screen.
+class BudgetTargets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get category => text().withLength(min: 1, max: 64)();
+  RealColumn get monthlyTarget => real()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {profileId, category},
+      ];
+}
+
+/// What part of a budget entry a categorization rule matches against.
+enum RuleField { description, amount }
+
+/// Auto-categorization: when a new entry's [field] matches [pattern]
+/// (case-insensitive substring for description, exact value for amount),
+/// assign [category]. First match by [priority] wins.
+class CategoryRules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get field => textEnum<RuleField>()();
+  TextColumn get pattern => text().withLength(min: 1, max: 128)();
+  TextColumn get category => text().withLength(min: 1, max: 64)();
+  IntColumn get priority => integer().withDefault(const Constant(0))();
 }
 
 @DriftDatabase(tables: [
@@ -77,9 +106,13 @@ class BudgetEntries extends Table {
   Bills,
   CreditScoreSnapshots,
   BudgetEntries,
+  BudgetTargets,
+  CategoryRules,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  /// [passphrase] is the master key entered at launch; the whole DB file is
+  /// encrypted at rest with SQLCipher. Wrong passphrase fails on first query.
+  AppDatabase(String passphrase) : super(_openConnection(passphrase));
   AppDatabase.forTesting(super.e);
 
   @override
@@ -92,11 +125,19 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
-  static LazyDatabase _openConnection() {
+  static LazyDatabase _openConnection(String passphrase) {
     return LazyDatabase(() async {
       final dir = await getApplicationSupportDirectory();
       final file = File(p.join(dir.path, 'homebase.sqlite'));
-      return NativeDatabase.createInBackground(file);
+      // SQLCipher is compiled in via the pubspec hook
+      // (hooks -> user_defines -> sqlite3 -> source: sqlcipher).
+      return NativeDatabase.createInBackground(
+        file,
+        setup: (db) {
+          final escaped = passphrase.replaceAll("'", "''");
+          db.execute("PRAGMA key = '$escaped'");
+        },
+      );
     });
   }
 }

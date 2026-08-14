@@ -5,8 +5,16 @@ import 'data/database.dart';
 import 'data/repository.dart';
 import 'theme/catppuccin.dart';
 
+/// Master passphrase entered on the unlock screen (Step 4). The database
+/// provider stays unusable until it's set.
+final masterPassphraseProvider = StateProvider<String?>((ref) => null);
+
 final databaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
+  final passphrase = ref.watch(masterPassphraseProvider);
+  if (passphrase == null) {
+    throw StateError('Database accessed before unlock');
+  }
+  final db = AppDatabase(passphrase);
   ref.onDispose(db.close);
   return db;
 });

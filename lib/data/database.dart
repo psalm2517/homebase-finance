@@ -99,6 +99,28 @@ class CategoryRules extends Table {
   IntColumn get priority => integer().withDefault(const Constant(0))();
 }
 
+/// An expected or received paycheck to plan against.
+class Paychecks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 64)();
+  DateTimeColumn get date => dateTime()();
+  IntColumn get amountCents => integer()();
+  BoolColumn get received => boolean().withDefault(const Constant(false))();
+}
+
+/// "From this paycheck, [amountCents] goes to [target]" — e.g. Savings, Rent.
+/// Optionally linked to a Bill so paying it can mark the bill paid.
+class PaycheckAllocations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  IntColumn get paycheckId =>
+      integer().references(Paychecks, #id, onDelete: KeyAction.cascade)();
+  TextColumn get target => text().withLength(min: 1, max: 64)();
+  IntColumn get amountCents => integer()();
+  IntColumn get billId => integer().nullable().references(Bills, #id)();
+}
+
 @DriftDatabase(tables: [
   Profiles,
   CreditCards,
@@ -108,6 +130,8 @@ class CategoryRules extends Table {
   BudgetEntries,
   BudgetTargets,
   CategoryRules,
+  Paychecks,
+  PaycheckAllocations,
 ])
 class AppDatabase extends _$AppDatabase {
   /// [passphrase] is the master key entered at launch; the whole DB file is

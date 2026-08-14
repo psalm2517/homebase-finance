@@ -183,4 +183,37 @@ class HomebaseRepository {
     }
     return null;
   }
+
+  // ---- Paycheck planning ----
+
+  Stream<List<Paycheck>> watchPaychecks({required int profileId}) =>
+      (_db.select(_db.paychecks)
+            ..where((p) => p.profileId.equals(profileId))
+            ..orderBy([(p) => OrderingTerm.desc(p.date)]))
+          .watch();
+
+  Future<int> upsertPaycheck(PaychecksCompanion entry) =>
+      _db.into(_db.paychecks).insertOnConflictUpdate(entry);
+
+  /// Deleting a paycheck cascades to its allocations.
+  Future<int> deletePaycheck({required int profileId, required int id}) =>
+      (_db.delete(_db.paychecks)
+            ..where((p) => p.profileId.equals(profileId) & p.id.equals(id)))
+          .go();
+
+  Stream<List<PaycheckAllocation>> watchAllocations(
+          {required int profileId, required int paycheckId}) =>
+      (_db.select(_db.paycheckAllocations)
+            ..where((a) =>
+                a.profileId.equals(profileId) &
+                a.paycheckId.equals(paycheckId)))
+          .watch();
+
+  Future<int> upsertAllocation(PaycheckAllocationsCompanion entry) =>
+      _db.into(_db.paycheckAllocations).insertOnConflictUpdate(entry);
+
+  Future<int> deleteAllocation({required int profileId, required int id}) =>
+      (_db.delete(_db.paycheckAllocations)
+            ..where((a) => a.profileId.equals(profileId) & a.id.equals(id)))
+          .go();
 }

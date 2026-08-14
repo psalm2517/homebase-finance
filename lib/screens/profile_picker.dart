@@ -24,15 +24,6 @@ class ProfilePickerScreen extends ConsumerWidget {
           }
           final profiles = snapshot.data!;
           if (profiles.isEmpty) return const _FirstRunSetup();
-          // A device with a single PIN-less profile has nothing to choose:
-          // go straight into that profile's data.
-          if (profiles.length == 1 && profiles.single.pinHash == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref.read(loggedInProfileProvider.notifier).state =
-                  profiles.single;
-            });
-            return const Center(child: CircularProgressIndicator());
-          }
           return _Picker(profiles: profiles);
         },
       ),
@@ -65,7 +56,6 @@ class _Picker extends ConsumerWidget {
             controller: controller,
             obscureText: true,
             autofocus: true,
-            keyboardType: TextInputType.number,
             decoration:
                 InputDecoration(labelText: 'PIN', errorText: error),
             onSubmitted: (_) {

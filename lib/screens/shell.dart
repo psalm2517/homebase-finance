@@ -59,8 +59,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         actions: [
           if (loggedIn.isAdmin) _ProfileSwitcher(active: active),
           IconButton(
-            tooltip:
-                mode == ThemeMode.dark ? 'Switch to Latte' : 'Switch to Mocha',
+            tooltip: mode == ThemeMode.dark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode',
             icon: Icon(mode == ThemeMode.dark
                 ? Icons.light_mode_outlined
                 : Icons.dark_mode_outlined),

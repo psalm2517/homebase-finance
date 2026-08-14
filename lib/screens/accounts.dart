@@ -25,6 +25,23 @@ String accountLabel(AccountType type) => switch (type) {
       AccountType.other => 'Other',
     };
 
+/// Plain-language guide to picking a type. The split that matters is tax
+/// treatment: retirement accounts are tax-advantaged and penalized for early
+/// withdrawal, investment accounts are ordinary taxable brokerages.
+String accountHint(AccountType type) => switch (type) {
+      AccountType.checking => 'Everyday spending account at a bank.',
+      AccountType.savings =>
+        'Savings, money market or high-yield savings account.',
+      AccountType.cash => 'Physical cash, or an app balance like Venmo.',
+      AccountType.investment =>
+        'Taxable brokerage you can withdraw from anytime — '
+            'individual or joint brokerage, crypto.',
+      AccountType.retirement =>
+        'Tax-advantaged and penalized before age 59½ — '
+            '401(k), 403(b), Roth IRA, Traditional IRA, HSA.',
+      AccountType.other => 'Anything else you count as an asset.',
+    };
+
 class AccountsScreen extends ConsumerWidget {
   const AccountsScreen({super.key});
 
@@ -164,8 +181,11 @@ class AccountsScreen extends ConsumerWidget {
               DialogField(institution, 'Institution (optional)'),
               DropdownButtonFormField<AccountType>(
                 initialValue: type,
-                decoration: const InputDecoration(
-                    labelText: 'Type', border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                    labelText: 'Type',
+                    helperText: accountHint(type),
+                    helperMaxLines: 3,
+                    border: const OutlineInputBorder()),
                 items: [
                   for (final t in AccountType.values)
                     DropdownMenuItem(

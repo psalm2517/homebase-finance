@@ -306,6 +306,422 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
   }
 }
 
+class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _institutionMeta = const VerificationMeta(
+    'institution',
+  );
+  @override
+  late final GeneratedColumn<String> institution = GeneratedColumn<String>(
+    'institution',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AccountType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<AccountType>($AccountsTable.$convertertype);
+  static const VerificationMeta _balanceCentsMeta = const VerificationMeta(
+    'balanceCents',
+  );
+  @override
+  late final GeneratedColumn<int> balanceCents = GeneratedColumn<int>(
+    'balance_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    name,
+    institution,
+    type,
+    balanceCents,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Account> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('institution')) {
+      context.handle(
+        _institutionMeta,
+        institution.isAcceptableOrUnknown(
+          data['institution']!,
+          _institutionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('balance_cents')) {
+      context.handle(
+        _balanceCentsMeta,
+        balanceCents.isAcceptableOrUnknown(
+          data['balance_cents']!,
+          _balanceCentsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Account map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Account(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      institution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}institution'],
+      ),
+      type: $AccountsTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      balanceCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}balance_cents'],
+      )!,
+    );
+  }
+
+  @override
+  $AccountsTable createAlias(String alias) {
+    return $AccountsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AccountType, String, String> $convertertype =
+      const EnumNameConverter<AccountType>(AccountType.values);
+}
+
+class Account extends DataClass implements Insertable<Account> {
+  final int id;
+  final int profileId;
+  final String name;
+  final String? institution;
+  final AccountType type;
+  final int balanceCents;
+  const Account({
+    required this.id,
+    required this.profileId,
+    required this.name,
+    this.institution,
+    required this.type,
+    required this.balanceCents,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || institution != null) {
+      map['institution'] = Variable<String>(institution);
+    }
+    {
+      map['type'] = Variable<String>($AccountsTable.$convertertype.toSql(type));
+    }
+    map['balance_cents'] = Variable<int>(balanceCents);
+    return map;
+  }
+
+  AccountsCompanion toCompanion(bool nullToAbsent) {
+    return AccountsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      name: Value(name),
+      institution: institution == null && nullToAbsent
+          ? const Value.absent()
+          : Value(institution),
+      type: Value(type),
+      balanceCents: Value(balanceCents),
+    );
+  }
+
+  factory Account.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Account(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      name: serializer.fromJson<String>(json['name']),
+      institution: serializer.fromJson<String?>(json['institution']),
+      type: $AccountsTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      balanceCents: serializer.fromJson<int>(json['balanceCents']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'name': serializer.toJson<String>(name),
+      'institution': serializer.toJson<String?>(institution),
+      'type': serializer.toJson<String>(
+        $AccountsTable.$convertertype.toJson(type),
+      ),
+      'balanceCents': serializer.toJson<int>(balanceCents),
+    };
+  }
+
+  Account copyWith({
+    int? id,
+    int? profileId,
+    String? name,
+    Value<String?> institution = const Value.absent(),
+    AccountType? type,
+    int? balanceCents,
+  }) => Account(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    name: name ?? this.name,
+    institution: institution.present ? institution.value : this.institution,
+    type: type ?? this.type,
+    balanceCents: balanceCents ?? this.balanceCents,
+  );
+  Account copyWithCompanion(AccountsCompanion data) {
+    return Account(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      name: data.name.present ? data.name.value : this.name,
+      institution: data.institution.present
+          ? data.institution.value
+          : this.institution,
+      type: data.type.present ? data.type.value : this.type,
+      balanceCents: data.balanceCents.present
+          ? data.balanceCents.value
+          : this.balanceCents,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Account(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('name: $name, ')
+          ..write('institution: $institution, ')
+          ..write('type: $type, ')
+          ..write('balanceCents: $balanceCents')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, profileId, name, institution, type, balanceCents);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Account &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.name == this.name &&
+          other.institution == this.institution &&
+          other.type == this.type &&
+          other.balanceCents == this.balanceCents);
+}
+
+class AccountsCompanion extends UpdateCompanion<Account> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<String> name;
+  final Value<String?> institution;
+  final Value<AccountType> type;
+  final Value<int> balanceCents;
+  const AccountsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.institution = const Value.absent(),
+    this.type = const Value.absent(),
+    this.balanceCents = const Value.absent(),
+  });
+  AccountsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required String name,
+    this.institution = const Value.absent(),
+    required AccountType type,
+    this.balanceCents = const Value.absent(),
+  }) : profileId = Value(profileId),
+       name = Value(name),
+       type = Value(type);
+  static Insertable<Account> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? name,
+    Expression<String>? institution,
+    Expression<String>? type,
+    Expression<int>? balanceCents,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (name != null) 'name': name,
+      if (institution != null) 'institution': institution,
+      if (type != null) 'type': type,
+      if (balanceCents != null) 'balance_cents': balanceCents,
+    });
+  }
+
+  AccountsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<String>? name,
+    Value<String?>? institution,
+    Value<AccountType>? type,
+    Value<int>? balanceCents,
+  }) {
+    return AccountsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      name: name ?? this.name,
+      institution: institution ?? this.institution,
+      type: type ?? this.type,
+      balanceCents: balanceCents ?? this.balanceCents,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (institution.present) {
+      map['institution'] = Variable<String>(institution.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $AccountsTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (balanceCents.present) {
+      map['balance_cents'] = Variable<int>(balanceCents.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('name: $name, ')
+          ..write('institution: $institution, ')
+          ..write('type: $type, ')
+          ..write('balanceCents: $balanceCents')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CreditCardsTable extends CreditCards
     with TableInfo<$CreditCardsTable, CreditCard> {
   @override
@@ -2410,6 +2826,20 @@ class $BudgetEntriesTable extends BudgetEntries
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id)',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2419,6 +2849,7 @@ class $BudgetEntriesTable extends BudgetEntries
     amountCents,
     type,
     description,
+    accountId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2477,6 +2908,12 @@ class $BudgetEntriesTable extends BudgetEntries
         ),
       );
     }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
     return context;
   }
 
@@ -2516,6 +2953,10 @@ class $BudgetEntriesTable extends BudgetEntries
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      ),
     );
   }
 
@@ -2536,6 +2977,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
   final int amountCents;
   final EntryType type;
   final String? description;
+
+  /// Which account the money moved through, when known.
+  final int? accountId;
   const BudgetEntry({
     required this.id,
     required this.profileId,
@@ -2544,6 +2988,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     required this.amountCents,
     required this.type,
     this.description,
+    this.accountId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2561,6 +3006,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<int>(accountId);
+    }
     return map;
   }
 
@@ -2575,6 +3023,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
     );
   }
 
@@ -2593,6 +3044,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
         serializer.fromJson<String>(json['type']),
       ),
       description: serializer.fromJson<String?>(json['description']),
+      accountId: serializer.fromJson<int?>(json['accountId']),
     );
   }
   @override
@@ -2608,6 +3060,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
         $BudgetEntriesTable.$convertertype.toJson(type),
       ),
       'description': serializer.toJson<String?>(description),
+      'accountId': serializer.toJson<int?>(accountId),
     };
   }
 
@@ -2619,6 +3072,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     int? amountCents,
     EntryType? type,
     Value<String?> description = const Value.absent(),
+    Value<int?> accountId = const Value.absent(),
   }) => BudgetEntry(
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
@@ -2627,6 +3081,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     amountCents: amountCents ?? this.amountCents,
     type: type ?? this.type,
     description: description.present ? description.value : this.description,
+    accountId: accountId.present ? accountId.value : this.accountId,
   );
   BudgetEntry copyWithCompanion(BudgetEntriesCompanion data) {
     return BudgetEntry(
@@ -2641,6 +3096,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
     );
   }
 
@@ -2653,7 +3109,8 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
           ..write('category: $category, ')
           ..write('amountCents: $amountCents, ')
           ..write('type: $type, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('accountId: $accountId')
           ..write(')'))
         .toString();
   }
@@ -2667,6 +3124,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     amountCents,
     type,
     description,
+    accountId,
   );
   @override
   bool operator ==(Object other) =>
@@ -2678,7 +3136,8 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
           other.category == this.category &&
           other.amountCents == this.amountCents &&
           other.type == this.type &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.accountId == this.accountId);
 }
 
 class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
@@ -2689,6 +3148,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
   final Value<int> amountCents;
   final Value<EntryType> type;
   final Value<String?> description;
+  final Value<int?> accountId;
   const BudgetEntriesCompanion({
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
@@ -2697,6 +3157,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     this.amountCents = const Value.absent(),
     this.type = const Value.absent(),
     this.description = const Value.absent(),
+    this.accountId = const Value.absent(),
   });
   BudgetEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -2706,6 +3167,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     required int amountCents,
     required EntryType type,
     this.description = const Value.absent(),
+    this.accountId = const Value.absent(),
   }) : profileId = Value(profileId),
        date = Value(date),
        amountCents = Value(amountCents),
@@ -2718,6 +3180,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     Expression<int>? amountCents,
     Expression<String>? type,
     Expression<String>? description,
+    Expression<int>? accountId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2727,6 +3190,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
       if (amountCents != null) 'amount_cents': amountCents,
       if (type != null) 'type': type,
       if (description != null) 'description': description,
+      if (accountId != null) 'account_id': accountId,
     });
   }
 
@@ -2738,6 +3202,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     Value<int>? amountCents,
     Value<EntryType>? type,
     Value<String?>? description,
+    Value<int?>? accountId,
   }) {
     return BudgetEntriesCompanion(
       id: id ?? this.id,
@@ -2747,6 +3212,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
       amountCents: amountCents ?? this.amountCents,
       type: type ?? this.type,
       description: description ?? this.description,
+      accountId: accountId ?? this.accountId,
     );
   }
 
@@ -2776,6 +3242,9 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
     return map;
   }
 
@@ -2788,7 +3257,8 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
           ..write('category: $category, ')
           ..write('amountCents: $amountCents, ')
           ..write('type: $type, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('accountId: $accountId')
           ..write(')'))
         .toString();
   }
@@ -4943,6 +5413,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ProfilesTable profiles = $ProfilesTable(this);
+  late final $AccountsTable accounts = $AccountsTable(this);
   late final $CreditCardsTable creditCards = $CreditCardsTable(this);
   late final $LoansTable loans = $LoansTable(this);
   late final $BillsTable bills = $BillsTable(this);
@@ -4962,6 +5433,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     profiles,
+    accounts,
     creditCards,
     loans,
     bills,
@@ -5001,6 +5473,25 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
 final class $$ProfilesTableReferences
     extends BaseReferences<_$AppDatabase, $ProfilesTable, Profile> {
   $$ProfilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$AccountsTable, List<Account>> _accountsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.accounts,
+    aliasName: 'profiles__id__accounts__profile_id',
+  );
+
+  $$AccountsTableProcessedTableManager get accountsRefs {
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_accountsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 
   static MultiTypedResultKey<$CreditCardsTable, List<CreditCard>>
   _creditCardsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -5229,6 +5720,31 @@ class $$ProfilesTableFilterComposer
     column: $table.isAdmin,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> accountsRefs(
+    Expression<bool> Function($$AccountsTableFilterComposer f) f,
+  ) {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> creditCardsRefs(
     Expression<bool> Function($$CreditCardsTableFilterComposer f) f,
@@ -5532,6 +6048,31 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<bool> get isAdmin =>
       $composableBuilder(column: $table.isAdmin, builder: (column) => column);
 
+  Expression<T> accountsRefs<T extends Object>(
+    Expression<T> Function($$AccountsTableAnnotationComposer a) f,
+  ) {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> creditCardsRefs<T extends Object>(
     Expression<T> Function($$CreditCardsTableAnnotationComposer a) f,
   ) {
@@ -5800,6 +6341,7 @@ class $$ProfilesTableTableManager
           (Profile, $$ProfilesTableReferences),
           Profile,
           PrefetchHooks Function({
+            bool accountsRefs,
             bool creditCardsRefs,
             bool loansRefs,
             bool billsRefs,
@@ -5857,6 +6399,7 @@ class $$ProfilesTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                accountsRefs = false,
                 creditCardsRefs = false,
                 loansRefs = false,
                 billsRefs = false,
@@ -5871,6 +6414,7 @@ class $$ProfilesTableTableManager
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (accountsRefs) db.accounts,
                     if (creditCardsRefs) db.creditCards,
                     if (loansRefs) db.loans,
                     if (billsRefs) db.bills,
@@ -5885,6 +6429,27 @@ class $$ProfilesTableTableManager
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (accountsRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          Account
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._accountsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).accountsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (creditCardsRefs)
                         await $_getPrefetchedData<
                           Profile,
@@ -6116,6 +6681,7 @@ typedef $$ProfilesTableProcessedTableManager =
       (Profile, $$ProfilesTableReferences),
       Profile,
       PrefetchHooks Function({
+        bool accountsRefs,
         bool creditCardsRefs,
         bool loansRefs,
         bool billsRefs,
@@ -6127,6 +6693,430 @@ typedef $$ProfilesTableProcessedTableManager =
         bool paychecksRefs,
         bool paycheckAllocationsRefs,
       })
+    >;
+typedef $$AccountsTableCreateCompanionBuilder = AccountsCompanion Function({
+  Value<int> id,
+  required int profileId,
+  required String name,
+  Value<String?> institution,
+  required AccountType type,
+  Value<int> balanceCents,
+});
+typedef $$AccountsTableUpdateCompanionBuilder = AccountsCompanion Function({
+  Value<int> id,
+  Value<int> profileId,
+  Value<String> name,
+  Value<String?> institution,
+  Value<AccountType> type,
+  Value<int> balanceCents,
+});
+
+final class $$AccountsTableReferences
+    extends BaseReferences<_$AppDatabase, $AccountsTable, Account> {
+  $$AccountsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('accounts__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$BudgetEntriesTable, List<BudgetEntry>>
+  _budgetEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.budgetEntries,
+    aliasName: 'accounts__id__budget_entries__account_id',
+  );
+
+  $$BudgetEntriesTableProcessedTableManager get budgetEntriesRefs {
+    final manager = $$BudgetEntriesTableTableManager(
+      $_db,
+      $_db.budgetEntries,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_budgetEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$AccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $AccountsTable> {
+  $$AccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get institution => $composableBuilder(
+    column: $table.institution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AccountType, AccountType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get balanceCents => $composableBuilder(
+    column: $table.balanceCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> budgetEntriesRefs(
+    Expression<bool> Function($$BudgetEntriesTableFilterComposer f) f,
+  ) {
+    final $$BudgetEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetEntries,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$AccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AccountsTable> {
+  $$AccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get institution => $composableBuilder(
+    column: $table.institution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get balanceCents => $composableBuilder(
+    column: $table.balanceCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AccountsTable> {
+  $$AccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get institution => $composableBuilder(
+    column: $table.institution,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<AccountType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<int> get balanceCents => $composableBuilder(
+    column: $table.balanceCents,
+    builder: (column) => column,
+  );
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> budgetEntriesRefs<T extends Object>(
+    Expression<T> Function($$BudgetEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$BudgetEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetEntries,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$AccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AccountsTable,
+          Account,
+          $$AccountsTableFilterComposer,
+          $$AccountsTableOrderingComposer,
+          $$AccountsTableAnnotationComposer,
+          $$AccountsTableCreateCompanionBuilder,
+          $$AccountsTableUpdateCompanionBuilder,
+          (Account, $$AccountsTableReferences),
+          Account,
+          PrefetchHooks Function({bool profileId, bool budgetEntriesRefs})
+        > {
+  $$AccountsTableTableManager(_$AppDatabase db, $AccountsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AccountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> institution = const Value.absent(),
+                Value<AccountType> type = const Value.absent(),
+                Value<int> balanceCents = const Value.absent(),
+              }) => AccountsCompanion(
+                id: id,
+                profileId: profileId,
+                name: name,
+                institution: institution,
+                type: type,
+                balanceCents: balanceCents,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required String name,
+                Value<String?> institution = const Value.absent(),
+                required AccountType type,
+                Value<int> balanceCents = const Value.absent(),
+              }) => AccountsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                name: name,
+                institution: institution,
+                type: type,
+                balanceCents: balanceCents,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AccountsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({profileId = false, budgetEntriesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (budgetEntriesRefs) db.budgetEntries,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (profileId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.profileId,
+                            referencedTable: $$AccountsTableReferences
+                                ._profileIdTable(db),
+                            referencedColumn: $$AccountsTableReferences
+                                ._profileIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (budgetEntriesRefs)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          BudgetEntry
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._budgetEntriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).budgetEntriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.accountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$AccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AccountsTable,
+      Account,
+      $$AccountsTableFilterComposer,
+      $$AccountsTableOrderingComposer,
+      $$AccountsTableAnnotationComposer,
+      $$AccountsTableCreateCompanionBuilder,
+      $$AccountsTableUpdateCompanionBuilder,
+      (Account, $$AccountsTableReferences),
+      Account,
+      PrefetchHooks Function({bool profileId, bool budgetEntriesRefs})
     >;
 typedef $$CreditCardsTableCreateCompanionBuilder =
     CreditCardsCompanion Function({
@@ -7716,6 +8706,7 @@ typedef $$BudgetEntriesTableCreateCompanionBuilder =
       required int amountCents,
       required EntryType type,
       Value<String?> description,
+      Value<int?> accountId,
     });
 typedef $$BudgetEntriesTableUpdateCompanionBuilder =
     BudgetEntriesCompanion Function({
@@ -7726,6 +8717,7 @@ typedef $$BudgetEntriesTableUpdateCompanionBuilder =
       Value<int> amountCents,
       Value<EntryType> type,
       Value<String?> description,
+      Value<int?> accountId,
     });
 
 final class $$BudgetEntriesTableReferences
@@ -7747,6 +8739,23 @@ final class $$BudgetEntriesTableReferences
       $_db.profiles,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AccountsTable _accountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias('budget_entries__account_id__accounts__id');
+
+  $$AccountsTableProcessedTableManager? get accountId {
+    final $_column = $_itemColumn<int>('account_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -7808,6 +8817,29 @@ class $$BudgetEntriesTableFilterComposer
           }) => $$ProfilesTableFilterComposer(
             $db: $db,
             $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableFilterComposer get accountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7879,6 +8911,29 @@ class $$BudgetEntriesTableOrderingComposer
     );
     return composer;
   }
+
+  $$AccountsTableOrderingComposer get accountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$BudgetEntriesTableAnnotationComposer
@@ -7934,6 +8989,29 @@ class $$BudgetEntriesTableAnnotationComposer
     );
     return composer;
   }
+
+  $$AccountsTableAnnotationComposer get accountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$BudgetEntriesTableTableManager
@@ -7949,7 +9027,7 @@ class $$BudgetEntriesTableTableManager
           $$BudgetEntriesTableUpdateCompanionBuilder,
           (BudgetEntry, $$BudgetEntriesTableReferences),
           BudgetEntry,
-          PrefetchHooks Function({bool profileId})
+          PrefetchHooks Function({bool profileId, bool accountId})
         > {
   $$BudgetEntriesTableTableManager(_$AppDatabase db, $BudgetEntriesTable table)
     : super(
@@ -7971,6 +9049,7 @@ class $$BudgetEntriesTableTableManager
                 Value<int> amountCents = const Value.absent(),
                 Value<EntryType> type = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<int?> accountId = const Value.absent(),
               }) => BudgetEntriesCompanion(
                 id: id,
                 profileId: profileId,
@@ -7979,6 +9058,7 @@ class $$BudgetEntriesTableTableManager
                 amountCents: amountCents,
                 type: type,
                 description: description,
+                accountId: accountId,
               ),
           createCompanionCallback:
               ({
@@ -7989,6 +9069,7 @@ class $$BudgetEntriesTableTableManager
                 required int amountCents,
                 required EntryType type,
                 Value<String?> description = const Value.absent(),
+                Value<int?> accountId = const Value.absent(),
               }) => BudgetEntriesCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -7997,6 +9078,7 @@ class $$BudgetEntriesTableTableManager
                 amountCents: amountCents,
                 type: type,
                 description: description,
+                accountId: accountId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -8006,7 +9088,7 @@ class $$BudgetEntriesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({profileId = false}) {
+          prefetchHooksCallback: ({profileId = false, accountId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -8037,6 +9119,17 @@ class $$BudgetEntriesTableTableManager
                             .id,
                       ) as T;
                     }
+                    if (accountId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.accountId,
+                        referencedTable: $$BudgetEntriesTableReferences
+                            ._accountIdTable(db),
+                        referencedColumn: $$BudgetEntriesTableReferences
+                            ._accountIdTable(db)
+                            .id,
+                      ) as T;
+                    }
 
                     return state;
                   },
@@ -8061,7 +9154,7 @@ typedef $$BudgetEntriesTableProcessedTableManager =
       $$BudgetEntriesTableUpdateCompanionBuilder,
       (BudgetEntry, $$BudgetEntriesTableReferences),
       BudgetEntry,
-      PrefetchHooks Function({bool profileId})
+      PrefetchHooks Function({bool profileId, bool accountId})
     >;
 typedef $$BudgetTargetsTableCreateCompanionBuilder =
     BudgetTargetsCompanion Function({
@@ -10240,6 +11333,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$ProfilesTableTableManager get profiles =>
       $$ProfilesTableTableManager(_db, _db.profiles);
+  $$AccountsTableTableManager get accounts =>
+      $$AccountsTableTableManager(_db, _db.accounts);
   $$CreditCardsTableTableManager get creditCards =>
       $$CreditCardsTableTableManager(_db, _db.creditCards);
   $$LoansTableTableManager get loans =>

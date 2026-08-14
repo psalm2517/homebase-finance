@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
+import '../widgets/common.dart';
+import 'accounts.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -82,7 +84,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       ..sort();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: kPagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -112,16 +114,25 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           ),
           const SizedBox(height: 8),
           Wrap(spacing: 16, runSpacing: 16, children: [
-            _stat(context, 'Income (entries)', fmtCents(income),
-                scheme.primary),
-            _stat(context, 'Expenses', fmtCents(expenses), scheme.error),
-            _stat(context, 'Net', fmtCents(income - expenses),
-                income >= expenses ? scheme.primary : scheme.error),
+            StatCard(
+                label: 'Income (entries)',
+                value: fmtCents(income),
+                icon: Icons.arrow_downward,
+                color: scheme.primary),
+            StatCard(
+                label: 'Expenses',
+                value: fmtCents(expenses),
+                icon: Icons.arrow_upward,
+                color: scheme.error),
+            StatCard(
+                label: 'Net',
+                value: fmtCents(income - expenses),
+                icon: Icons.balance,
+                color: income >= expenses ? scheme.primary : scheme.error),
           ]),
           const SizedBox(height: 24),
-          Text('Monthly plan (after-tax income vs recurring bills)',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SectionHeader('Monthly plan (after-tax income vs bills)',
+              icon: Icons.calculate_outlined),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -141,11 +152,21 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Spending by category (vs targets)',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SectionHeader('Spending by category',
+              icon: Icons.donut_small_outlined),
           if (categories.isEmpty)
-            const Text('No expenses or targets yet this month.')
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: EmptyState(
+                  icon: Icons.donut_small_outlined,
+                  title: 'Nothing categorized yet',
+                  message:
+                      'Add expenses, or set category targets, to track '
+                      'spending against a budget.',
+                ),
+              ),
+            )
           else
             Card(
               child: Column(
@@ -157,10 +178,19 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               ),
             ),
           const SizedBox(height: 24),
-          Text('Entries', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SectionHeader('Entries', icon: Icons.list_alt_outlined),
           if (entries.isEmpty)
-            const Text('No entries this month.')
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: EmptyState(
+                  icon: Icons.list_alt_outlined,
+                  title: 'No entries this month',
+                  message:
+                      'Add income and expenses to build this month\'s picture.',
+                ),
+              ),
+            )
           else
             Card(
               child: Column(
@@ -242,24 +272,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     );
   }
 
-  Widget _stat(
-      BuildContext context, String label, String value, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 4),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(color: color)),
-        ]),
-      ),
-    );
-  }
-
   Future<void> _addEntry(BuildContext context) async {
     final repo = ref.read(repositoryProvider);
     final profileId = ref.read(activeProfileProvider)!.id;
@@ -268,6 +280,9 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     final category = TextEditingController();
     var type = EntryType.expense;
     var autoCategorized = false;
+    int? accountId;
+    final accounts = await repo.watchAccounts(profileId: profileId).first;
+    if (!context.mounted) return;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -321,6 +336,29 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                       helperText:
                           autoCategorized ? 'Auto-categorized by rule' : null,
                       border: const OutlineInputBorder())),
+              if (accounts.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int?>(
+                  initialValue: accountId,
+                  decoration: const InputDecoration(
+                      labelText: 'Account (optional)',
+                      border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem(
+                        value: null, child: Text('Not linked')),
+                    for (final a in accounts)
+                      DropdownMenuItem(
+                        value: a.id,
+                        child: Row(children: [
+                          Icon(accountIcon(a.type), size: 16),
+                          const SizedBox(width: 8),
+                          Text(a.name),
+                        ]),
+                      ),
+                  ],
+                  onChanged: (v) => setState(() => accountId = v),
+                ),
+              ],
             ]),
           ),
           actions: [
@@ -346,6 +384,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           category.text.trim().isEmpty ? 'Other' : category.text.trim()),
       description: Value(
           description.text.trim().isEmpty ? null : description.text.trim()),
+      accountId: Value(accountId),
     ));
   }
 

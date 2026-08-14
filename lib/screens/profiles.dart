@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/pin.dart';
+import '../widgets/common.dart';
 
 /// Admin-only: add, rename, re-PIN, or remove profiles. Non-admins never
 /// reach this screen — it isn't in their navigation at all.
@@ -42,10 +43,10 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
         builder: (context, snap) {
           final profiles = snap.data ?? [];
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: kPagePadding,
             children: [
-              Text('Profiles', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
+              const SectionHeader('Household profiles',
+                  icon: Icons.group_outlined),
               Text(
                   'Each profile has its own cards, loans, bills, budget and '
                   'paychecks. Admins can view any profile; everyone else sees '
@@ -128,12 +129,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           content: SizedBox(
             width: 380,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                  controller: name,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                      labelText: 'Name', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
+              DialogField(name, 'Name', autofocus: true),
               TextField(
                 controller: pin,
                 obscureText: true,
@@ -142,6 +138,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                   labelText: existing == null
                       ? 'PIN (optional)'
                       : 'New PIN (leave blank to keep current)',
+                  helperText: 'Any length, letters, numbers or symbols',
                   border: const OutlineInputBorder(),
                 ),
               ),

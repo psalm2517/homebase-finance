@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
+import '../widgets/common.dart';
 
 class BillsScreen extends ConsumerWidget {
   const BillsScreen({super.key});
@@ -25,17 +26,24 @@ class BillsScreen extends ConsumerWidget {
           final bills = (snap.data ?? [])
             ..sort((a, b) => a.dueDay.compareTo(b.dueDay));
           if (bills.isEmpty) {
-            return const Center(child: Text('No bills yet.'));
+            return const EmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: 'No bills yet',
+              message:
+                  'Add recurring bills to track due dates and what is still '
+                  'unpaid this month.',
+            );
           }
           final totalCents = bills
               .where((b) => b.recurring)
               .fold(0, (s, b) => s + b.amountCents);
           final unpaid = bills.where((b) => !b.paidThisMonth).length;
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: kPagePadding,
             children: [
               Card(
                 child: ListTile(
+                  leading: const Icon(Icons.summarize_outlined),
                   title: Text(
                       'Recurring total: ${fmtCents(totalCents)} / month'),
                   subtitle: Text('$unpaid still unpaid this month'),
@@ -129,10 +137,10 @@ class BillsScreen extends ConsumerWidget {
           content: SizedBox(
             width: 360,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              _field(name, 'Name'),
-              _field(amount, 'Amount (\$)'),
-              _field(dueDay, 'Due day (1-31)'),
-              _field(category, 'Category'),
+              DialogField(name, 'Name'),
+              DialogField(amount, 'Amount (\$)'),
+              DialogField(dueDay, 'Due day (1-31)'),
+              DialogField(category, 'Category'),
               SwitchListTile(
                 title: const Text('Recurring monthly'),
                 value: recurring,
@@ -165,11 +173,4 @@ class BillsScreen extends ConsumerWidget {
         ));
   }
 
-  Widget _field(TextEditingController c, String label) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-            controller: c,
-            decoration: InputDecoration(
-                labelText: label, border: const OutlineInputBorder())),
-      );
 }

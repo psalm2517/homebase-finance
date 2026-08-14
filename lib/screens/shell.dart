@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
 import '../main.dart';
+import 'accounts.dart';
 import 'bills.dart';
 import 'budget.dart';
 import 'cards.dart';
@@ -31,6 +32,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final titles = [
       'Dashboard',
+      'Accounts',
       'Cards',
       'Loans',
       'Bills',
@@ -42,6 +44,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final pages = [
       const DashboardScreen(),
+      const AccountsScreen(),
       const CardsScreen(),
       const LoansScreen(),
       const BillsScreen(),
@@ -83,23 +86,36 @@ class _AppShellState extends ConsumerState<AppShell> {
             destinations: [
               const NavigationRailDestination(
                   icon: Icon(Icons.space_dashboard_outlined),
+                  selectedIcon: Icon(Icons.space_dashboard),
                   label: Text('Dashboard')),
               const NavigationRailDestination(
-                  icon: Icon(Icons.credit_card), label: Text('Cards')),
-              const NavigationRailDestination(
                   icon: Icon(Icons.account_balance_outlined),
+                  selectedIcon: Icon(Icons.account_balance),
+                  label: Text('Accounts')),
+              const NavigationRailDestination(
+                  icon: Icon(Icons.credit_card_outlined),
+                  selectedIcon: Icon(Icons.credit_card),
+                  label: Text('Cards')),
+              const NavigationRailDestination(
+                  icon: Icon(Icons.request_quote_outlined),
+                  selectedIcon: Icon(Icons.request_quote),
                   label: Text('Loans')),
               const NavigationRailDestination(
                   icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
                   label: Text('Bills')),
               const NavigationRailDestination(
-                  icon: Icon(Icons.pie_chart_outline), label: Text('Budget')),
+                  icon: Icon(Icons.pie_chart_outline),
+                  selectedIcon: Icon(Icons.pie_chart),
+                  label: Text('Budget')),
               const NavigationRailDestination(
                   icon: Icon(Icons.payments_outlined),
+                  selectedIcon: Icon(Icons.payments),
                   label: Text('Paychecks')),
               if (loggedIn.isAdmin)
                 const NavigationRailDestination(
-                    icon: Icon(Icons.people_outline),
+                    icon: Icon(Icons.group_outlined),
+                    selectedIcon: Icon(Icons.group),
                     label: Text('Profiles')),
             ],
           ),

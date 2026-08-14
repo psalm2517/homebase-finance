@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
+import '../widgets/common.dart';
 
 class LoansScreen extends ConsumerWidget {
   const LoansScreen({super.key});
@@ -23,20 +24,25 @@ class LoansScreen extends ConsumerWidget {
         stream: repo.watchLoans(profileId: profileId),
         builder: (context, snap) {
           final loans = snap.data ?? [];
+          if (loans.isEmpty) {
+            return const EmptyState(
+              icon: Icons.request_quote_outlined,
+              title: 'No loans yet',
+              message:
+                  'Add a loan to track payoff progress and compare snowball '
+                  'versus avalanche strategies.',
+            );
+          }
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: kPagePadding,
             children: [
-              if (loans.isEmpty)
-                const Center(
-                    child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text('No loans yet.')))
-              else ...[
+              ...[
                 _PayoffCalculator(loans: loans),
                 const SizedBox(height: 16),
                 for (final l in loans)
                   Card(
                     child: ExpansionTile(
+                      leading: const Icon(Icons.request_quote_outlined),
                       title: Text(l.name),
                       subtitle: LinearProgressIndicator(
                         value: l.originalAmountCents == 0
@@ -47,10 +53,10 @@ class LoansScreen extends ConsumerWidget {
                       childrenPadding: const EdgeInsets.all(16),
                       expandedCrossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _row('Balance', fmtCents(l.balanceCents)),
-                        _row('Original', fmtCents(l.originalAmountCents)),
-                        _row('APR', '${l.apr.toStringAsFixed(2)}%'),
-                        _row('Monthly payment',
+                        DetailRow('Balance', fmtCents(l.balanceCents)),
+                        DetailRow('Original', fmtCents(l.originalAmountCents)),
+                        DetailRow('APR', '${l.apr.toStringAsFixed(2)}%'),
+                        DetailRow('Monthly payment',
                             fmtCents(l.monthlyPaymentCents)),
                         const SizedBox(height: 8),
                         Row(children: [
@@ -73,14 +79,6 @@ class LoansScreen extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(children: [
-          SizedBox(width: 140, child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ]),
-      );
 
   Future<void> _delete(BuildContext context, WidgetRef ref, Loan l) async {
     final profileId = ref.read(activeProfileProvider)!.id;
@@ -127,11 +125,11 @@ class LoansScreen extends ConsumerWidget {
         content: SizedBox(
           width: 360,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _field(name, 'Name'),
-            _field(balance, 'Balance (\$)'),
-            _field(original, 'Original amount (\$)'),
-            _field(apr, 'APR (%)'),
-            _field(payment, 'Monthly payment (\$)'),
+            DialogField(name, 'Name'),
+            DialogField(balance, 'Balance (\$)'),
+            DialogField(original, 'Original amount (\$)'),
+            DialogField(apr, 'APR (%)'),
+            DialogField(payment, 'Monthly payment (\$)'),
           ]),
         ),
         actions: [
@@ -156,13 +154,6 @@ class LoansScreen extends ConsumerWidget {
         ));
   }
 
-  Widget _field(TextEditingController c, String label) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-            controller: c,
-            decoration: InputDecoration(
-                labelText: label, border: const OutlineInputBorder())),
-      );
 }
 
 /// Snowball (smallest balance first) vs avalanche (highest APR first).
@@ -237,8 +228,8 @@ class _PayoffCalculatorState extends State<_PayoffCalculator> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Payoff calculator',
-                style: Theme.of(context).textTheme.titleMedium),
+            const SectionHeader('Payoff calculator',
+                icon: Icons.calculate_outlined),
             const SizedBox(height: 12),
             SizedBox(
               width: 240,

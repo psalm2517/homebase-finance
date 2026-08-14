@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
+import '../widgets/common.dart';
 
 class PaychecksScreen extends ConsumerStatefulWidget {
   const PaychecksScreen({super.key});
@@ -38,19 +39,28 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
         label: const Text('Add schedule'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: kPagePadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Schedules', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SectionHeader('Schedules', icon: Icons.repeat),
             StreamBuilder<List<PaycheckSchedule>>(
               stream: repo.watchSchedules(profileId: profileId),
               builder: (context, snap) {
                 final schedules = snap.data ?? [];
                 if (schedules.isEmpty) {
-                  return const Text(
-                      'No paycheck schedules — add one to auto-generate checks.');
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: EmptyState(
+                        icon: Icons.repeat,
+                        title: 'No schedules yet',
+                        message:
+                            'Add a weekly, bi-weekly, semi-monthly or monthly '
+                            'schedule and paychecks generate automatically.',
+                      ),
+                    ),
+                  );
                 }
                 return Card(
                   child: Column(children: [
@@ -78,14 +88,23 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
               },
             ),
             const SizedBox(height: 24),
-            Text('Paychecks', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SectionHeader('Paychecks', icon: Icons.payments_outlined),
             StreamBuilder<List<Paycheck>>(
               stream: repo.watchPaychecks(profileId: profileId),
               builder: (context, snap) {
                 final checks = snap.data ?? [];
                 if (checks.isEmpty) {
-                  return const Text('No paychecks yet.');
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: EmptyState(
+                        icon: Icons.payments_outlined,
+                        title: 'No paychecks yet',
+                        message:
+                            'Paychecks appear here once you add a schedule.',
+                      ),
+                    ),
+                  );
                 }
                 return Column(children: [
                   for (final p in checks) _PaycheckCard(paycheck: p),
@@ -123,18 +142,8 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
           content: SizedBox(
             width: 360,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                  controller: name,
-                  decoration: const InputDecoration(
-                      labelText: 'Name (e.g. Day job)',
-                      border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: amount,
-                  decoration: const InputDecoration(
-                      labelText: 'After-tax amount (\$)',
-                      border: OutlineInputBorder())),
-              const SizedBox(height: 12),
+              DialogField(name, 'Name (e.g. Day job)', autofocus: true),
+              DialogField(amount, 'After-tax amount (\$)'),
               DropdownButtonFormField<PayFrequency>(
                 initialValue: frequency,
                 decoration: const InputDecoration(
@@ -305,17 +314,9 @@ class _PaycheckCard extends ConsumerWidget {
         content: SizedBox(
           width: 320,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-                controller: target,
-                autofocus: true,
-                decoration: const InputDecoration(
-                    labelText: 'Goes to (e.g. Savings, Rent)',
-                    border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-                controller: amount,
-                decoration: const InputDecoration(
-                    labelText: 'Amount (\$)', border: OutlineInputBorder())),
+            DialogField(target, 'Goes to (e.g. Savings, Rent)',
+                autofocus: true),
+            DialogField(amount, 'Amount (\$)'),
           ]),
         ),
         actions: [

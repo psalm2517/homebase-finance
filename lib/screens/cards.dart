@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
+import '../widgets/common.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -24,14 +25,20 @@ class CardsScreen extends ConsumerWidget {
         builder: (context, snap) {
           final cards = snap.data ?? [];
           if (cards.isEmpty) {
-            return const Center(child: Text('No credit cards yet.'));
+            return const EmptyState(
+              icon: Icons.credit_card_outlined,
+              title: 'No credit cards yet',
+              message:
+                  'Add a card to track its balance, utilization and fees.',
+            );
           }
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: kPagePadding,
             children: [
               for (final c in cards)
                 Card(
                   child: ExpansionTile(
+                    leading: const Icon(Icons.credit_card),
                     title: Text(c.name),
                     subtitle: Text(
                         '${fmtCents(c.balanceCents)} of ${fmtCents(c.creditLimitCents)}'),
@@ -39,16 +46,16 @@ class CardsScreen extends ConsumerWidget {
                     childrenPadding: const EdgeInsets.all(16),
                     expandedCrossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _row('Balance', fmtCents(c.balanceCents)),
-                      _row('Limit', fmtCents(c.creditLimitCents)),
-                      _row(
+                      DetailRow('Balance', fmtCents(c.balanceCents)),
+                      DetailRow('Limit', fmtCents(c.creditLimitCents)),
+                      DetailRow(
                           'Utilization',
                           c.creditLimitCents == 0
                               ? '—'
                               : '${(c.balanceCents / c.creditLimitCents * 100).toStringAsFixed(1)}%'),
-                      _row('APR', '${c.apr.toStringAsFixed(2)}%'),
-                      _row('Annual fee', fmtCents(c.annualFeeCents)),
-                      _row('Monthly fee', fmtCents(c.monthlyFeeCents)),
+                      DetailRow('APR', '${c.apr.toStringAsFixed(2)}%'),
+                      DetailRow('Annual fee', fmtCents(c.annualFeeCents)),
+                      DetailRow('Monthly fee', fmtCents(c.monthlyFeeCents)),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -71,14 +78,6 @@ class CardsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(children: [
-          SizedBox(width: 120, child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ]),
-      );
 
   Future<void> _delete(
       BuildContext context, WidgetRef ref, CreditCard c) async {
@@ -133,12 +132,12 @@ class CardsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _field(name, 'Name'),
-              _field(balance, 'Balance (\$)'),
-              _field(limit, 'Credit limit (\$)'),
-              _field(apr, 'APR (%)'),
-              _field(annualFee, 'Annual fee (\$)'),
-              _field(monthlyFee, 'Monthly fee (\$)'),
+              DialogField(name, 'Name'),
+              DialogField(balance, 'Balance (\$)'),
+              DialogField(limit, 'Credit limit (\$)'),
+              DialogField(apr, 'APR (%)'),
+              DialogField(annualFee, 'Annual fee (\$)'),
+              DialogField(monthlyFee, 'Monthly fee (\$)'),
             ],
           ),
         ),
@@ -165,12 +164,4 @@ class CardsScreen extends ConsumerWidget {
         ));
   }
 
-  Widget _field(TextEditingController c, String label) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(
-          controller: c,
-          decoration: InputDecoration(
-              labelText: label, border: const OutlineInputBorder()),
-        ),
-      );
 }

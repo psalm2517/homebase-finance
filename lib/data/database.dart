@@ -10,6 +10,20 @@ part 'database.g.dart';
 /// Whether a budget entry adds to or subtracts from the month.
 enum EntryType { income, expense }
 
+/// Kind of account. Credit and loan balances are tracked in their own
+/// tables; these are the cash/asset side of net worth.
+enum AccountType { checking, savings, cash, investment, retirement, other }
+
+/// A bank, cash, or investment account.
+class Accounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 64)();
+  TextColumn get institution => text().nullable()();
+  TextColumn get type => textEnum<AccountType>()();
+  IntColumn get balanceCents => integer().withDefault(const Constant(0))();
+}
+
 class Profiles extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 64)();
@@ -69,6 +83,8 @@ class BudgetEntries extends Table {
   IntColumn get amountCents => integer()();
   TextColumn get type => textEnum<EntryType>()();
   TextColumn get description => text().nullable()(); // matched by CategoryRules
+  /// Which account the money moved through, when known.
+  IntColumn get accountId => integer().nullable().references(Accounts, #id)();
 }
 
 /// Per-category monthly spending target for the budget screen.
@@ -143,6 +159,7 @@ class PaycheckAllocations extends Table {
 
 @DriftDatabase(tables: [
   Profiles,
+  Accounts,
   CreditCards,
   Loans,
   Bills,
@@ -159,10 +176,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(accounts);
+            await m.addColumn(budgetEntries, budgetEntries.accountId);
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },

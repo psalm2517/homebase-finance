@@ -66,6 +66,82 @@ class HomebaseRepository {
     });
   }
 
+  // ---- Accounts ----
+
+  Stream<List<Account>> watchAccounts({required int profileId}) =>
+      (_db.select(_db.accounts)..where((a) => a.profileId.equals(profileId)))
+          .watch();
+
+  Future<int> upsertAccount(AccountsCompanion entry) =>
+      _db.into(_db.accounts).insertOnConflictUpdate(entry);
+
+  Future<int> deleteAccount({required int profileId, required int id}) =>
+      (_db.delete(_db.accounts)
+            ..where((a) => a.profileId.equals(profileId) & a.id.equals(id)))
+          .go();
+
+  /// Assets (accounts) minus liabilities (card + loan balances). Re-emits
+  /// whenever any of the three tables change.
+  Stream<({int assetsCents, int debtsCents, int netCents})> watchNetWorth(
+      {required int profileId}) {
+    return _db
+        .customSelect(
+          '''
+          SELECT
+            (SELECT COALESCE(SUM(balance_cents), 0) FROM accounts
+              WHERE profile_id = ?1) AS assets,
+            (SELECT COALESCE(SUM(balance_cents), 0) FROM credit_cards
+              WHERE profile_id = ?1)
+            + (SELECT COALESCE(SUM(balance_cents), 0) FROM loans
+              WHERE profile_id = ?1) AS debts
+          ''',
+          variables: [Variable.withInt(profileId)],
+          readsFrom: {_db.accounts, _db.creditCards, _db.loans},
+        )
+        .watchSingle()
+        .map((row) {
+      final assets = row.read<int>('assets');
+      final debts = row.read<int>('debts');
+      return (
+        assetsCents: assets,
+        debtsCents: debts,
+        netCents: assets - debts
+      );
+    });
+  }
+
+  /// Income and expense totals for the last [months] calendar months,
+  /// oldest first — feeds the dashboard cashflow chart.
+  Stream<List<({DateTime month, int incomeCents, int expenseCents})>>
+      watchCashflow({required int profileId, int months = 6}) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month - (months - 1));
+    return (_db.select(_db.budgetEntries)
+          ..where((e) =>
+              e.profileId.equals(profileId) &
+              e.date.isBiggerOrEqualValue(start)))
+        .watch()
+        .map((rows) {
+      return [
+        for (var i = 0; i < months; i++)
+          () {
+            final m = DateTime(now.year, now.month - (months - 1) + i);
+            final inMonth = rows.where(
+                (e) => e.date.year == m.year && e.date.month == m.month);
+            return (
+              month: m,
+              incomeCents: inMonth
+                  .where((e) => e.type == EntryType.income)
+                  .fold(0, (s, e) => s + e.amountCents),
+              expenseCents: inMonth
+                  .where((e) => e.type == EntryType.expense)
+                  .fold(0, (s, e) => s + e.amountCents),
+            );
+          }()
+      ];
+    });
+  }
+
   // ---- Credit cards ----
 
   Stream<List<CreditCard>> watchCards({required int profileId}) =>

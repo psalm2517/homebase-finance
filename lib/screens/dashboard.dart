@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
+import '../widgets/common.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -12,202 +13,379 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(repositoryProvider);
     final profileId = ref.watch(activeProfileProvider)!.id;
+    final scheme = Theme.of(context).colorScheme;
 
-    return StreamBuilder<List<CreditCard>>(
-      stream: repo.watchCards(profileId: profileId),
-      builder: (context, cardsSnap) {
-        return StreamBuilder<List<Loan>>(
-          stream: repo.watchLoans(profileId: profileId),
-          builder: (context, loansSnap) {
-            return StreamBuilder<List<Bill>>(
-              stream: repo.watchBills(profileId: profileId),
-              builder: (context, billsSnap) {
-                final cards = cardsSnap.data ?? [];
-                final loans = loansSnap.data ?? [];
-                final bills = billsSnap.data ?? [];
-                return _Dashboard(
-                    cards: cards, loans: loans, bills: bills,
-                    profileId: profileId);
-              },
+    return ListView(
+      padding: kPagePadding,
+      children: [
+        StreamBuilder<({int assetsCents, int debtsCents, int netCents})>(
+          stream: repo.watchNetWorth(profileId: profileId),
+          builder: (context, snap) {
+            final net = snap.data;
+            return Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                StatCard(
+                  label: 'Net worth',
+                  value: net == null ? '—' : fmtCents(net.netCents),
+                  icon: Icons.savings_outlined,
+                  color: (net?.netCents ?? 0) >= 0
+                      ? scheme.primary
+                      : scheme.error,
+                  note: net == null ? null : 'assets minus debts',
+                ),
+                StatCard(
+                  label: 'Assets',
+                  value: net == null ? '—' : fmtCents(net.assetsCents),
+                  icon: Icons.account_balance_outlined,
+                  color: scheme.secondary,
+                ),
+                StatCard(
+                  label: 'Total debt',
+                  value: net == null ? '—' : fmtCents(net.debtsCents),
+                  icon: Icons.credit_card,
+                  color: scheme.error,
+                ),
+              ],
             );
           },
-        );
-      },
+        ),
+        kSectionGap,
+        StreamBuilder<List<CreditCard>>(
+          stream: repo.watchCards(profileId: profileId),
+          builder: (context, snap) {
+            final cards = snap.data ?? [];
+            final balance = cards.fold(0, (s, c) => s + c.balanceCents);
+            final limit = cards.fold(0, (s, c) => s + c.creditLimitCents);
+            final overall = limit == 0 ? 0.0 : balance / limit;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader('Credit utilization',
+                    icon: Icons.donut_large_outlined,
+                    action: cards.isEmpty
+                        ? null
+                        : Text(
+                            'Overall ${(overall * 100).toStringAsFixed(1)}%'
+                            '${overall > 0.30 ? ' — over 30%' : ''}',
+                            style: TextStyle(
+                                color: overall > 0.30
+                                    ? scheme.error
+                                    : scheme.primary),
+                          )),
+                if (cards.isEmpty)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: EmptyState(
+                        icon: Icons.credit_card_off_outlined,
+                        title: 'No credit cards',
+                        message:
+                            'Add cards to track balances and utilization.',
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final c in cards)
+                          _utilizationTile(context, c, scheme),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        kSectionGap,
+        StreamBuilder<List<({DateTime month, int incomeCents, int expenseCents})>>(
+          stream: repo.watchCashflow(profileId: profileId),
+          builder: (context, snap) {
+            final data = snap.data ?? [];
+            final hasAny = data
+                .any((d) => d.incomeCents != 0 || d.expenseCents != 0);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader('Cashflow',
+                    icon: Icons.bar_chart_outlined),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: hasAny
+                        ? SizedBox(
+                            height: 220,
+                            child: _CashflowChart(
+                                data: data,
+                                income: scheme.primary,
+                                expense: scheme.error,
+                                label: scheme.onSurface),
+                          )
+                        : const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: EmptyState(
+                              icon: Icons.bar_chart_outlined,
+                              title: 'No cashflow yet',
+                              message:
+                                  'Add income and expenses in Budget to see '
+                                  'money in versus money out by month.',
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        kSectionGap,
+        StreamBuilder<List<Bill>>(
+          stream: repo.watchBills(profileId: profileId),
+          builder: (context, snap) {
+            final bills = snap.data ?? [];
+            final today = DateTime.now();
+            final lastDay = DateTime(today.year, today.month + 1, 0).day;
+            final window = <int>{
+              for (var i = 0; i < 7; i++)
+                DateTime(today.year, today.month, today.day + i).day
+            };
+            final upcoming = bills
+                .where((b) =>
+                    window.contains(b.dueDay) ||
+                    (b.dueDay > lastDay && window.contains(lastDay)))
+                .toList()
+              ..sort((a, b) => a.dueDay.compareTo(b.dueDay));
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader('Bills due this week',
+                    icon: Icons.event_outlined),
+                if (upcoming.isEmpty)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: EmptyState(
+                        icon: Icons.event_available_outlined,
+                        title: 'Nothing due this week',
+                        message: 'Bills due in the next 7 days appear here.',
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final b in upcoming)
+                          ListTile(
+                            leading: Icon(
+                                b.paidThisMonth
+                                    ? Icons.check_circle
+                                    : Icons.schedule,
+                                color: b.paidThisMonth
+                                    ? scheme.primary
+                                    : scheme.error),
+                            title: Text(b.name),
+                            subtitle: Text('Due day ${b.dueDay} • ${b.category}'),
+                            trailing: Text(fmtCents(b.amountCents),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        kSectionGap,
+        StreamBuilder<List<CreditScoreSnapshot>>(
+          stream: repo.watchScoreHistory(profileId: profileId),
+          builder: (context, snap) {
+            final scores = snap.data ?? [];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader('Credit score trend',
+                    icon: Icons.show_chart),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: scores.length < 2
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: EmptyState(
+                              icon: Icons.show_chart,
+                              title: 'Not enough history',
+                              message:
+                                  'Log at least two credit score snapshots to '
+                                  'see a trend line.',
+                            ),
+                          )
+                        : SizedBox(
+                            height: 200,
+                            child: CustomPaint(
+                              size: Size.infinite,
+                              painter: _ScoreChartPainter(
+                                  scores: scores,
+                                  lineColor: scheme.primary,
+                                  labelColor: scheme.onSurface),
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _utilizationTile(
+      BuildContext context, CreditCard c, ColorScheme scheme) {
+    final ratio =
+        c.creditLimitCents == 0 ? 0.0 : c.balanceCents / c.creditLimitCents;
+    final over = ratio > 0.30;
+    return ListTile(
+      leading: Icon(Icons.credit_card,
+          color: over ? scheme.error : scheme.primary),
+      title: Text(c.name),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: LinearProgressIndicator(
+          value: ratio.clamp(0.0, 1.0),
+          color: over ? scheme.error : scheme.primary,
+        ),
+      ),
+      trailing: Text(
+        c.creditLimitCents == 0
+            ? '—'
+            : '${(ratio * 100).toStringAsFixed(1)}%',
+        style: TextStyle(
+            fontWeight: FontWeight.w600, color: over ? scheme.error : null),
+      ),
     );
   }
 }
 
-class _Dashboard extends ConsumerWidget {
-  const _Dashboard(
-      {required this.cards,
-      required this.loans,
-      required this.bills,
-      required this.profileId});
+/// Grouped income/expense bars by month.
+class _CashflowChart extends StatelessWidget {
+  const _CashflowChart(
+      {required this.data,
+      required this.income,
+      required this.expense,
+      required this.label});
 
-  final List<CreditCard> cards;
-  final List<Loan> loans;
-  final List<Bill> bills;
-  final int profileId;
+  final List<({DateTime month, int incomeCents, int expenseCents})> data;
+  final Color income;
+  final Color expense;
+  final Color label;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(repositoryProvider);
-    final cardDebt = cards.fold(0, (s, c) => s + c.balanceCents);
-    final loanDebt = loans.fold(0, (s, l) => s + l.balanceCents);
-    final totalDebt = cardDebt + loanDebt;
-    final totalLimit = cards.fold(0, (s, c) => s + c.creditLimitCents);
-    final overallUtil = totalLimit == 0 ? 0.0 : cardDebt / totalLimit;
-
-    final today = DateTime.now();
-    final weekAhead = [
-      for (var i = 0; i < 7; i++) DateTime(today.year, today.month, today.day + i)
-    ];
-    final upcoming = bills.where((b) {
-      return weekAhead.any((d) =>
-          b.dueDay == d.day ||
-          // due day beyond month length lands on the last day
-          (b.dueDay > DateTime(d.year, d.month + 1, 0).day &&
-              d.day == DateTime(d.year, d.month + 1, 0).day));
-    }).toList();
-
-    final scheme = Theme.of(context).colorScheme;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              _stat(context, 'Net worth', fmtCents(-totalDebt),
-                  totalDebt > 0 ? scheme.error : scheme.primary),
-              _stat(context, 'Total debt', fmtCents(totalDebt), scheme.error),
-              _stat(
-                  context,
-                  'Overall utilization',
-                  '${(overallUtil * 100).toStringAsFixed(1)}%',
-                  overallUtil > 0.3 ? scheme.error : scheme.primary,
-                  flag: overallUtil > 0.3 ? 'over 30%' : null),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text('Utilization per card',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (cards.isEmpty)
-            const Text('No cards yet.')
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (final c in cards)
-                    ListTile(
-                      title: Text(c.name),
-                      subtitle: LinearProgressIndicator(
-                        value: c.creditLimitCents == 0
-                            ? 0
-                            : (c.balanceCents / c.creditLimitCents)
-                                .clamp(0.0, 1.0),
-                        color: c.creditLimitCents != 0 &&
-                                c.balanceCents / c.creditLimitCents > 0.3
-                            ? scheme.error
-                            : scheme.primary,
-                      ),
-                      trailing: Text(c.creditLimitCents == 0
-                          ? '—'
-                          : '${(c.balanceCents / c.creditLimitCents * 100).toStringAsFixed(1)}%'),
-                    ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 24),
-          Text('Bills due this week',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (upcoming.isEmpty)
-            const Text('Nothing due in the next 7 days.')
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (final b in upcoming)
-                    ListTile(
-                      leading: Icon(
-                          b.paidThisMonth
-                              ? Icons.check_circle
-                              : Icons.schedule,
-                          color: b.paidThisMonth
-                              ? scheme.primary
-                              : scheme.error),
-                      title: Text(b.name),
-                      subtitle: Text('Due day ${b.dueDay}'),
-                      trailing: Text(fmtCents(b.amountCents)),
-                    ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 24),
-          Text('Credit score trend',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          StreamBuilder<List<CreditScoreSnapshot>>(
-            stream: repo.watchScoreHistory(profileId: profileId),
-            builder: (context, snap) {
-              final scores = snap.data ?? [];
-              if (scores.length < 2) {
-                return const Text(
-                    'Add at least two score snapshots to see a trend.');
-              }
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    height: 200,
-                    child: CustomPaint(
-                      size: Size.infinite,
-                      painter: _ScoreChartPainter(
-                          scores: scores,
-                          lineColor: scheme.primary,
-                          labelColor: scheme.onSurface),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(BuildContext context, String label, String value, Color color,
-      {String? flag}) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 4),
-            Text(value,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(color: color)),
-            if (flag != null)
-              Text(flag,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: color)),
+            _legend(income, 'Income'),
+            const SizedBox(width: 16),
+            _legend(expense, 'Expenses'),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: CustomPaint(
+            size: Size.infinite,
+            painter: _CashflowPainter(
+                data: data,
+                income: income,
+                expense: expense,
+                label: label),
+          ),
+        ),
+      ],
     );
   }
+
+  Widget _legend(Color color, String text) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                  color: color, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 6),
+          Text(text, style: TextStyle(fontSize: 12, color: color)),
+        ],
+      );
+}
+
+class _CashflowPainter extends CustomPainter {
+  _CashflowPainter(
+      {required this.data,
+      required this.income,
+      required this.expense,
+      required this.label});
+
+  final List<({DateTime month, int incomeCents, int expenseCents})> data;
+  final Color income;
+  final Color expense;
+  final Color label;
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+    final maxValue = data
+        .expand((d) => [d.incomeCents, d.expenseCents])
+        .fold(0, (a, b) => a > b ? a : b);
+    if (maxValue == 0) return;
+
+    const labelHeight = 20.0;
+    final chartHeight = size.height - labelHeight;
+    final slot = size.width / data.length;
+    final barWidth = (slot * 0.30).clamp(6.0, 28.0);
+
+    for (var i = 0; i < data.length; i++) {
+      final centre = slot * i + slot / 2;
+      final d = data[i];
+
+      void bar(int cents, Color color, double offset) {
+        final h = cents / maxValue * (chartHeight - 8);
+        final rect = RRect.fromRectAndCorners(
+          Rect.fromLTWH(
+              centre + offset, chartHeight - h, barWidth, h),
+          topLeft: const Radius.circular(3),
+          topRight: const Radius.circular(3),
+        );
+        canvas.drawRRect(rect, Paint()..color = color);
+      }
+
+      bar(d.incomeCents, income, -barWidth - 2);
+      bar(d.expenseCents, expense, 2);
+
+      final tp = TextPainter(
+        text: TextSpan(
+            text: _months[d.month.month - 1],
+            style: TextStyle(
+                color: label.withValues(alpha: 0.7), fontSize: 11)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas,
+          Offset(centre - tp.width / 2, size.height - labelHeight + 4));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CashflowPainter old) =>
+      old.data != data || old.income != income;
 }
 
 class _ScoreChartPainter extends CustomPainter {
@@ -234,7 +412,7 @@ class _ScoreChartPainter extends CustomPainter {
           : i * size.width / (scores.length - 1);
       final y =
           size.height - (scores[i].score - minScore) / range * size.height;
-      return Offset(x, y);
+      return Offset(x.clamp(6.0, size.width - 6), y);
     }
 
     final line = Paint()
@@ -256,7 +434,7 @@ class _ScoreChartPainter extends CustomPainter {
             style: TextStyle(color: labelColor, fontSize: 11)),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, point(i) + const Offset(-10, -20));
+      tp.paint(canvas, point(i) + Offset(-tp.width / 2, -20));
     }
   }
 

@@ -1889,20 +1889,37 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _recurringMeta = const VerificationMeta(
-    'recurring',
+  @override
+  late final GeneratedColumnWithTypeConverter<BillFrequency, String> frequency =
+      GeneratedColumn<String>(
+        'frequency',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('monthly'),
+      ).withConverter<BillFrequency>($BillsTable.$converterfrequency);
+  static const VerificationMeta _dueMonthMeta = const VerificationMeta(
+    'dueMonth',
   );
   @override
-  late final GeneratedColumn<bool> recurring = GeneratedColumn<bool>(
-    'recurring',
+  late final GeneratedColumn<int> dueMonth = GeneratedColumn<int>(
+    'due_month',
     aliasedName,
-    false,
-    type: DriftSqlType.bool,
+    true,
+    type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("recurring" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _dueYearMeta = const VerificationMeta(
+    'dueYear',
+  );
+  @override
+  late final GeneratedColumn<int> dueYear = GeneratedColumn<int>(
+    'due_year',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _categoryMeta = const VerificationMeta(
     'category',
@@ -1923,7 +1940,9 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     name,
     amountCents,
     dueDay,
-    recurring,
+    frequency,
+    dueMonth,
+    dueYear,
     category,
   ];
   @override
@@ -1976,10 +1995,16 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     } else if (isInserting) {
       context.missing(_dueDayMeta);
     }
-    if (data.containsKey('recurring')) {
+    if (data.containsKey('due_month')) {
       context.handle(
-        _recurringMeta,
-        recurring.isAcceptableOrUnknown(data['recurring']!, _recurringMeta),
+        _dueMonthMeta,
+        dueMonth.isAcceptableOrUnknown(data['due_month']!, _dueMonthMeta),
+      );
+    }
+    if (data.containsKey('due_year')) {
+      context.handle(
+        _dueYearMeta,
+        dueYear.isAcceptableOrUnknown(data['due_year']!, _dueYearMeta),
       );
     }
     if (data.containsKey('category')) {
@@ -2017,10 +2042,20 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         DriftSqlType.int,
         data['${effectivePrefix}due_day'],
       )!,
-      recurring: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}recurring'],
-      )!,
+      frequency: $BillsTable.$converterfrequency.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}frequency'],
+        )!,
+      ),
+      dueMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}due_month'],
+      ),
+      dueYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}due_year'],
+      ),
       category: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}category'],
@@ -2032,6 +2067,9 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
   $BillsTable createAlias(String alias) {
     return $BillsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<BillFrequency, String, String> $converterfrequency =
+      const EnumNameConverter<BillFrequency>(BillFrequency.values);
 }
 
 class Bill extends DataClass implements Insertable<Bill> {
@@ -2040,7 +2078,15 @@ class Bill extends DataClass implements Insertable<Bill> {
   final String name;
   final int amountCents;
   final int dueDay;
-  final bool recurring;
+  final BillFrequency frequency;
+
+  /// Month it falls in. Required for annual and one-time bills; for
+  /// quarterly it is the anchor month, repeating every three months.
+  /// Unused for monthly bills.
+  final int? dueMonth;
+
+  /// One-time bills only.
+  final int? dueYear;
   final String category;
   const Bill({
     required this.id,
@@ -2048,7 +2094,9 @@ class Bill extends DataClass implements Insertable<Bill> {
     required this.name,
     required this.amountCents,
     required this.dueDay,
-    required this.recurring,
+    required this.frequency,
+    this.dueMonth,
+    this.dueYear,
     required this.category,
   });
   @override
@@ -2059,7 +2107,17 @@ class Bill extends DataClass implements Insertable<Bill> {
     map['name'] = Variable<String>(name);
     map['amount_cents'] = Variable<int>(amountCents);
     map['due_day'] = Variable<int>(dueDay);
-    map['recurring'] = Variable<bool>(recurring);
+    {
+      map['frequency'] = Variable<String>(
+        $BillsTable.$converterfrequency.toSql(frequency),
+      );
+    }
+    if (!nullToAbsent || dueMonth != null) {
+      map['due_month'] = Variable<int>(dueMonth);
+    }
+    if (!nullToAbsent || dueYear != null) {
+      map['due_year'] = Variable<int>(dueYear);
+    }
     map['category'] = Variable<String>(category);
     return map;
   }
@@ -2071,7 +2129,13 @@ class Bill extends DataClass implements Insertable<Bill> {
       name: Value(name),
       amountCents: Value(amountCents),
       dueDay: Value(dueDay),
-      recurring: Value(recurring),
+      frequency: Value(frequency),
+      dueMonth: dueMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueMonth),
+      dueYear: dueYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueYear),
       category: Value(category),
     );
   }
@@ -2087,7 +2151,11 @@ class Bill extends DataClass implements Insertable<Bill> {
       name: serializer.fromJson<String>(json['name']),
       amountCents: serializer.fromJson<int>(json['amountCents']),
       dueDay: serializer.fromJson<int>(json['dueDay']),
-      recurring: serializer.fromJson<bool>(json['recurring']),
+      frequency: $BillsTable.$converterfrequency.fromJson(
+        serializer.fromJson<String>(json['frequency']),
+      ),
+      dueMonth: serializer.fromJson<int?>(json['dueMonth']),
+      dueYear: serializer.fromJson<int?>(json['dueYear']),
       category: serializer.fromJson<String>(json['category']),
     );
   }
@@ -2100,7 +2168,11 @@ class Bill extends DataClass implements Insertable<Bill> {
       'name': serializer.toJson<String>(name),
       'amountCents': serializer.toJson<int>(amountCents),
       'dueDay': serializer.toJson<int>(dueDay),
-      'recurring': serializer.toJson<bool>(recurring),
+      'frequency': serializer.toJson<String>(
+        $BillsTable.$converterfrequency.toJson(frequency),
+      ),
+      'dueMonth': serializer.toJson<int?>(dueMonth),
+      'dueYear': serializer.toJson<int?>(dueYear),
       'category': serializer.toJson<String>(category),
     };
   }
@@ -2111,7 +2183,9 @@ class Bill extends DataClass implements Insertable<Bill> {
     String? name,
     int? amountCents,
     int? dueDay,
-    bool? recurring,
+    BillFrequency? frequency,
+    Value<int?> dueMonth = const Value.absent(),
+    Value<int?> dueYear = const Value.absent(),
     String? category,
   }) => Bill(
     id: id ?? this.id,
@@ -2119,7 +2193,9 @@ class Bill extends DataClass implements Insertable<Bill> {
     name: name ?? this.name,
     amountCents: amountCents ?? this.amountCents,
     dueDay: dueDay ?? this.dueDay,
-    recurring: recurring ?? this.recurring,
+    frequency: frequency ?? this.frequency,
+    dueMonth: dueMonth.present ? dueMonth.value : this.dueMonth,
+    dueYear: dueYear.present ? dueYear.value : this.dueYear,
     category: category ?? this.category,
   );
   Bill copyWithCompanion(BillsCompanion data) {
@@ -2131,7 +2207,9 @@ class Bill extends DataClass implements Insertable<Bill> {
           ? data.amountCents.value
           : this.amountCents,
       dueDay: data.dueDay.present ? data.dueDay.value : this.dueDay,
-      recurring: data.recurring.present ? data.recurring.value : this.recurring,
+      frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      dueMonth: data.dueMonth.present ? data.dueMonth.value : this.dueMonth,
+      dueYear: data.dueYear.present ? data.dueYear.value : this.dueYear,
       category: data.category.present ? data.category.value : this.category,
     );
   }
@@ -2144,7 +2222,9 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('name: $name, ')
           ..write('amountCents: $amountCents, ')
           ..write('dueDay: $dueDay, ')
-          ..write('recurring: $recurring, ')
+          ..write('frequency: $frequency, ')
+          ..write('dueMonth: $dueMonth, ')
+          ..write('dueYear: $dueYear, ')
           ..write('category: $category')
           ..write(')'))
         .toString();
@@ -2157,7 +2237,9 @@ class Bill extends DataClass implements Insertable<Bill> {
     name,
     amountCents,
     dueDay,
-    recurring,
+    frequency,
+    dueMonth,
+    dueYear,
     category,
   );
   @override
@@ -2169,7 +2251,9 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.name == this.name &&
           other.amountCents == this.amountCents &&
           other.dueDay == this.dueDay &&
-          other.recurring == this.recurring &&
+          other.frequency == this.frequency &&
+          other.dueMonth == this.dueMonth &&
+          other.dueYear == this.dueYear &&
           other.category == this.category);
 }
 
@@ -2179,7 +2263,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<String> name;
   final Value<int> amountCents;
   final Value<int> dueDay;
-  final Value<bool> recurring;
+  final Value<BillFrequency> frequency;
+  final Value<int?> dueMonth;
+  final Value<int?> dueYear;
   final Value<String> category;
   const BillsCompanion({
     this.id = const Value.absent(),
@@ -2187,7 +2273,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.name = const Value.absent(),
     this.amountCents = const Value.absent(),
     this.dueDay = const Value.absent(),
-    this.recurring = const Value.absent(),
+    this.frequency = const Value.absent(),
+    this.dueMonth = const Value.absent(),
+    this.dueYear = const Value.absent(),
     this.category = const Value.absent(),
   });
   BillsCompanion.insert({
@@ -2196,7 +2284,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     required String name,
     required int amountCents,
     required int dueDay,
-    this.recurring = const Value.absent(),
+    this.frequency = const Value.absent(),
+    this.dueMonth = const Value.absent(),
+    this.dueYear = const Value.absent(),
     this.category = const Value.absent(),
   }) : profileId = Value(profileId),
        name = Value(name),
@@ -2208,7 +2298,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<String>? name,
     Expression<int>? amountCents,
     Expression<int>? dueDay,
-    Expression<bool>? recurring,
+    Expression<String>? frequency,
+    Expression<int>? dueMonth,
+    Expression<int>? dueYear,
     Expression<String>? category,
   }) {
     return RawValuesInsertable({
@@ -2217,7 +2309,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (name != null) 'name': name,
       if (amountCents != null) 'amount_cents': amountCents,
       if (dueDay != null) 'due_day': dueDay,
-      if (recurring != null) 'recurring': recurring,
+      if (frequency != null) 'frequency': frequency,
+      if (dueMonth != null) 'due_month': dueMonth,
+      if (dueYear != null) 'due_year': dueYear,
       if (category != null) 'category': category,
     });
   }
@@ -2228,7 +2322,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Value<String>? name,
     Value<int>? amountCents,
     Value<int>? dueDay,
-    Value<bool>? recurring,
+    Value<BillFrequency>? frequency,
+    Value<int?>? dueMonth,
+    Value<int?>? dueYear,
     Value<String>? category,
   }) {
     return BillsCompanion(
@@ -2237,7 +2333,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       name: name ?? this.name,
       amountCents: amountCents ?? this.amountCents,
       dueDay: dueDay ?? this.dueDay,
-      recurring: recurring ?? this.recurring,
+      frequency: frequency ?? this.frequency,
+      dueMonth: dueMonth ?? this.dueMonth,
+      dueYear: dueYear ?? this.dueYear,
       category: category ?? this.category,
     );
   }
@@ -2260,8 +2358,16 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     if (dueDay.present) {
       map['due_day'] = Variable<int>(dueDay.value);
     }
-    if (recurring.present) {
-      map['recurring'] = Variable<bool>(recurring.value);
+    if (frequency.present) {
+      map['frequency'] = Variable<String>(
+        $BillsTable.$converterfrequency.toSql(frequency.value),
+      );
+    }
+    if (dueMonth.present) {
+      map['due_month'] = Variable<int>(dueMonth.value);
+    }
+    if (dueYear.present) {
+      map['due_year'] = Variable<int>(dueYear.value);
     }
     if (category.present) {
       map['category'] = Variable<String>(category.value);
@@ -2277,7 +2383,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('name: $name, ')
           ..write('amountCents: $amountCents, ')
           ..write('dueDay: $dueDay, ')
-          ..write('recurring: $recurring, ')
+          ..write('frequency: $frequency, ')
+          ..write('dueMonth: $dueMonth, ')
+          ..write('dueYear: $dueYear, ')
           ..write('category: $category')
           ..write(')'))
         .toString();
@@ -8416,7 +8524,9 @@ typedef $$BillsTableCreateCompanionBuilder = BillsCompanion Function({
   required String name,
   required int amountCents,
   required int dueDay,
-  Value<bool> recurring,
+  Value<BillFrequency> frequency,
+  Value<int?> dueMonth,
+  Value<int?> dueYear,
   Value<String> category,
 });
 typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
@@ -8425,7 +8535,9 @@ typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<String> name,
   Value<int> amountCents,
   Value<int> dueDay,
-  Value<bool> recurring,
+  Value<BillFrequency> frequency,
+  Value<int?> dueMonth,
+  Value<int?> dueYear,
   Value<String> category,
 });
 
@@ -8521,8 +8633,19 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get recurring => $composableBuilder(
-    column: $table.recurring,
+  ColumnWithTypeConverterFilters<BillFrequency, BillFrequency, String>
+  get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get dueMonth => $composableBuilder(
+    column: $table.dueMonth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dueYear => $composableBuilder(
+    column: $table.dueYear,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8634,8 +8757,18 @@ class $$BillsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get recurring => $composableBuilder(
-    column: $table.recurring,
+  ColumnOrderings<String> get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dueMonth => $composableBuilder(
+    column: $table.dueMonth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dueYear => $composableBuilder(
+    column: $table.dueYear,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -8691,8 +8824,14 @@ class $$BillsTableAnnotationComposer
   GeneratedColumn<int> get dueDay =>
       $composableBuilder(column: $table.dueDay, builder: (column) => column);
 
-  GeneratedColumn<bool> get recurring =>
-      $composableBuilder(column: $table.recurring, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<BillFrequency, String> get frequency =>
+      $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<int> get dueMonth =>
+      $composableBuilder(column: $table.dueMonth, builder: (column) => column);
+
+  GeneratedColumn<int> get dueYear =>
+      $composableBuilder(column: $table.dueYear, builder: (column) => column);
 
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
@@ -8809,7 +8948,9 @@ class $$BillsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> amountCents = const Value.absent(),
                 Value<int> dueDay = const Value.absent(),
-                Value<bool> recurring = const Value.absent(),
+                Value<BillFrequency> frequency = const Value.absent(),
+                Value<int?> dueMonth = const Value.absent(),
+                Value<int?> dueYear = const Value.absent(),
                 Value<String> category = const Value.absent(),
               }) => BillsCompanion(
                 id: id,
@@ -8817,7 +8958,9 @@ class $$BillsTableTableManager
                 name: name,
                 amountCents: amountCents,
                 dueDay: dueDay,
-                recurring: recurring,
+                frequency: frequency,
+                dueMonth: dueMonth,
+                dueYear: dueYear,
                 category: category,
               ),
           createCompanionCallback:
@@ -8827,7 +8970,9 @@ class $$BillsTableTableManager
                 required String name,
                 required int amountCents,
                 required int dueDay,
-                Value<bool> recurring = const Value.absent(),
+                Value<BillFrequency> frequency = const Value.absent(),
+                Value<int?> dueMonth = const Value.absent(),
+                Value<int?> dueYear = const Value.absent(),
                 Value<String> category = const Value.absent(),
               }) => BillsCompanion.insert(
                 id: id,
@@ -8835,7 +8980,9 @@ class $$BillsTableTableManager
                 name: name,
                 amountCents: amountCents,
                 dueDay: dueDay,
-                recurring: recurring,
+                frequency: frequency,
+                dueMonth: dueMonth,
+                dueYear: dueYear,
                 category: category,
               ),
           withReferenceMapper: (p0) => p0

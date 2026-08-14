@@ -58,13 +58,26 @@ class Loans extends Table {
   IntColumn get monthlyPaymentCents => integer().withDefault(const Constant(0))();
 }
 
+/// How often a bill comes due.
+enum BillFrequency { monthly, quarterly, annual, oneTime }
+
 class Bills extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get profileId => integer().references(Profiles, #id)();
   TextColumn get name => text().withLength(min: 1, max: 64)();
   IntColumn get amountCents => integer()();
-  IntColumn get dueDay => integer()(); // 1-31, clamped to month length in UI
-  BoolColumn get recurring => boolean().withDefault(const Constant(true))();
+  IntColumn get dueDay => integer()(); // 1-31, clamped to month length
+  TextColumn get frequency =>
+      textEnum<BillFrequency>().withDefault(const Constant('monthly'))();
+
+  /// Month it falls in. Required for annual and one-time bills; for
+  /// quarterly it is the anchor month, repeating every three months.
+  /// Unused for monthly bills.
+  IntColumn get dueMonth => integer().nullable()();
+
+  /// One-time bills only.
+  IntColumn get dueYear => integer().nullable()();
+
   TextColumn get category => text().withDefault(const Constant('Other'))();
 }
 
@@ -200,7 +213,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -225,9 +238,33 @@ class AppDatabase extends _$AppDatabase {
                 Variable.withInt(now.millisecondsSinceEpoch ~/ 1000),
               ],
             );
-            await m.alterTable(TableMigration(bills));
             await m.addColumn(creditCards, creditCards.statementDay);
             await m.addColumn(creditCards, creditCards.paymentDueDay);
+          }
+          if (from < 4) {
+            // Bills gain a frequency. Anything previously marked recurring
+            // becomes monthly; the rest become one-time in the current month.
+            final now = DateTime.now();
+            await m.addColumn(bills, bills.dueMonth);
+            await m.addColumn(bills, bills.dueYear);
+            await m.addColumn(bills, bills.frequency);
+            await customUpdate(
+              "UPDATE bills SET frequency = CASE WHEN recurring = 1 "
+              "THEN 'monthly' ELSE 'oneTime' END, "
+              'due_month = CASE WHEN recurring = 1 THEN NULL ELSE ?1 END, '
+              'due_year = CASE WHEN recurring = 1 THEN NULL ELSE ?2 END',
+              variables: [
+                Variable.withInt(now.month),
+                Variable.withInt(now.year),
+              ],
+              updates: {bills},
+            );
+          }
+          if (from < 4) {
+            // Rebuild bills once, after every column addition, to drop the
+            // columns no longer in the schema: paid_this_month (replaced by
+            // BillPayments) and recurring (replaced by frequency).
+            await m.alterTable(TableMigration(bills));
           }
         },
         beforeOpen: (details) async {

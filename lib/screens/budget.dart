@@ -42,12 +42,19 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   return StreamBuilder<int>(
                     stream: repo.watchMonthlyBillsCents(profileId: profileId),
                     builder: (context, billsTotalSnap) {
-                      final entries = entriesSnap.data ?? [];
-                      final targets = targetsSnap.data ?? [];
-                      final schedIncome = schedIncomeSnap.data ?? 0;
-                      final billsTotal = billsTotalSnap.data ?? 0;
-                      return _buildBody(context, entries, targets,
-                          schedIncome, billsTotal, scheme);
+                      return StreamBuilder<int>(
+                        stream: repo.watchMonthlyCardFeesCents(
+                            profileId: profileId),
+                        builder: (context, feesSnap) {
+                          final entries = entriesSnap.data ?? [];
+                          final targets = targetsSnap.data ?? [];
+                          final schedIncome = schedIncomeSnap.data ?? 0;
+                          final billsTotal = billsTotalSnap.data ?? 0;
+                          final fees = feesSnap.data ?? 0;
+                          return _buildBody(context, entries, targets,
+                              schedIncome, billsTotal, fees, scheme);
+                        },
+                      );
                     },
                   );
                 },
@@ -65,6 +72,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       List<BudgetTarget> targets,
       int schedIncomeCents,
       int billsTotalCents,
+      int cardFeesCents,
       ColorScheme scheme) {
     final income = entries
         .where((e) => e.type == EntryType.income)
@@ -158,6 +166,11 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                       'is multiplied by 26 and divided by 12, weekly by 52 '
                       'and divided by 12. That is why it may not match a '
                       'single paycheck times two.',
+                  'Bills that are not monthly are spread across their term, '
+                      'so an annual subscription counts as a twelfth each '
+                      'month — that is what you need to set aside.',
+                  'Credit card fees count too: any monthly fee in full, plus '
+                      'a twelfth of each annual fee.',
                   'Every amount you enter in Homebase is after tax, so this '
                       'is take-home money.',
                 ],
@@ -170,11 +183,18 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 children: [
                   _planRow('Expected monthly income (from paycheck schedules)',
                       fmtCents(schedIncomeCents)),
-                  _planRow('Recurring monthly bills',
+                  _planRow('Recurring bills (annual and quarterly spread '
+                      'across their term)',
                       '-${fmtCents(billsTotalCents)}'),
+                  _planRow('Credit card fees (monthly, plus a twelfth of '
+                      'each annual fee)',
+                      '-${fmtCents(cardFeesCents)}'),
                   const Divider(),
-                  _planRow('Left to budget',
-                      fmtCents(schedIncomeCents - billsTotalCents),
+                  _planRow(
+                      'Left to budget',
+                      fmtCents(schedIncomeCents -
+                          billsTotalCents -
+                          cardFeesCents),
                       bold: true),
                 ],
               ),

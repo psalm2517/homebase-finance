@@ -90,6 +90,93 @@ void main() {
     expect(next.every((r) => !r.paid), isTrue);
   });
 
+  test('recurring bills become monthly, one-offs become one-time', () async {
+    final db = AppDatabase.forTesting(NativeDatabase(file));
+    addTearDown(db.close);
+
+    final bills = await db.select(db.bills).get();
+    expect(bills.every((b) => b.frequency == BillFrequency.monthly), isTrue,
+        reason: 'both seeded bills had recurring = 1');
+
+    // The monthly total still matches, and annual bills added afterwards
+    // are spread across the year.
+    final repo = HomebaseRepository(db);
+    expect(await repo.watchMonthlyBillsCents(profileId: 1).first,
+        145000 + 9000);
+  });
+
+  test('a v3 database upgrades to v4 and keeps its payment history',
+      () async {
+    // Someone who already ran the billing-cycle build is on v3: bills have
+    // `recurring` but no frequency, and bill_payments already exists.
+    final v3Dir = Directory.systemTemp.createTempSync('homebase_v3');
+    addTearDown(() => v3Dir.deleteSync(recursive: true));
+    final v3File = File('${v3Dir.path}/homebase.sqlite');
+
+    final raw = sqlite3.open(v3File.path);
+    raw.execute('''
+      CREATE TABLE profiles (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        pin_hash TEXT NULL,
+        is_admin INTEGER NOT NULL DEFAULT 0);
+    ''');
+    raw.execute('''
+      CREATE TABLE bills (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        due_day INTEGER NOT NULL,
+        recurring INTEGER NOT NULL DEFAULT 1,
+        category TEXT NOT NULL DEFAULT 'Other');
+    ''');
+    raw.execute('''
+      CREATE TABLE bill_payments (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        bill_id INTEGER NOT NULL REFERENCES bills (id) ON DELETE CASCADE,
+        period_start INTEGER NOT NULL,
+        paid_at INTEGER NOT NULL,
+        UNIQUE (bill_id, period_start));
+    ''');
+    raw.execute('''
+      CREATE TABLE credit_cards (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        balance_cents INTEGER NOT NULL DEFAULT 0,
+        credit_limit_cents INTEGER NOT NULL,
+        apr REAL NOT NULL DEFAULT 0,
+        annual_fee_cents INTEGER NOT NULL DEFAULT 0,
+        monthly_fee_cents INTEGER NOT NULL DEFAULT 0,
+        statement_day INTEGER NULL,
+        payment_due_day INTEGER NULL);
+    ''');
+    raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
+    raw.execute('INSERT INTO bills '
+        '(profile_id, name, amount_cents, due_day, recurring) '
+        "VALUES (1, 'Rent', 145000, 1, 1);");
+    final month = DateTime(DateTime.now().year, DateTime.now().month);
+    raw.execute('INSERT INTO bill_payments '
+        '(profile_id, bill_id, period_start, paid_at) VALUES '
+        '(1, 1, ${month.millisecondsSinceEpoch ~/ 1000}, '
+        '${DateTime.now().millisecondsSinceEpoch ~/ 1000});');
+    raw.execute('PRAGMA user_version = 3;');
+    raw.close();
+
+    final db = AppDatabase.forTesting(NativeDatabase(v3File));
+    addTearDown(db.close);
+    final repo = HomebaseRepository(db);
+
+    final rows = await repo
+        .watchBillsForMonth(profileId: 1, month: DateTime.now())
+        .first;
+    expect(rows.single.bill.frequency, BillFrequency.monthly);
+    expect(rows.single.paid, isTrue,
+        reason: 'payments recorded under v3 survive the upgrade');
+  });
+
   test('v2 database gains billing cycle columns', () async {
     final db = AppDatabase.forTesting(NativeDatabase(file));
     addTearDown(db.close);

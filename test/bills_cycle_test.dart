@@ -86,6 +86,103 @@ void main() {
     });
   });
 
+  group('bill frequency', () {
+    Future<int> addBill(String name, BillFrequency freq,
+            {int? month, int? year, int cents = 8000}) =>
+        repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: name,
+          amountCents: cents,
+          dueDay: 3,
+          frequency: Value(freq),
+          dueMonth: Value(month),
+          dueYear: Value(year),
+        ));
+
+    test('an annual bill appears only in its month', () async {
+      await addBill('Aura', BillFrequency.annual, month: 3, cents: 12000);
+
+      final march = await repo
+          .watchBillsForMonth(profileId: profileId, month: DateTime(2026, 3))
+          .first;
+      final april = await repo
+          .watchBillsForMonth(profileId: profileId, month: DateTime(2026, 4))
+          .first;
+
+      expect(march.single.bill.name, 'Aura');
+      expect(april, isEmpty);
+    });
+
+    test('a quarterly bill appears every three months from its anchor',
+        () async {
+      await addBill('Water', BillFrequency.quarterly, month: 2);
+
+      for (final m in [2, 5, 8, 11]) {
+        expect(
+            (await repo
+                    .watchBillsForMonth(
+                        profileId: profileId, month: DateTime(2026, m))
+                    .first)
+                .length,
+            1,
+            reason: 'due in month $m');
+      }
+      for (final m in [3, 4, 6]) {
+        expect(
+            await repo
+                .watchBillsForMonth(
+                    profileId: profileId, month: DateTime(2026, m))
+                .first,
+            isEmpty,
+            reason: 'not due in month $m');
+      }
+    });
+
+    test('a one-time bill appears once, in its month and year', () async {
+      await addBill('Deposit', BillFrequency.oneTime, month: 9, year: 2026);
+
+      expect(
+          (await repo
+                  .watchBillsForMonth(
+                      profileId: profileId, month: DateTime(2026, 9))
+                  .first)
+              .length,
+          1);
+      expect(
+          await repo
+              .watchBillsForMonth(profileId: profileId, month: DateTime(2027, 9))
+              .first,
+          isEmpty,
+          reason: 'does not repeat the following year');
+    });
+
+    test('monthly cost spreads longer periods and skips one-time', () async {
+      await addBill('Sub', BillFrequency.annual, month: 3, cents: 12000);
+      await addBill('Water', BillFrequency.quarterly, month: 1, cents: 9000);
+      await addBill('Rent', BillFrequency.monthly, cents: 145000);
+      await addBill('Deposit', BillFrequency.oneTime,
+          month: 9, year: 2026, cents: 50000);
+
+      final monthly = await repo.watchMonthlyBillsCents(profileId: profileId).first;
+      // 12000/12 = 1000, 9000/3 = 3000, 145000, one-time excluded.
+      expect(monthly, 1000 + 3000 + 145000);
+    });
+
+    test('card fees roll into a monthly figure', () async {
+      await repo.upsertCard(CreditCardsCompanion.insert(
+          profileId: profileId,
+          name: 'Gold',
+          creditLimitCents: 900000,
+          annualFeeCents: const Value(32500),
+          monthlyFeeCents: const Value(500)));
+
+      final fees =
+          await repo.watchMonthlyCardFeesCents(profileId: profileId).first;
+      // 325.00/12 = 27.08 plus the 5.00 monthly fee.
+      expect(fees, 2708 + 500);
+    });
+  });
+
   group('statement cycle dates', () {
     CreditCard card({int? statementDay, int? dueDay}) => CreditCard(
           id: 1,

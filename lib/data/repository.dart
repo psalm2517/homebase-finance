@@ -180,9 +180,37 @@ class HomebaseRepository {
   Future<int> upsertBill(BillsCompanion entry) =>
       _db.into(_db.bills).insertOnConflictUpdate(entry);
 
+  /// Whether [bill] actually comes due in the given month.
+  static bool billFallsIn(Bill bill, DateTime month) {
+    switch (bill.frequency) {
+      case BillFrequency.monthly:
+        return true;
+      case BillFrequency.quarterly:
+        final anchor = bill.dueMonth ?? 1;
+        return (month.month - anchor) % 3 == 0;
+      case BillFrequency.annual:
+        return month.month == (bill.dueMonth ?? 1);
+      case BillFrequency.oneTime:
+        return month.month == (bill.dueMonth ?? 1) &&
+            month.year == (bill.dueYear ?? month.year);
+    }
+  }
+
+  /// What a bill costs per month once spread across its billing period —
+  /// an annual subscription counts as a twelfth each month. One-time bills
+  /// contribute nothing to an ongoing monthly figure.
+  static int monthlyCostCents(Bill bill) => switch (bill.frequency) {
+        BillFrequency.monthly => bill.amountCents,
+        BillFrequency.quarterly => (bill.amountCents / 3).round(),
+        BillFrequency.annual => (bill.amountCents / 12).round(),
+        BillFrequency.oneTime => 0,
+      };
+
   /// Bills paired with whether they are paid for [month]. Because status is
   /// derived from the month, everything shows unpaid again on the 1st with
-  /// no manual reset — and past months keep their real history.
+  /// no manual reset — and past months keep their real history. Only bills
+  /// that actually fall in [month] are returned, so an annual subscription
+  /// shows up once a year rather than every month.
   Stream<List<({Bill bill, bool paid})>> watchBillsForMonth({
     required int profileId,
     required DateTime month,
@@ -199,10 +227,11 @@ class HomebaseRepository {
       ..orderBy([OrderingTerm.asc(_db.bills.dueDay)]);
     return query.watch().map((rows) => [
           for (final row in rows)
-            (
-              bill: row.readTable(_db.bills),
-              paid: row.readTableOrNull(_db.billPayments) != null,
-            )
+            if (billFallsIn(row.readTable(_db.bills), periodStart))
+              (
+                bill: row.readTable(_db.bills),
+                paid: row.readTableOrNull(_db.billPayments) != null,
+              )
         ]);
   }
 
@@ -450,11 +479,19 @@ class HomebaseRepository {
         return cents.round();
       });
 
-  /// Total of recurring monthly bills — the other half of the breakdown.
+  /// Recurring bills as a monthly figure, with quarterly and annual bills
+  /// spread across their period (an $80/year subscription counts as $6.67).
   Stream<int> watchMonthlyBillsCents({required int profileId}) =>
-      watchBills(profileId: profileId).map((bills) => bills
-          .where((b) => b.recurring)
-          .fold(0, (sum, b) => sum + b.amountCents));
+      watchBills(profileId: profileId).map(
+          (bills) => bills.fold(0, (sum, b) => sum + monthlyCostCents(b)));
+
+  /// Card fees as a monthly figure: monthly fees plus a twelfth of each
+  /// annual fee. These are real recurring costs, so they belong in the plan.
+  Stream<int> watchMonthlyCardFeesCents({required int profileId}) =>
+      watchCards(profileId: profileId).map((cards) => cards.fold(
+          0,
+          (sum, c) =>
+              sum + c.monthlyFeeCents + (c.annualFeeCents / 12).round()));
 
   /// Where a card is in its statement cycle right now: when the statement
   /// closes next, and when payment is due. Null fields mean the card has no

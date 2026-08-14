@@ -21,28 +21,28 @@ class CreditCards extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get profileId => integer().references(Profiles, #id)();
   TextColumn get name => text().withLength(min: 1, max: 64)();
-  RealColumn get balance => real().withDefault(const Constant(0))();
-  RealColumn get creditLimit => real()(); // `limit` is an SQL keyword
+  IntColumn get balanceCents => integer().withDefault(const Constant(0))();
+  IntColumn get creditLimitCents => integer()(); // `limit` is an SQL keyword
   RealColumn get apr => real().withDefault(const Constant(0))();
-  RealColumn get annualFee => real().withDefault(const Constant(0))();
-  RealColumn get monthlyFee => real().withDefault(const Constant(0))();
+  IntColumn get annualFeeCents => integer().withDefault(const Constant(0))();
+  IntColumn get monthlyFeeCents => integer().withDefault(const Constant(0))();
 }
 
 class Loans extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get profileId => integer().references(Profiles, #id)();
   TextColumn get name => text().withLength(min: 1, max: 64)();
-  RealColumn get balance => real()();
-  RealColumn get originalAmount => real()();
+  IntColumn get balanceCents => integer()();
+  IntColumn get originalAmountCents => integer()();
   RealColumn get apr => real().withDefault(const Constant(0))();
-  RealColumn get monthlyPayment => real().withDefault(const Constant(0))();
+  IntColumn get monthlyPaymentCents => integer().withDefault(const Constant(0))();
 }
 
 class Bills extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get profileId => integer().references(Profiles, #id)();
   TextColumn get name => text().withLength(min: 1, max: 64)();
-  RealColumn get amount => real()();
+  IntColumn get amountCents => integer()();
   IntColumn get dueDay => integer()(); // 1-31, clamped to month length in UI
   BoolColumn get recurring => boolean().withDefault(const Constant(true))();
   TextColumn get category => text().withDefault(const Constant('Other'))();
@@ -66,7 +66,7 @@ class BudgetEntries extends Table {
   IntColumn get profileId => integer().references(Profiles, #id)();
   DateTimeColumn get date => dateTime()();
   TextColumn get category => text().withDefault(const Constant('Other'))();
-  RealColumn get amount => real()();
+  IntColumn get amountCents => integer()();
   TextColumn get type => textEnum<EntryType>()();
   TextColumn get description => text().nullable()(); // matched by CategoryRules
 }
@@ -76,7 +76,7 @@ class BudgetTargets extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get profileId => integer().references(Profiles, #id)();
   TextColumn get category => text().withLength(min: 1, max: 64)();
-  RealColumn get monthlyTarget => real()();
+  IntColumn get monthlyTargetCents => integer()();
 
   @override
   List<Set<Column>> get uniqueKeys => [

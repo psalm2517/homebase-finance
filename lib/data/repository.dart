@@ -126,12 +126,12 @@ class HomebaseRepository {
   /// Live map of category -> total expenses for [month]. The budget screen
   /// pairs this with [watchBudgetTargets]; it re-emits on every entry change,
   /// so progress bars are always current — no scheduled refresh.
-  Stream<Map<String, double>> watchSpentByCategory(
+  Stream<Map<String, int>> watchSpentByCategory(
       {required int profileId, required DateTime month}) {
     return watchBudgetForMonth(profileId: profileId, month: month).map((rows) {
-      final sums = <String, double>{};
+      final sums = <String, int>{};
       for (final e in rows.where((e) => e.type == EntryType.expense)) {
-        sums[e.category] = (sums[e.category] ?? 0) + e.amount;
+        sums[e.category] = (sums[e.category] ?? 0) + e.amountCents;
       }
       return sums;
     });
@@ -158,7 +158,7 @@ class HomebaseRepository {
   Future<String?> categorize({
     required int profileId,
     String? description,
-    double? amount,
+    int? amountCents,
   }) async {
     final rules = await (_db.select(_db.categoryRules)
           ..where((r) => r.profileId.equals(profileId))
@@ -172,7 +172,11 @@ class HomebaseRepository {
             return rule.category;
           }
         case RuleField.amount:
-          if (amount != null && double.tryParse(rule.pattern) == amount) {
+          // Rule patterns are entered in dollars (e.g. "9.99").
+          final dollars = double.tryParse(rule.pattern);
+          if (amountCents != null &&
+              dollars != null &&
+              (dollars * 100).round() == amountCents) {
             return rule.category;
           }
       }

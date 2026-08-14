@@ -99,6 +99,21 @@ class CategoryRules extends Table {
   IntColumn get priority => integer().withDefault(const Constant(0))();
 }
 
+/// How often a paycheck schedule pays out.
+enum PayFrequency { weekly, biweekly, semimonthly, monthly }
+
+/// A recurring paycheck: set it once and the app generates the individual
+/// checks. Amounts are after-tax (take-home).
+class PaycheckSchedules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 64)(); // e.g. "Day job"
+  TextColumn get frequency => textEnum<PayFrequency>()();
+  DateTimeColumn get anchorDate => dateTime()(); // first/next known payday
+  IntColumn get amountCents => integer()();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+
 /// An expected or received paycheck to plan against.
 class Paychecks extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -106,7 +121,12 @@ class Paychecks extends Table {
   TextColumn get name => text().withLength(min: 1, max: 64)();
   DateTimeColumn get date => dateTime()();
   IntColumn get amountCents => integer()();
+  IntColumn get bonusCents => integer().withDefault(const Constant(0))();
   BoolColumn get received => boolean().withDefault(const Constant(false))();
+
+  /// Set when this check was generated from a schedule.
+  IntColumn get scheduleId =>
+      integer().nullable().references(PaycheckSchedules, #id)();
 }
 
 /// "From this paycheck, [amountCents] goes to [target]" — e.g. Savings, Rent.
@@ -130,6 +150,7 @@ class PaycheckAllocations extends Table {
   BudgetEntries,
   BudgetTargets,
   CategoryRules,
+  PaycheckSchedules,
   Paychecks,
   PaycheckAllocations,
 ])

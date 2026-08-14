@@ -184,6 +184,92 @@ class HomebaseRepository {
     return null;
   }
 
+  // ---- Paycheck schedules ----
+
+  Stream<List<PaycheckSchedule>> watchSchedules({required int profileId}) =>
+      (_db.select(_db.paycheckSchedules)
+            ..where((s) => s.profileId.equals(profileId)))
+          .watch();
+
+  Future<int> upsertSchedule(PaycheckSchedulesCompanion entry) =>
+      _db.into(_db.paycheckSchedules).insertOnConflictUpdate(entry);
+
+  Future<int> deleteSchedule({required int profileId, required int id}) =>
+      (_db.delete(_db.paycheckSchedules)
+            ..where((s) => s.profileId.equals(profileId) & s.id.equals(id)))
+          .go();
+
+  /// Paydays for [schedule] from its anchor date through [until].
+  static List<DateTime> paydatesFor(PaycheckSchedule schedule, DateTime until) {
+    final dates = <DateTime>[];
+    var d = schedule.anchorDate;
+    while (!d.isAfter(until)) {
+      dates.add(d);
+      d = switch (schedule.frequency) {
+        PayFrequency.weekly => d.add(const Duration(days: 7)),
+        PayFrequency.biweekly => d.add(const Duration(days: 14)),
+        // 1st & 15th style: alternate half-month steps from the anchor day.
+        PayFrequency.semimonthly => d.day < 15
+            ? DateTime(d.year, d.month, d.day + 14)
+            : DateTime(d.year, d.month + 1, d.day - 14),
+        PayFrequency.monthly => DateTime(d.year, d.month + 1, d.day),
+      };
+    }
+    return dates;
+  }
+
+  /// Materialize any due-but-missing paychecks for active schedules, through
+  /// [until] (e.g. end of next month). Idempotent: skips dates that already
+  /// have a check. Call on app launch / paycheck screen open.
+  Future<void> generateDuePaychecks(
+      {required int profileId, required DateTime until}) async {
+    final schedules = await (_db.select(_db.paycheckSchedules)
+          ..where((s) => s.profileId.equals(profileId) & s.active.equals(true)))
+        .get();
+    for (final schedule in schedules) {
+      final existing = await (_db.select(_db.paychecks)
+            ..where((p) =>
+                p.profileId.equals(profileId) &
+                p.scheduleId.equals(schedule.id)))
+          .get();
+      final have = existing.map((p) => p.date).toSet();
+      for (final date in paydatesFor(schedule, until)) {
+        if (!have.contains(date)) {
+          await _db.into(_db.paychecks).insert(PaychecksCompanion.insert(
+                profileId: profileId,
+                name: schedule.name,
+                date: date,
+                amountCents: schedule.amountCents,
+                scheduleId: Value(schedule.id),
+              ));
+        }
+      }
+    }
+  }
+
+  /// After-tax monthly income from active schedules, normalized
+  /// (weekly x52/12, bi-weekly x26/12, semi-monthly x2, monthly x1).
+  /// Feeds the bills-vs-income breakdown.
+  Stream<int> watchMonthlyIncomeCents({required int profileId}) =>
+      watchSchedules(profileId: profileId).map((schedules) {
+        var cents = 0.0;
+        for (final s in schedules.where((s) => s.active)) {
+          cents += switch (s.frequency) {
+            PayFrequency.weekly => s.amountCents * 52 / 12,
+            PayFrequency.biweekly => s.amountCents * 26 / 12,
+            PayFrequency.semimonthly => s.amountCents * 2.0,
+            PayFrequency.monthly => s.amountCents * 1.0,
+          };
+        }
+        return cents.round();
+      });
+
+  /// Total of recurring monthly bills — the other half of the breakdown.
+  Stream<int> watchMonthlyBillsCents({required int profileId}) =>
+      watchBills(profileId: profileId).map((bills) => bills
+          .where((b) => b.recurring)
+          .fold(0, (sum, b) => sum + b.amountCents));
+
   // ---- Paycheck planning ----
 
   Stream<List<Paycheck>> watchPaychecks({required int profileId}) =>

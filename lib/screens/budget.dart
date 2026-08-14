@@ -110,6 +110,20 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   onPressed: () => _manageRules(context),
                   icon: const Icon(Icons.rule),
                   label: const Text('Rules')),
+              const InfoButton(
+                title: 'Auto-categorization rules',
+                body: [
+                  'Rules fill in the category for you as you type a new '
+                      'entry, so you are not picking one every time.',
+                  'A description rule matches when the text you type contains '
+                      'the pattern, ignoring capitalization — a rule for '
+                      '"coffee" catches "Coffee Lab" and "COFFEE #12".',
+                  'An amount rule matches an exact dollar figure, which is '
+                      'handy for fixed subscriptions like 9.99.',
+                  'Rules are checked in order and the first match wins. You '
+                      'can always type over the category it picked.',
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -132,7 +146,22 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           ]),
           const SizedBox(height: 24),
           const SectionHeader('Monthly plan (after-tax income vs bills)',
-              icon: Icons.calculate_outlined),
+              icon: Icons.calculate_outlined,
+              info: InfoButton(
+                title: 'Monthly plan',
+                body: [
+                  'A quick sanity check: what you expect to earn in a normal '
+                      'month, minus what your recurring bills cost, leaves '
+                      'the amount you actually have to work with.',
+                  'Income comes from your paycheck schedules on the Paychecks '
+                      'screen, normalized to a month — a bi-weekly schedule '
+                      'is multiplied by 26 and divided by 12, weekly by 52 '
+                      'and divided by 12. That is why it may not match a '
+                      'single paycheck times two.',
+                  'Every amount you enter in Homebase is after tax, so this '
+                      'is take-home money.',
+                ],
+              )),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -153,7 +182,20 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           ),
           const SizedBox(height: 24),
           const SectionHeader('Spending by category',
-              icon: Icons.donut_small_outlined),
+              icon: Icons.donut_small_outlined,
+              info: InfoButton(
+                title: 'Spending vs targets',
+                body: [
+                  'Each category shows what you have spent this month against '
+                      'the target you set, with the bar turning red once you '
+                      'go over.',
+                  'There is no refresh schedule — the moment you add an '
+                      'expense the bar moves. Only the current calendar '
+                      'month counts, so spending resets on the 1st while '
+                      'your targets stay.',
+                  'Set targets with the Targets button above.',
+                ],
+              )),
           if (categories.isEmpty)
             const Card(
               child: Padding(

@@ -46,7 +46,24 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             padding: kPagePadding,
             children: [
               const SectionHeader('Household profiles',
-                  icon: Icons.group_outlined),
+                  icon: Icons.group_outlined,
+                  info: InfoButton(
+                    title: 'Profiles and access',
+                    body: [
+                      'Every profile keeps its own accounts, cards, loans, '
+                          'bills, budget and paychecks. Nothing is shared '
+                          'between them.',
+                      'An admin can switch into any profile using the '
+                          'selector in the top bar. A non-admin only ever '
+                          'sees their own data and has no switcher.',
+                      'A PIN is optional. Without one, anyone who opens the '
+                          'app can select that profile. A PIN can be any '
+                          'length and use letters, numbers or symbols.',
+                      'Deleting a profile permanently deletes all of its '
+                          'financial data. The last remaining admin cannot '
+                          'be deleted.',
+                    ],
+                  )),
               Text(
                   'Each profile has its own cards, loans, bills, budget and '
                   'paychecks. Admins can view any profile; everyone else sees '

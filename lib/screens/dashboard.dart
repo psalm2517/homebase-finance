@@ -34,6 +34,18 @@ class DashboardScreen extends ConsumerWidget {
                       ? scheme.primary
                       : scheme.error,
                   note: net == null ? null : 'assets minus debts',
+                  info: const InfoButton(
+                    title: 'Net worth',
+                    body: [
+                      'Everything you own minus everything you owe.',
+                      'Assets are the balances of your accounts (checking, '
+                          'savings, cash, investment, retirement). Debts are '
+                          'your credit card balances plus your loan balances.',
+                      'A negative number is normal early on, especially with '
+                          'student loans or a car note. What matters is the '
+                          'direction it moves over time.',
+                    ],
+                  ),
                 ),
                 StatCard(
                   label: 'Assets',
@@ -64,6 +76,24 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 SectionHeader('Credit utilization',
                     icon: Icons.donut_large_outlined,
+                    info: const InfoButton(
+                      title: 'Credit utilization',
+                      body: [
+                        'The share of your available credit you are currently '
+                            'using: balance divided by credit limit.',
+                        'Keeping it under 30% is the common guidance, because '
+                            'utilization is one of the largest factors in a '
+                            'credit score. Under 10% is better still.',
+                        'It is measured both per card and across all cards, so '
+                            'one maxed-out card can hurt even if your overall '
+                            'number looks fine. Homebase flags anything above '
+                            '30% in red.',
+                        'Scores generally use the balance reported on your '
+                            'statement date, not your balance after you pay, '
+                            'so paying before the statement closes lowers the '
+                            'number that gets reported.',
+                      ],
+                    ),
                     action: cards.isEmpty
                         ? null
                         : Text(
@@ -110,7 +140,19 @@ class DashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SectionHeader('Cashflow',
-                    icon: Icons.bar_chart_outlined),
+                    icon: Icons.bar_chart_outlined,
+                    info: InfoButton(
+                      title: 'Cashflow',
+                      body: [
+                        'Money in versus money out for each of the last six '
+                            'months, built from your Budget entries.',
+                        'Green bars are income, red bars are expenses. When '
+                            'the red bar is taller than the green one, you '
+                            'spent more than you earned that month.',
+                        'This only counts entries you have logged in Budget — '
+                            'it is not pulled from your bank.',
+                      ],
+                    )),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -160,7 +202,18 @@ class DashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SectionHeader('Bills due this week',
-                    icon: Icons.event_outlined),
+                    icon: Icons.event_outlined,
+                    info: InfoButton(
+                      title: 'Bills due this week',
+                      body: [
+                        'Any bill whose due day falls in the next seven days, '
+                            'with a check mark once you mark it paid on the '
+                            'Bills screen.',
+                        'A bill due on a day later than the current month has '
+                            '(say the 31st in February) shows on the last day '
+                            'of that month instead.',
+                      ],
+                    )),
                 if (upcoming.isEmpty)
                   const Card(
                     child: Padding(
@@ -207,7 +260,20 @@ class DashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SectionHeader('Credit score trend',
-                    icon: Icons.show_chart),
+                    icon: Icons.show_chart,
+                    info: InfoButton(
+                      title: 'Credit score trend',
+                      body: [
+                        'Your score over time, from snapshots you log '
+                            'manually. Nothing is fetched from a bureau.',
+                        'The main drivers: payment history (never miss a due '
+                            'date), utilization (keep it low), age of '
+                            'accounts (older is better, so avoid closing old '
+                            'cards), credit mix, and hard inquiries (each new '
+                            'application dings you briefly).',
+                        'Two snapshots are needed before a line appears.',
+                      ],
+                    )),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(20),

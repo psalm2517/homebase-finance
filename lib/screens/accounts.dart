@@ -83,6 +83,27 @@ class AccountsScreen extends ConsumerWidget {
                 value: fmtCents(total),
                 icon: Icons.account_balance_outlined,
                 color: total >= 0 ? scheme.primary : scheme.error,
+                info: const InfoButton(
+                  title: 'Account types',
+                  body: [
+                    'Checking, savings and cash are money you can spend now.',
+                    'Investment means an ordinary taxable brokerage — an '
+                        'individual or joint brokerage account, or crypto. '
+                        'You can sell and withdraw whenever you want, and you '
+                        'owe tax on gains and dividends.',
+                    'Retirement means a tax-advantaged account with strings '
+                        'attached: 401(k), 403(b), Traditional IRA, Roth IRA, '
+                        'HSA. They grow tax-free or tax-deferred, but taking '
+                        'money out before age 59½ generally means a 10% '
+                        'penalty plus taxes.',
+                    'So a Roth IRA and a 401(k) are Retirement; a regular '
+                        'brokerage account is Investment. The difference is '
+                        'the tax wrapper, not what you hold inside it — you '
+                        'can own the same index fund in either one.',
+                    'These types only group and label accounts in Homebase. '
+                        'All of them count as assets toward net worth.',
+                  ],
+                ),
               ),
               kSectionGap,
               for (final type in AccountType.values)

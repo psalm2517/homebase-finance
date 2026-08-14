@@ -229,7 +229,25 @@ class _PayoffCalculatorState extends State<_PayoffCalculator> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SectionHeader('Payoff calculator',
-                icon: Icons.calculate_outlined),
+                icon: Icons.calculate_outlined,
+                info: InfoButton(
+                  title: 'Snowball vs avalanche',
+                  body: [
+                    'Two strategies for paying off multiple debts faster. '
+                        'Both assume you keep making every minimum payment '
+                        'and have some extra money each month to throw at '
+                        'one debt.',
+                    'Snowball targets the smallest balance first. You clear '
+                        'individual debts sooner, which many people find '
+                        'motivating, but you usually pay more interest.',
+                    'Avalanche targets the highest APR first. It is '
+                        'mathematically optimal — least interest paid and '
+                        'usually the fastest — but the first debt can take a '
+                        'while to disappear.',
+                    'As each debt is cleared, its payment rolls into the next '
+                        'one, which is why both speed up over time.',
+                  ],
+                )),
             const SizedBox(height: 12),
             SizedBox(
               width: 240,

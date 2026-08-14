@@ -43,7 +43,24 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader('Schedules', icon: Icons.repeat),
+            const SectionHeader('Schedules',
+                icon: Icons.repeat,
+                info: InfoButton(
+                  title: 'Paycheck schedules',
+                  body: [
+                    'Set a schedule once and Homebase generates the '
+                        'individual paychecks for you, two months ahead, so '
+                        'you never type a payday date twice.',
+                    'Weekly is every 7 days and bi-weekly every 14 days, '
+                        'which means 52 and 26 checks a year — bi-weekly '
+                        'gives you two three-check months annually.',
+                    'Semi-monthly is twice a month on fixed days such as the '
+                        '1st and 15th, so it is always 24 checks a year. It '
+                        'looks similar to bi-weekly but is not the same.',
+                    'Enter the amount you actually take home, after taxes and '
+                        'deductions.',
+                  ],
+                )),
             StreamBuilder<List<PaycheckSchedule>>(
               stream: repo.watchSchedules(profileId: profileId),
               builder: (context, snap) {
@@ -88,7 +105,22 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const SectionHeader('Paychecks', icon: Icons.payments_outlined),
+            const SectionHeader('Paychecks',
+                icon: Icons.payments_outlined,
+                info: InfoButton(
+                  title: 'Allocating a paycheck',
+                  body: [
+                    'Open a check and assign parts of it to where the money '
+                        'is going — rent, savings, a card payment. This is '
+                        'envelope budgeting at the paycheck level rather '
+                        'than the month level.',
+                    'The card shows what is still unassigned, and warns you '
+                        'in red if your allocations add up to more than the '
+                        'check is worth.',
+                    'Use Bonus to add a one-off amount to a single check '
+                        'without changing the schedule.',
+                  ],
+                )),
             StreamBuilder<List<Paycheck>>(
               stream: repo.watchPaychecks(profileId: profileId),
               builder: (context, snap) {

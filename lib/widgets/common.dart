@@ -46,13 +46,67 @@ class EmptyState extends StatelessWidget {
   }
 }
 
+/// Small (i) button that opens a plain-language explanation. Use it wherever
+/// a term or threshold isn't self-evident.
+class InfoButton extends StatelessWidget {
+  const InfoButton({super.key, required this.title, required this.body});
+
+  final String title;
+
+  /// Paragraphs, shown in order.
+  final List<String> body;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.info_outline, size: 16),
+      tooltip: title,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      padding: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+      onPressed: () => showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.info_outline),
+          title: Text(title),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final paragraph in body)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(paragraph,
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Got it')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Section label with an icon, used above every card group.
 class SectionHeader extends StatelessWidget {
-  const SectionHeader(this.title, {super.key, required this.icon, this.action});
+  const SectionHeader(this.title,
+      {super.key, required this.icon, this.action, this.info});
 
   final String title;
   final IconData icon;
   final Widget? action;
+
+  /// Optional (i) explanation shown next to the title.
+  final InfoButton? info;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +117,7 @@ class SectionHeader extends StatelessWidget {
           Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           Text(title, style: Theme.of(context).textTheme.titleMedium),
+          if (info != null) ...[const SizedBox(width: 4), info!],
           if (action != null) ...[const Spacer(), action!],
         ],
       ),
@@ -79,6 +134,7 @@ class StatCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.note,
+    this.info,
   });
 
   final String label;
@@ -86,6 +142,7 @@ class StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String? note;
+  final InfoButton? info;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +162,7 @@ class StatCard extends StatelessWidget {
                     child: Text(label,
                         style: Theme.of(context).textTheme.bodySmall),
                   ),
+                  ?info,
                 ],
               ),
               const SizedBox(height: 8),

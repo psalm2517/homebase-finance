@@ -825,6 +825,28 @@ class $CreditCardsTable extends CreditCards
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _statementDayMeta = const VerificationMeta(
+    'statementDay',
+  );
+  @override
+  late final GeneratedColumn<int> statementDay = GeneratedColumn<int>(
+    'statement_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _paymentDueDayMeta = const VerificationMeta(
+    'paymentDueDay',
+  );
+  @override
+  late final GeneratedColumn<int> paymentDueDay = GeneratedColumn<int>(
+    'payment_due_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -835,6 +857,8 @@ class $CreditCardsTable extends CreditCards
     apr,
     annualFeeCents,
     monthlyFeeCents,
+    statementDay,
+    paymentDueDay,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -911,6 +935,24 @@ class $CreditCardsTable extends CreditCards
         ),
       );
     }
+    if (data.containsKey('statement_day')) {
+      context.handle(
+        _statementDayMeta,
+        statementDay.isAcceptableOrUnknown(
+          data['statement_day']!,
+          _statementDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_due_day')) {
+      context.handle(
+        _paymentDueDayMeta,
+        paymentDueDay.isAcceptableOrUnknown(
+          data['payment_due_day']!,
+          _paymentDueDayMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -952,6 +994,14 @@ class $CreditCardsTable extends CreditCards
         DriftSqlType.int,
         data['${effectivePrefix}monthly_fee_cents'],
       )!,
+      statementDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}statement_day'],
+      ),
+      paymentDueDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_due_day'],
+      ),
     );
   }
 
@@ -970,6 +1020,12 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
   final double apr;
   final int annualFeeCents;
   final int monthlyFeeCents;
+
+  /// Day of month the statement closes — the balance reported to the bureaus.
+  final int? statementDay;
+
+  /// Day of month the payment is due, typically ~21-25 days after closing.
+  final int? paymentDueDay;
   const CreditCard({
     required this.id,
     required this.profileId,
@@ -979,6 +1035,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     required this.apr,
     required this.annualFeeCents,
     required this.monthlyFeeCents,
+    this.statementDay,
+    this.paymentDueDay,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -991,6 +1049,12 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     map['apr'] = Variable<double>(apr);
     map['annual_fee_cents'] = Variable<int>(annualFeeCents);
     map['monthly_fee_cents'] = Variable<int>(monthlyFeeCents);
+    if (!nullToAbsent || statementDay != null) {
+      map['statement_day'] = Variable<int>(statementDay);
+    }
+    if (!nullToAbsent || paymentDueDay != null) {
+      map['payment_due_day'] = Variable<int>(paymentDueDay);
+    }
     return map;
   }
 
@@ -1004,6 +1068,12 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       apr: Value(apr),
       annualFeeCents: Value(annualFeeCents),
       monthlyFeeCents: Value(monthlyFeeCents),
+      statementDay: statementDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(statementDay),
+      paymentDueDay: paymentDueDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentDueDay),
     );
   }
 
@@ -1021,6 +1091,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       apr: serializer.fromJson<double>(json['apr']),
       annualFeeCents: serializer.fromJson<int>(json['annualFeeCents']),
       monthlyFeeCents: serializer.fromJson<int>(json['monthlyFeeCents']),
+      statementDay: serializer.fromJson<int?>(json['statementDay']),
+      paymentDueDay: serializer.fromJson<int?>(json['paymentDueDay']),
     );
   }
   @override
@@ -1035,6 +1107,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       'apr': serializer.toJson<double>(apr),
       'annualFeeCents': serializer.toJson<int>(annualFeeCents),
       'monthlyFeeCents': serializer.toJson<int>(monthlyFeeCents),
+      'statementDay': serializer.toJson<int?>(statementDay),
+      'paymentDueDay': serializer.toJson<int?>(paymentDueDay),
     };
   }
 
@@ -1047,6 +1121,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     double? apr,
     int? annualFeeCents,
     int? monthlyFeeCents,
+    Value<int?> statementDay = const Value.absent(),
+    Value<int?> paymentDueDay = const Value.absent(),
   }) => CreditCard(
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
@@ -1056,6 +1132,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     apr: apr ?? this.apr,
     annualFeeCents: annualFeeCents ?? this.annualFeeCents,
     monthlyFeeCents: monthlyFeeCents ?? this.monthlyFeeCents,
+    statementDay: statementDay.present ? statementDay.value : this.statementDay,
+    paymentDueDay: paymentDueDay.present
+        ? paymentDueDay.value
+        : this.paymentDueDay,
   );
   CreditCard copyWithCompanion(CreditCardsCompanion data) {
     return CreditCard(
@@ -1075,6 +1155,12 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       monthlyFeeCents: data.monthlyFeeCents.present
           ? data.monthlyFeeCents.value
           : this.monthlyFeeCents,
+      statementDay: data.statementDay.present
+          ? data.statementDay.value
+          : this.statementDay,
+      paymentDueDay: data.paymentDueDay.present
+          ? data.paymentDueDay.value
+          : this.paymentDueDay,
     );
   }
 
@@ -1088,7 +1174,9 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
           ..write('creditLimitCents: $creditLimitCents, ')
           ..write('apr: $apr, ')
           ..write('annualFeeCents: $annualFeeCents, ')
-          ..write('monthlyFeeCents: $monthlyFeeCents')
+          ..write('monthlyFeeCents: $monthlyFeeCents, ')
+          ..write('statementDay: $statementDay, ')
+          ..write('paymentDueDay: $paymentDueDay')
           ..write(')'))
         .toString();
   }
@@ -1103,6 +1191,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     apr,
     annualFeeCents,
     monthlyFeeCents,
+    statementDay,
+    paymentDueDay,
   );
   @override
   bool operator ==(Object other) =>
@@ -1115,7 +1205,9 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
           other.creditLimitCents == this.creditLimitCents &&
           other.apr == this.apr &&
           other.annualFeeCents == this.annualFeeCents &&
-          other.monthlyFeeCents == this.monthlyFeeCents);
+          other.monthlyFeeCents == this.monthlyFeeCents &&
+          other.statementDay == this.statementDay &&
+          other.paymentDueDay == this.paymentDueDay);
 }
 
 class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
@@ -1127,6 +1219,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
   final Value<double> apr;
   final Value<int> annualFeeCents;
   final Value<int> monthlyFeeCents;
+  final Value<int?> statementDay;
+  final Value<int?> paymentDueDay;
   const CreditCardsCompanion({
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
@@ -1136,6 +1230,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     this.apr = const Value.absent(),
     this.annualFeeCents = const Value.absent(),
     this.monthlyFeeCents = const Value.absent(),
+    this.statementDay = const Value.absent(),
+    this.paymentDueDay = const Value.absent(),
   });
   CreditCardsCompanion.insert({
     this.id = const Value.absent(),
@@ -1146,6 +1242,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     this.apr = const Value.absent(),
     this.annualFeeCents = const Value.absent(),
     this.monthlyFeeCents = const Value.absent(),
+    this.statementDay = const Value.absent(),
+    this.paymentDueDay = const Value.absent(),
   }) : profileId = Value(profileId),
        name = Value(name),
        creditLimitCents = Value(creditLimitCents);
@@ -1158,6 +1256,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     Expression<double>? apr,
     Expression<int>? annualFeeCents,
     Expression<int>? monthlyFeeCents,
+    Expression<int>? statementDay,
+    Expression<int>? paymentDueDay,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1168,6 +1268,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
       if (apr != null) 'apr': apr,
       if (annualFeeCents != null) 'annual_fee_cents': annualFeeCents,
       if (monthlyFeeCents != null) 'monthly_fee_cents': monthlyFeeCents,
+      if (statementDay != null) 'statement_day': statementDay,
+      if (paymentDueDay != null) 'payment_due_day': paymentDueDay,
     });
   }
 
@@ -1180,6 +1282,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     Value<double>? apr,
     Value<int>? annualFeeCents,
     Value<int>? monthlyFeeCents,
+    Value<int?>? statementDay,
+    Value<int?>? paymentDueDay,
   }) {
     return CreditCardsCompanion(
       id: id ?? this.id,
@@ -1190,6 +1294,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
       apr: apr ?? this.apr,
       annualFeeCents: annualFeeCents ?? this.annualFeeCents,
       monthlyFeeCents: monthlyFeeCents ?? this.monthlyFeeCents,
+      statementDay: statementDay ?? this.statementDay,
+      paymentDueDay: paymentDueDay ?? this.paymentDueDay,
     );
   }
 
@@ -1220,6 +1326,12 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     if (monthlyFeeCents.present) {
       map['monthly_fee_cents'] = Variable<int>(monthlyFeeCents.value);
     }
+    if (statementDay.present) {
+      map['statement_day'] = Variable<int>(statementDay.value);
+    }
+    if (paymentDueDay.present) {
+      map['payment_due_day'] = Variable<int>(paymentDueDay.value);
+    }
     return map;
   }
 
@@ -1233,7 +1345,9 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
           ..write('creditLimitCents: $creditLimitCents, ')
           ..write('apr: $apr, ')
           ..write('annualFeeCents: $annualFeeCents, ')
-          ..write('monthlyFeeCents: $monthlyFeeCents')
+          ..write('monthlyFeeCents: $monthlyFeeCents, ')
+          ..write('statementDay: $statementDay, ')
+          ..write('paymentDueDay: $paymentDueDay')
           ..write(')'))
         .toString();
   }
@@ -1802,21 +1916,6 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     requiredDuringInsert: false,
     defaultValue: const Constant('Other'),
   );
-  static const VerificationMeta _paidThisMonthMeta = const VerificationMeta(
-    'paidThisMonth',
-  );
-  @override
-  late final GeneratedColumn<bool> paidThisMonth = GeneratedColumn<bool>(
-    'paid_this_month',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("paid_this_month" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1826,7 +1925,6 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     dueDay,
     recurring,
     category,
-    paidThisMonth,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1890,15 +1988,6 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
       );
     }
-    if (data.containsKey('paid_this_month')) {
-      context.handle(
-        _paidThisMonthMeta,
-        paidThisMonth.isAcceptableOrUnknown(
-          data['paid_this_month']!,
-          _paidThisMonthMeta,
-        ),
-      );
-    }
     return context;
   }
 
@@ -1936,10 +2025,6 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         DriftSqlType.string,
         data['${effectivePrefix}category'],
       )!,
-      paidThisMonth: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}paid_this_month'],
-      )!,
     );
   }
 
@@ -1957,7 +2042,6 @@ class Bill extends DataClass implements Insertable<Bill> {
   final int dueDay;
   final bool recurring;
   final String category;
-  final bool paidThisMonth;
   const Bill({
     required this.id,
     required this.profileId,
@@ -1966,7 +2050,6 @@ class Bill extends DataClass implements Insertable<Bill> {
     required this.dueDay,
     required this.recurring,
     required this.category,
-    required this.paidThisMonth,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1978,7 +2061,6 @@ class Bill extends DataClass implements Insertable<Bill> {
     map['due_day'] = Variable<int>(dueDay);
     map['recurring'] = Variable<bool>(recurring);
     map['category'] = Variable<String>(category);
-    map['paid_this_month'] = Variable<bool>(paidThisMonth);
     return map;
   }
 
@@ -1991,7 +2073,6 @@ class Bill extends DataClass implements Insertable<Bill> {
       dueDay: Value(dueDay),
       recurring: Value(recurring),
       category: Value(category),
-      paidThisMonth: Value(paidThisMonth),
     );
   }
 
@@ -2008,7 +2089,6 @@ class Bill extends DataClass implements Insertable<Bill> {
       dueDay: serializer.fromJson<int>(json['dueDay']),
       recurring: serializer.fromJson<bool>(json['recurring']),
       category: serializer.fromJson<String>(json['category']),
-      paidThisMonth: serializer.fromJson<bool>(json['paidThisMonth']),
     );
   }
   @override
@@ -2022,7 +2102,6 @@ class Bill extends DataClass implements Insertable<Bill> {
       'dueDay': serializer.toJson<int>(dueDay),
       'recurring': serializer.toJson<bool>(recurring),
       'category': serializer.toJson<String>(category),
-      'paidThisMonth': serializer.toJson<bool>(paidThisMonth),
     };
   }
 
@@ -2034,7 +2113,6 @@ class Bill extends DataClass implements Insertable<Bill> {
     int? dueDay,
     bool? recurring,
     String? category,
-    bool? paidThisMonth,
   }) => Bill(
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
@@ -2043,7 +2121,6 @@ class Bill extends DataClass implements Insertable<Bill> {
     dueDay: dueDay ?? this.dueDay,
     recurring: recurring ?? this.recurring,
     category: category ?? this.category,
-    paidThisMonth: paidThisMonth ?? this.paidThisMonth,
   );
   Bill copyWithCompanion(BillsCompanion data) {
     return Bill(
@@ -2056,9 +2133,6 @@ class Bill extends DataClass implements Insertable<Bill> {
       dueDay: data.dueDay.present ? data.dueDay.value : this.dueDay,
       recurring: data.recurring.present ? data.recurring.value : this.recurring,
       category: data.category.present ? data.category.value : this.category,
-      paidThisMonth: data.paidThisMonth.present
-          ? data.paidThisMonth.value
-          : this.paidThisMonth,
     );
   }
 
@@ -2071,8 +2145,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('amountCents: $amountCents, ')
           ..write('dueDay: $dueDay, ')
           ..write('recurring: $recurring, ')
-          ..write('category: $category, ')
-          ..write('paidThisMonth: $paidThisMonth')
+          ..write('category: $category')
           ..write(')'))
         .toString();
   }
@@ -2086,7 +2159,6 @@ class Bill extends DataClass implements Insertable<Bill> {
     dueDay,
     recurring,
     category,
-    paidThisMonth,
   );
   @override
   bool operator ==(Object other) =>
@@ -2098,8 +2170,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.amountCents == this.amountCents &&
           other.dueDay == this.dueDay &&
           other.recurring == this.recurring &&
-          other.category == this.category &&
-          other.paidThisMonth == this.paidThisMonth);
+          other.category == this.category);
 }
 
 class BillsCompanion extends UpdateCompanion<Bill> {
@@ -2110,7 +2181,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<int> dueDay;
   final Value<bool> recurring;
   final Value<String> category;
-  final Value<bool> paidThisMonth;
   const BillsCompanion({
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
@@ -2119,7 +2189,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.dueDay = const Value.absent(),
     this.recurring = const Value.absent(),
     this.category = const Value.absent(),
-    this.paidThisMonth = const Value.absent(),
   });
   BillsCompanion.insert({
     this.id = const Value.absent(),
@@ -2129,7 +2198,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     required int dueDay,
     this.recurring = const Value.absent(),
     this.category = const Value.absent(),
-    this.paidThisMonth = const Value.absent(),
   }) : profileId = Value(profileId),
        name = Value(name),
        amountCents = Value(amountCents),
@@ -2142,7 +2210,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<int>? dueDay,
     Expression<bool>? recurring,
     Expression<String>? category,
-    Expression<bool>? paidThisMonth,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2152,7 +2219,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (dueDay != null) 'due_day': dueDay,
       if (recurring != null) 'recurring': recurring,
       if (category != null) 'category': category,
-      if (paidThisMonth != null) 'paid_this_month': paidThisMonth,
     });
   }
 
@@ -2164,7 +2230,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Value<int>? dueDay,
     Value<bool>? recurring,
     Value<String>? category,
-    Value<bool>? paidThisMonth,
   }) {
     return BillsCompanion(
       id: id ?? this.id,
@@ -2174,7 +2239,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       dueDay: dueDay ?? this.dueDay,
       recurring: recurring ?? this.recurring,
       category: category ?? this.category,
-      paidThisMonth: paidThisMonth ?? this.paidThisMonth,
     );
   }
 
@@ -2202,9 +2266,6 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     if (category.present) {
       map['category'] = Variable<String>(category.value);
     }
-    if (paidThisMonth.present) {
-      map['paid_this_month'] = Variable<bool>(paidThisMonth.value);
-    }
     return map;
   }
 
@@ -2217,8 +2278,372 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('amountCents: $amountCents, ')
           ..write('dueDay: $dueDay, ')
           ..write('recurring: $recurring, ')
-          ..write('category: $category, ')
-          ..write('paidThisMonth: $paidThisMonth')
+          ..write('category: $category')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BillPaymentsTable extends BillPayments
+    with TableInfo<$BillPaymentsTable, BillPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BillPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _billIdMeta = const VerificationMeta('billId');
+  @override
+  late final GeneratedColumn<int> billId = GeneratedColumn<int>(
+    'bill_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES bills (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _periodStartMeta = const VerificationMeta(
+    'periodStart',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodStart = GeneratedColumn<DateTime>(
+    'period_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paidAtMeta = const VerificationMeta('paidAt');
+  @override
+  late final GeneratedColumn<DateTime> paidAt = GeneratedColumn<DateTime>(
+    'paid_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    billId,
+    periodStart,
+    paidAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'bill_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BillPayment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('bill_id')) {
+      context.handle(
+        _billIdMeta,
+        billId.isAcceptableOrUnknown(data['bill_id']!, _billIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_billIdMeta);
+    }
+    if (data.containsKey('period_start')) {
+      context.handle(
+        _periodStartMeta,
+        periodStart.isAcceptableOrUnknown(
+          data['period_start']!,
+          _periodStartMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_periodStartMeta);
+    }
+    if (data.containsKey('paid_at')) {
+      context.handle(
+        _paidAtMeta,
+        paidAt.isAcceptableOrUnknown(data['paid_at']!, _paidAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_paidAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {billId, periodStart},
+  ];
+  @override
+  BillPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BillPayment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      billId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bill_id'],
+      )!,
+      periodStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}period_start'],
+      )!,
+      paidAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}paid_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BillPaymentsTable createAlias(String alias) {
+    return $BillPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class BillPayment extends DataClass implements Insertable<BillPayment> {
+  final int id;
+  final int profileId;
+  final int billId;
+
+  /// Midnight on the first day of the month this payment covers.
+  final DateTime periodStart;
+  final DateTime paidAt;
+  const BillPayment({
+    required this.id,
+    required this.profileId,
+    required this.billId,
+    required this.periodStart,
+    required this.paidAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['bill_id'] = Variable<int>(billId);
+    map['period_start'] = Variable<DateTime>(periodStart);
+    map['paid_at'] = Variable<DateTime>(paidAt);
+    return map;
+  }
+
+  BillPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return BillPaymentsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      billId: Value(billId),
+      periodStart: Value(periodStart),
+      paidAt: Value(paidAt),
+    );
+  }
+
+  factory BillPayment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BillPayment(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      billId: serializer.fromJson<int>(json['billId']),
+      periodStart: serializer.fromJson<DateTime>(json['periodStart']),
+      paidAt: serializer.fromJson<DateTime>(json['paidAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'billId': serializer.toJson<int>(billId),
+      'periodStart': serializer.toJson<DateTime>(periodStart),
+      'paidAt': serializer.toJson<DateTime>(paidAt),
+    };
+  }
+
+  BillPayment copyWith({
+    int? id,
+    int? profileId,
+    int? billId,
+    DateTime? periodStart,
+    DateTime? paidAt,
+  }) => BillPayment(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    billId: billId ?? this.billId,
+    periodStart: periodStart ?? this.periodStart,
+    paidAt: paidAt ?? this.paidAt,
+  );
+  BillPayment copyWithCompanion(BillPaymentsCompanion data) {
+    return BillPayment(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      billId: data.billId.present ? data.billId.value : this.billId,
+      periodStart: data.periodStart.present
+          ? data.periodStart.value
+          : this.periodStart,
+      paidAt: data.paidAt.present ? data.paidAt.value : this.paidAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillPayment(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('billId: $billId, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('paidAt: $paidAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, profileId, billId, periodStart, paidAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BillPayment &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.billId == this.billId &&
+          other.periodStart == this.periodStart &&
+          other.paidAt == this.paidAt);
+}
+
+class BillPaymentsCompanion extends UpdateCompanion<BillPayment> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<int> billId;
+  final Value<DateTime> periodStart;
+  final Value<DateTime> paidAt;
+  const BillPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.billId = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.paidAt = const Value.absent(),
+  });
+  BillPaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required int billId,
+    required DateTime periodStart,
+    required DateTime paidAt,
+  }) : profileId = Value(profileId),
+       billId = Value(billId),
+       periodStart = Value(periodStart),
+       paidAt = Value(paidAt);
+  static Insertable<BillPayment> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<int>? billId,
+    Expression<DateTime>? periodStart,
+    Expression<DateTime>? paidAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (billId != null) 'bill_id': billId,
+      if (periodStart != null) 'period_start': periodStart,
+      if (paidAt != null) 'paid_at': paidAt,
+    });
+  }
+
+  BillPaymentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<int>? billId,
+    Value<DateTime>? periodStart,
+    Value<DateTime>? paidAt,
+  }) {
+    return BillPaymentsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      billId: billId ?? this.billId,
+      periodStart: periodStart ?? this.periodStart,
+      paidAt: paidAt ?? this.paidAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (billId.present) {
+      map['bill_id'] = Variable<int>(billId.value);
+    }
+    if (periodStart.present) {
+      map['period_start'] = Variable<DateTime>(periodStart.value);
+    }
+    if (paidAt.present) {
+      map['paid_at'] = Variable<DateTime>(paidAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('billId: $billId, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('paidAt: $paidAt')
           ..write(')'))
         .toString();
   }
@@ -5417,6 +5842,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CreditCardsTable creditCards = $CreditCardsTable(this);
   late final $LoansTable loans = $LoansTable(this);
   late final $BillsTable bills = $BillsTable(this);
+  late final $BillPaymentsTable billPayments = $BillPaymentsTable(this);
   late final $CreditScoreSnapshotsTable creditScoreSnapshots =
       $CreditScoreSnapshotsTable(this);
   late final $BudgetEntriesTable budgetEntries = $BudgetEntriesTable(this);
@@ -5437,6 +5863,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     creditCards,
     loans,
     bills,
+    billPayments,
     creditScoreSnapshots,
     budgetEntries,
     budgetTargets,
@@ -5447,6 +5874,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'bills',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('bill_payments', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'paychecks',
@@ -5544,6 +5978,24 @@ final class $$ProfilesTableReferences
     ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_billsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$BillPaymentsTable, List<BillPayment>>
+  _billPaymentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.billPayments,
+    aliasName: 'profiles__id__bill_payments__profile_id',
+  );
+
+  $$BillPaymentsTableProcessedTableManager get billPaymentsRefs {
+    final manager = $$BillPaymentsTableTableManager(
+      $_db,
+      $_db.billPayments,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_billPaymentsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -5812,6 +6264,31 @@ class $$ProfilesTableFilterComposer
           }) => $$BillsTableFilterComposer(
             $db: $db,
             $table: $db.bills,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> billPaymentsRefs(
+    Expression<bool> Function($$BillPaymentsTableFilterComposer f) f,
+  ) {
+    final $$BillPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.billPayments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6148,6 +6625,31 @@ class $$ProfilesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> billPaymentsRefs<T extends Object>(
+    Expression<T> Function($$BillPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$BillPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.billPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> creditScoreSnapshotsRefs<T extends Object>(
     Expression<T> Function($$CreditScoreSnapshotsTableAnnotationComposer a) f,
   ) {
@@ -6345,6 +6847,7 @@ class $$ProfilesTableTableManager
             bool creditCardsRefs,
             bool loansRefs,
             bool billsRefs,
+            bool billPaymentsRefs,
             bool creditScoreSnapshotsRefs,
             bool budgetEntriesRefs,
             bool budgetTargetsRefs,
@@ -6403,6 +6906,7 @@ class $$ProfilesTableTableManager
                 creditCardsRefs = false,
                 loansRefs = false,
                 billsRefs = false,
+                billPaymentsRefs = false,
                 creditScoreSnapshotsRefs = false,
                 budgetEntriesRefs = false,
                 budgetTargetsRefs = false,
@@ -6418,6 +6922,7 @@ class $$ProfilesTableTableManager
                     if (creditCardsRefs) db.creditCards,
                     if (loansRefs) db.loans,
                     if (billsRefs) db.bills,
+                    if (billPaymentsRefs) db.billPayments,
                     if (creditScoreSnapshotsRefs) db.creditScoreSnapshots,
                     if (budgetEntriesRefs) db.budgetEntries,
                     if (budgetTargetsRefs) db.budgetTargets,
@@ -6507,6 +7012,27 @@ class $$ProfilesTableTableManager
                                 table,
                                 p0,
                               ).billsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (billPaymentsRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          BillPayment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._billPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).billPaymentsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.profileId == item.id,
@@ -6685,6 +7211,7 @@ typedef $$ProfilesTableProcessedTableManager =
         bool creditCardsRefs,
         bool loansRefs,
         bool billsRefs,
+        bool billPaymentsRefs,
         bool creditScoreSnapshotsRefs,
         bool budgetEntriesRefs,
         bool budgetTargetsRefs,
@@ -7128,6 +7655,8 @@ typedef $$CreditCardsTableCreateCompanionBuilder =
       Value<double> apr,
       Value<int> annualFeeCents,
       Value<int> monthlyFeeCents,
+      Value<int?> statementDay,
+      Value<int?> paymentDueDay,
     });
 typedef $$CreditCardsTableUpdateCompanionBuilder =
     CreditCardsCompanion Function({
@@ -7139,6 +7668,8 @@ typedef $$CreditCardsTableUpdateCompanionBuilder =
       Value<double> apr,
       Value<int> annualFeeCents,
       Value<int> monthlyFeeCents,
+      Value<int?> statementDay,
+      Value<int?> paymentDueDay,
     });
 
 final class $$CreditCardsTableReferences
@@ -7204,6 +7735,16 @@ class $$CreditCardsTableFilterComposer
 
   ColumnFilters<int> get monthlyFeeCents => $composableBuilder(
     column: $table.monthlyFeeCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get statementDay => $composableBuilder(
+    column: $table.statementDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentDueDay => $composableBuilder(
+    column: $table.paymentDueDay,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7275,6 +7816,16 @@ class $$CreditCardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get statementDay => $composableBuilder(
+    column: $table.statementDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get paymentDueDay => $composableBuilder(
+    column: $table.paymentDueDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProfilesTableOrderingComposer get profileId {
     final $$ProfilesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7334,6 +7885,16 @@ class $$CreditCardsTableAnnotationComposer
 
   GeneratedColumn<int> get monthlyFeeCents => $composableBuilder(
     column: $table.monthlyFeeCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get statementDay => $composableBuilder(
+    column: $table.statementDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get paymentDueDay => $composableBuilder(
+    column: $table.paymentDueDay,
     builder: (column) => column,
   );
 
@@ -7397,6 +7958,8 @@ class $$CreditCardsTableTableManager
                 Value<double> apr = const Value.absent(),
                 Value<int> annualFeeCents = const Value.absent(),
                 Value<int> monthlyFeeCents = const Value.absent(),
+                Value<int?> statementDay = const Value.absent(),
+                Value<int?> paymentDueDay = const Value.absent(),
               }) => CreditCardsCompanion(
                 id: id,
                 profileId: profileId,
@@ -7406,6 +7969,8 @@ class $$CreditCardsTableTableManager
                 apr: apr,
                 annualFeeCents: annualFeeCents,
                 monthlyFeeCents: monthlyFeeCents,
+                statementDay: statementDay,
+                paymentDueDay: paymentDueDay,
               ),
           createCompanionCallback:
               ({
@@ -7417,6 +7982,8 @@ class $$CreditCardsTableTableManager
                 Value<double> apr = const Value.absent(),
                 Value<int> annualFeeCents = const Value.absent(),
                 Value<int> monthlyFeeCents = const Value.absent(),
+                Value<int?> statementDay = const Value.absent(),
+                Value<int?> paymentDueDay = const Value.absent(),
               }) => CreditCardsCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -7426,6 +7993,8 @@ class $$CreditCardsTableTableManager
                 apr: apr,
                 annualFeeCents: annualFeeCents,
                 monthlyFeeCents: monthlyFeeCents,
+                statementDay: statementDay,
+                paymentDueDay: paymentDueDay,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -7849,7 +8418,6 @@ typedef $$BillsTableCreateCompanionBuilder = BillsCompanion Function({
   required int dueDay,
   Value<bool> recurring,
   Value<String> category,
-  Value<bool> paidThisMonth,
 });
 typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<int> id,
@@ -7859,7 +8427,6 @@ typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<int> dueDay,
   Value<bool> recurring,
   Value<String> category,
-  Value<bool> paidThisMonth,
 });
 
 final class $$BillsTableReferences
@@ -7880,6 +8447,24 @@ final class $$BillsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$BillPaymentsTable, List<BillPayment>>
+  _billPaymentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.billPayments,
+    aliasName: 'bills__id__bill_payments__bill_id',
+  );
+
+  $$BillPaymentsTableProcessedTableManager get billPaymentsRefs {
+    final manager = $$BillPaymentsTableTableManager(
+      $_db,
+      $_db.billPayments,
+    ).filter((f) => f.billId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_billPaymentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 
@@ -7946,11 +8531,6 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get paidThisMonth => $composableBuilder(
-    column: $table.paidThisMonth,
-    builder: (column) => ColumnFilters(column),
-  );
-
   $$ProfilesTableFilterComposer get profileId {
     final $$ProfilesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -7972,6 +8552,31 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
           ),
     );
     return composer;
+  }
+
+  Expression<bool> billPaymentsRefs(
+    Expression<bool> Function($$BillPaymentsTableFilterComposer f) f,
+  ) {
+    final $$BillPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.billId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.billPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 
   Expression<bool> paycheckAllocationsRefs(
@@ -8039,11 +8644,6 @@ class $$BillsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get paidThisMonth => $composableBuilder(
-    column: $table.paidThisMonth,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   $$ProfilesTableOrderingComposer get profileId {
     final $$ProfilesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8097,11 +8697,6 @@ class $$BillsTableAnnotationComposer
   GeneratedColumn<String> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
 
-  GeneratedColumn<bool> get paidThisMonth => $composableBuilder(
-    column: $table.paidThisMonth,
-    builder: (column) => column,
-  );
-
   $$ProfilesTableAnnotationComposer get profileId {
     final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -8123,6 +8718,31 @@ class $$BillsTableAnnotationComposer
           ),
     );
     return composer;
+  }
+
+  Expression<T> billPaymentsRefs<T extends Object>(
+    Expression<T> Function($$BillPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$BillPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.billId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.billPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 
   Expression<T> paycheckAllocationsRefs<T extends Object>(
@@ -8165,7 +8785,11 @@ class $$BillsTableTableManager
           $$BillsTableUpdateCompanionBuilder,
           (Bill, $$BillsTableReferences),
           Bill,
-          PrefetchHooks Function({bool profileId, bool paycheckAllocationsRefs})
+          PrefetchHooks Function({
+            bool profileId,
+            bool billPaymentsRefs,
+            bool paycheckAllocationsRefs,
+          })
         > {
   $$BillsTableTableManager(_$AppDatabase db, $BillsTable table)
     : super(
@@ -8187,7 +8811,6 @@ class $$BillsTableTableManager
                 Value<int> dueDay = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<String> category = const Value.absent(),
-                Value<bool> paidThisMonth = const Value.absent(),
               }) => BillsCompanion(
                 id: id,
                 profileId: profileId,
@@ -8196,7 +8819,6 @@ class $$BillsTableTableManager
                 dueDay: dueDay,
                 recurring: recurring,
                 category: category,
-                paidThisMonth: paidThisMonth,
               ),
           createCompanionCallback:
               ({
@@ -8207,7 +8829,6 @@ class $$BillsTableTableManager
                 required int dueDay,
                 Value<bool> recurring = const Value.absent(),
                 Value<String> category = const Value.absent(),
-                Value<bool> paidThisMonth = const Value.absent(),
               }) => BillsCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -8216,7 +8837,6 @@ class $$BillsTableTableManager
                 dueDay: dueDay,
                 recurring: recurring,
                 category: category,
-                paidThisMonth: paidThisMonth,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -8225,10 +8845,15 @@ class $$BillsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({profileId = false, paycheckAllocationsRefs = false}) {
+              ({
+                profileId = false,
+                billPaymentsRefs = false,
+                paycheckAllocationsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (billPaymentsRefs) db.billPayments,
                     if (paycheckAllocationsRefs) db.paycheckAllocations,
                   ],
                   addJoins:
@@ -8263,6 +8888,27 @@ class $$BillsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (billPaymentsRefs)
+                        await $_getPrefetchedData<
+                          Bill,
+                          $BillsTable,
+                          BillPayment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BillsTableReferences
+                              ._billPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BillsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).billPaymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.billId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (paycheckAllocationsRefs)
                         await $_getPrefetchedData<
                           Bill,
@@ -8304,7 +8950,406 @@ typedef $$BillsTableProcessedTableManager =
       $$BillsTableUpdateCompanionBuilder,
       (Bill, $$BillsTableReferences),
       Bill,
-      PrefetchHooks Function({bool profileId, bool paycheckAllocationsRefs})
+      PrefetchHooks Function({
+        bool profileId,
+        bool billPaymentsRefs,
+        bool paycheckAllocationsRefs,
+      })
+    >;
+typedef $$BillPaymentsTableCreateCompanionBuilder =
+    BillPaymentsCompanion Function({
+      Value<int> id,
+      required int profileId,
+      required int billId,
+      required DateTime periodStart,
+      required DateTime paidAt,
+    });
+typedef $$BillPaymentsTableUpdateCompanionBuilder =
+    BillPaymentsCompanion Function({
+      Value<int> id,
+      Value<int> profileId,
+      Value<int> billId,
+      Value<DateTime> periodStart,
+      Value<DateTime> paidAt,
+    });
+
+final class $$BillPaymentsTableReferences
+    extends BaseReferences<_$AppDatabase, $BillPaymentsTable, BillPayment> {
+  $$BillPaymentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('bill_payments__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $BillsTable _billIdTable(_$AppDatabase db) =>
+      db.bills.createAlias('bill_payments__bill_id__bills__id');
+
+  $$BillsTableProcessedTableManager get billId {
+    final $_column = $_itemColumn<int>('bill_id')!;
+
+    final manager = $$BillsTableTableManager(
+      $_db,
+      $_db.bills,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_billIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BillPaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $BillPaymentsTable> {
+  $$BillPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get paidAt => $composableBuilder(
+    column: $table.paidAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$BillsTableFilterComposer get billId {
+    final $$BillsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.billId,
+      referencedTable: $db.bills,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillsTableFilterComposer(
+            $db: $db,
+            $table: $db.bills,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BillPaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BillPaymentsTable> {
+  $$BillPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get paidAt => $composableBuilder(
+    column: $table.paidAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$BillsTableOrderingComposer get billId {
+    final $$BillsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.billId,
+      referencedTable: $db.bills,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillsTableOrderingComposer(
+            $db: $db,
+            $table: $db.bills,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BillPaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BillPaymentsTable> {
+  $$BillPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get paidAt =>
+      $composableBuilder(column: $table.paidAt, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$BillsTableAnnotationComposer get billId {
+    final $$BillsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.billId,
+      referencedTable: $db.bills,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.bills,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BillPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BillPaymentsTable,
+          BillPayment,
+          $$BillPaymentsTableFilterComposer,
+          $$BillPaymentsTableOrderingComposer,
+          $$BillPaymentsTableAnnotationComposer,
+          $$BillPaymentsTableCreateCompanionBuilder,
+          $$BillPaymentsTableUpdateCompanionBuilder,
+          (BillPayment, $$BillPaymentsTableReferences),
+          BillPayment,
+          PrefetchHooks Function({bool profileId, bool billId})
+        > {
+  $$BillPaymentsTableTableManager(_$AppDatabase db, $BillPaymentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BillPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BillPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BillPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<int> billId = const Value.absent(),
+                Value<DateTime> periodStart = const Value.absent(),
+                Value<DateTime> paidAt = const Value.absent(),
+              }) => BillPaymentsCompanion(
+                id: id,
+                profileId: profileId,
+                billId: billId,
+                periodStart: periodStart,
+                paidAt: paidAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required int billId,
+                required DateTime periodStart,
+                required DateTime paidAt,
+              }) => BillPaymentsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                billId: billId,
+                periodStart: periodStart,
+                paidAt: paidAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BillPaymentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false, billId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$BillPaymentsTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$BillPaymentsTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (billId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.billId,
+                        referencedTable: $$BillPaymentsTableReferences
+                            ._billIdTable(db),
+                        referencedColumn: $$BillPaymentsTableReferences
+                            ._billIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BillPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BillPaymentsTable,
+      BillPayment,
+      $$BillPaymentsTableFilterComposer,
+      $$BillPaymentsTableOrderingComposer,
+      $$BillPaymentsTableAnnotationComposer,
+      $$BillPaymentsTableCreateCompanionBuilder,
+      $$BillPaymentsTableUpdateCompanionBuilder,
+      (BillPayment, $$BillPaymentsTableReferences),
+      BillPayment,
+      PrefetchHooks Function({bool profileId, bool billId})
     >;
 typedef $$CreditScoreSnapshotsTableCreateCompanionBuilder =
     CreditScoreSnapshotsCompanion Function({
@@ -11341,6 +12386,8 @@ class $AppDatabaseManager {
       $$LoansTableTableManager(_db, _db.loans);
   $$BillsTableTableManager get bills =>
       $$BillsTableTableManager(_db, _db.bills);
+  $$BillPaymentsTableTableManager get billPayments =>
+      $$BillPaymentsTableTableManager(_db, _db.billPayments);
   $$CreditScoreSnapshotsTableTableManager get creditScoreSnapshots =>
       $$CreditScoreSnapshotsTableTableManager(_db, _db.creditScoreSnapshots);
   $$BudgetEntriesTableTableManager get budgetEntries =>

@@ -40,6 +40,12 @@ class CreditCards extends Table {
   RealColumn get apr => real().withDefault(const Constant(0))();
   IntColumn get annualFeeCents => integer().withDefault(const Constant(0))();
   IntColumn get monthlyFeeCents => integer().withDefault(const Constant(0))();
+
+  /// Day of month the statement closes — the balance reported to the bureaus.
+  IntColumn get statementDay => integer().nullable()();
+
+  /// Day of month the payment is due, typically ~21-25 days after closing.
+  IntColumn get paymentDueDay => integer().nullable()();
 }
 
 class Loans extends Table {
@@ -60,8 +66,25 @@ class Bills extends Table {
   IntColumn get dueDay => integer()(); // 1-31, clamped to month length in UI
   BoolColumn get recurring => boolean().withDefault(const Constant(true))();
   TextColumn get category => text().withDefault(const Constant('Other'))();
-  BoolColumn get paidThisMonth =>
-      boolean().withDefault(const Constant(false))();
+}
+
+/// One row per bill per month it was paid for. "Paid" is derived from the
+/// presence of a row for the current month, so status rolls over on its own
+/// when the calendar month changes — nothing to reset by hand.
+class BillPayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  IntColumn get billId =>
+      integer().references(Bills, #id, onDelete: KeyAction.cascade)();
+
+  /// Midnight on the first day of the month this payment covers.
+  DateTimeColumn get periodStart => dateTime()();
+  DateTimeColumn get paidAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {billId, periodStart},
+      ];
 }
 
 class CreditScoreSnapshots extends Table {
@@ -163,6 +186,7 @@ class PaycheckAllocations extends Table {
   CreditCards,
   Loans,
   Bills,
+  BillPayments,
   CreditScoreSnapshots,
   BudgetEntries,
   BudgetTargets,
@@ -176,7 +200,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -184,6 +208,26 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(accounts);
             await m.addColumn(budgetEntries, budgetEntries.accountId);
+          }
+          if (from < 3) {
+            await m.createTable(billPayments);
+            // Carry any bills currently flagged paid into a payment record
+            // for the current month, then drop the boolean column.
+            final now = DateTime.now();
+            final periodStart = DateTime(now.year, now.month);
+            await customInsert(
+              'INSERT INTO bill_payments '
+              '(profile_id, bill_id, period_start, paid_at) '
+              'SELECT profile_id, id, ?, ? FROM bills '
+              'WHERE paid_this_month = 1',
+              variables: [
+                Variable.withInt(periodStart.millisecondsSinceEpoch ~/ 1000),
+                Variable.withInt(now.millisecondsSinceEpoch ~/ 1000),
+              ],
+            );
+            await m.alterTable(TableMigration(bills));
+            await m.addColumn(creditCards, creditCards.statementDay);
+            await m.addColumn(creditCards, creditCards.paymentDueDay);
           }
         },
         beforeOpen: (details) async {

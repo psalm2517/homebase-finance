@@ -180,17 +180,84 @@ class HomebaseRepository {
   Future<int> upsertBill(BillsCompanion entry) =>
       _db.into(_db.bills).insertOnConflictUpdate(entry);
 
-  Future<void> setBillPaid(
-      {required int profileId, required int id, required bool paid}) async {
-    await (_db.update(_db.bills)
-          ..where((b) => b.profileId.equals(profileId) & b.id.equals(id)))
-        .write(BillsCompanion(paidThisMonth: Value(paid)));
+  /// Bills paired with whether they are paid for [month]. Because status is
+  /// derived from the month, everything shows unpaid again on the 1st with
+  /// no manual reset — and past months keep their real history.
+  Stream<List<({Bill bill, bool paid})>> watchBillsForMonth({
+    required int profileId,
+    required DateTime month,
+  }) {
+    final periodStart = DateTime(month.year, month.month);
+    final query = _db.select(_db.bills).join([
+      leftOuterJoin(
+        _db.billPayments,
+        _db.billPayments.billId.equalsExp(_db.bills.id) &
+            _db.billPayments.periodStart.equals(periodStart),
+      )
+    ])
+      ..where(_db.bills.profileId.equals(profileId))
+      ..orderBy([OrderingTerm.asc(_db.bills.dueDay)]);
+    return query.watch().map((rows) => [
+          for (final row in rows)
+            (
+              bill: row.readTable(_db.bills),
+              paid: row.readTableOrNull(_db.billPayments) != null,
+            )
+        ]);
+  }
+
+  /// Marks a bill paid (or not) for a specific month.
+  Future<void> setBillPaid({
+    required int profileId,
+    required int billId,
+    required DateTime month,
+    required bool paid,
+  }) async {
+    final periodStart = DateTime(month.year, month.month);
+    if (paid) {
+      // Conflict target is the bill+month pair, not the row id: marking an
+      // already-paid bill paid again is a no-op rather than an error.
+      await _db.into(_db.billPayments).insert(
+            BillPaymentsCompanion.insert(
+              profileId: profileId,
+              billId: billId,
+              periodStart: periodStart,
+              paidAt: DateTime.now(),
+            ),
+            onConflict: DoNothing(
+                target: [_db.billPayments.billId,
+                    _db.billPayments.periodStart]),
+          );
+    } else {
+      await (_db.delete(_db.billPayments)
+            ..where((p) =>
+                p.profileId.equals(profileId) &
+                p.billId.equals(billId) &
+                p.periodStart.equals(periodStart)))
+          .go();
+    }
   }
 
   Future<int> deleteBill({required int profileId, required int id}) =>
       (_db.delete(_db.bills)
             ..where((b) => b.profileId.equals(profileId) & b.id.equals(id)))
           .go();
+
+  /// Clamps [day] to a month that may be shorter (a 31st due date lands on
+  /// the 28th in February).
+  static DateTime dayInMonth(int year, int month, int day) {
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, day > lastDay ? lastDay : day);
+  }
+
+  /// The next occurrence of [day] on or after [from].
+  static DateTime nextOccurrence(int day, DateTime from) {
+    final thisMonth = dayInMonth(from.year, from.month, day);
+    if (!thisMonth.isBefore(DateTime(from.year, from.month, from.day))) {
+      return thisMonth;
+    }
+    return dayInMonth(from.year, from.month + 1, day);
+  }
 
   // ---- Credit score snapshots ----
 
@@ -388,6 +455,27 @@ class HomebaseRepository {
       watchBills(profileId: profileId).map((bills) => bills
           .where((b) => b.recurring)
           .fold(0, (sum, b) => sum + b.amountCents));
+
+  /// Where a card is in its statement cycle right now: when the statement
+  /// closes next, and when payment is due. Null fields mean the card has no
+  /// cycle configured.
+  static ({DateTime? statementCloses, DateTime? paymentDue, int? daysToClose})
+      cycleFor(CreditCard card, {DateTime? now}) {
+    final today = now ?? DateTime.now();
+    final closes = card.statementDay == null
+        ? null
+        : nextOccurrence(card.statementDay!, today);
+    final due = card.paymentDueDay == null
+        ? null
+        : nextOccurrence(card.paymentDueDay!, today);
+    return (
+      statementCloses: closes,
+      paymentDue: due,
+      daysToClose: closes
+          ?.difference(DateTime(today.year, today.month, today.day))
+          .inDays,
+    );
+  }
 
   // ---- Paycheck planning ----
 

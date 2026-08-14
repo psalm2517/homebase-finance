@@ -182,22 +182,26 @@ class DashboardScreen extends ConsumerWidget {
           },
         ),
         kSectionGap,
-        StreamBuilder<List<Bill>>(
-          stream: repo.watchBills(profileId: profileId),
+        StreamBuilder<List<({Bill bill, bool paid})>>(
+          stream: repo.watchBillsForMonth(
+              profileId: profileId, month: DateTime.now()),
           builder: (context, snap) {
-            final bills = snap.data ?? [];
+            final rows = snap.data ?? [];
             final today = DateTime.now();
             final lastDay = DateTime(today.year, today.month + 1, 0).day;
-            final window = <int>{
-              for (var i = 0; i < 7; i++)
-                DateTime(today.year, today.month, today.day + i).day
-            };
-            final upcoming = bills
-                .where((b) =>
-                    window.contains(b.dueDay) ||
-                    (b.dueDay > lastDay && window.contains(lastDay)))
-                .toList()
-              ..sort((a, b) => a.dueDay.compareTo(b.dueDay));
+            final windowEnd = today.add(const Duration(days: 7));
+            final upcoming = rows.where((r) {
+              final day = r.bill.dueDay > lastDay ? lastDay : r.bill.dueDay;
+              final due = DateTime(today.year, today.month, day);
+              return !due.isBefore(DateTime(today.year, today.month, today.day)) &&
+                  !due.isAfter(windowEnd);
+            }).toList();
+            final overdue = rows.where((r) {
+              final day = r.bill.dueDay > lastDay ? lastDay : r.bill.dueDay;
+              final due = DateTime(today.year, today.month, day);
+              return !r.paid &&
+                  due.isBefore(DateTime(today.year, today.month, today.day));
+            }).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -207,14 +211,17 @@ class DashboardScreen extends ConsumerWidget {
                       title: 'Bills due this week',
                       body: [
                         'Any bill whose due day falls in the next seven days, '
-                            'with a check mark once you mark it paid on the '
-                            'Bills screen.',
+                            'plus anything already overdue and unpaid this '
+                            'month.',
+                        'Paid status is tracked per month, so this clears '
+                            'itself when a new month begins — there is '
+                            'nothing to reset.',
                         'A bill due on a day later than the current month has '
-                            '(say the 31st in February) shows on the last day '
-                            'of that month instead.',
+                            '(the 31st in February) is treated as due on the '
+                            'last day of that month.',
                       ],
                     )),
-                if (upcoming.isEmpty)
+                if (upcoming.isEmpty && overdue.isEmpty)
                   const Card(
                     child: Padding(
                       padding: EdgeInsets.all(24),
@@ -229,18 +236,22 @@ class DashboardScreen extends ConsumerWidget {
                   Card(
                     child: Column(
                       children: [
-                        for (final b in upcoming)
+                        for (final r in [...overdue, ...upcoming])
                           ListTile(
                             leading: Icon(
-                                b.paidThisMonth
+                                r.paid
                                     ? Icons.check_circle
-                                    : Icons.schedule,
-                                color: b.paidThisMonth
+                                    : overdue.contains(r)
+                                        ? Icons.warning_amber_outlined
+                                        : Icons.schedule,
+                                color: r.paid
                                     ? scheme.primary
                                     : scheme.error),
-                            title: Text(b.name),
-                            subtitle: Text('Due day ${b.dueDay} • ${b.category}'),
-                            trailing: Text(fmtCents(b.amountCents),
+                            title: Text(r.bill.name),
+                            subtitle: Text(
+                                'Due day ${r.bill.dueDay} • ${r.bill.category}'
+                                '${overdue.contains(r) ? ' • overdue' : ''}'),
+                            trailing: Text(fmtCents(r.bill.amountCents),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600)),
                           ),

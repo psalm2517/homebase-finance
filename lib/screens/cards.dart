@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
+import '../data/repository.dart';
 import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
@@ -35,6 +36,26 @@ class CardsScreen extends ConsumerWidget {
           return ListView(
             padding: kPagePadding,
             children: [
+              const SectionHeader('Cards',
+                  icon: Icons.credit_card_outlined,
+                  info: InfoButton(
+                    title: 'Statement cycles',
+                    body: [
+                      'A card has two dates each month: the statement closing '
+                          'day, and the payment due day roughly 21-25 days '
+                          'later.',
+                      'The balance on your closing day is what the card '
+                          'issuer reports to the credit bureaus, so that is '
+                          'the number your utilization is judged on — not '
+                          'what you owe after paying.',
+                      'Paying down the balance before the statement closes '
+                          'therefore lowers your reported utilization. Paying '
+                          'in full by the due date is what avoids interest.',
+                      'Set both days when you edit a card and Homebase works '
+                          'out the next occurrence of each automatically, '
+                          'including short months.',
+                    ],
+                  )),
               for (final c in cards)
                 Card(
                   child: ExpansionTile(
@@ -42,7 +63,7 @@ class CardsScreen extends ConsumerWidget {
                     title: Text(c.name),
                     subtitle: Text(
                         '${fmtCents(c.balanceCents)} of ${fmtCents(c.creditLimitCents)}'),
-                    trailing: Text('${c.apr.toStringAsFixed(2)}% APR'),
+                    trailing: _cycleChip(context, c),
                     childrenPadding: const EdgeInsets.all(16),
                     expandedCrossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -56,6 +77,18 @@ class CardsScreen extends ConsumerWidget {
                       DetailRow('APR', '${c.apr.toStringAsFixed(2)}%'),
                       DetailRow('Annual fee', fmtCents(c.annualFeeCents)),
                       DetailRow('Monthly fee', fmtCents(c.monthlyFeeCents)),
+                      DetailRow(
+                          'Statement closes',
+                          c.statementDay == null
+                              ? 'not set'
+                              : _fmtDate(HomebaseRepository.cycleFor(c)
+                                  .statementCloses!)),
+                      DetailRow(
+                          'Payment due',
+                          c.paymentDueDay == null
+                              ? 'not set'
+                              : _fmtDate(
+                                  HomebaseRepository.cycleFor(c).paymentDue!)),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -122,6 +155,10 @@ class CardsScreen extends ConsumerWidget {
         text: existing == null
             ? ''
             : (existing.monthlyFeeCents / 100).toString());
+    final statementDay =
+        TextEditingController(text: existing?.statementDay?.toString() ?? '');
+    final paymentDueDay =
+        TextEditingController(text: existing?.paymentDueDay?.toString() ?? '');
 
     final saved = await showDialog<bool>(
       context: context,
@@ -138,6 +175,11 @@ class CardsScreen extends ConsumerWidget {
               DialogField(apr, 'APR (%)'),
               DialogField(annualFee, 'Annual fee (\$)'),
               DialogField(monthlyFee, 'Monthly fee (\$)'),
+              DialogField(statementDay, 'Statement closing day (optional)',
+                  helper: 'Day of month the statement closes — this balance '
+                      'is what gets reported to the credit bureaus'),
+              DialogField(paymentDueDay, 'Payment due day (optional)',
+                  helper: 'Usually 21-25 days after the statement closes'),
             ],
           ),
         ),
@@ -161,7 +203,53 @@ class CardsScreen extends ConsumerWidget {
           apr: Value(double.tryParse(apr.text) ?? 0),
           annualFeeCents: Value(parseDollarsToCents(annualFee.text) ?? 0),
           monthlyFeeCents: Value(parseDollarsToCents(monthlyFee.text) ?? 0),
+          statementDay: Value(_parseDay(statementDay.text)),
+          paymentDueDay: Value(_parseDay(paymentDueDay.text)),
         ));
   }
 
+
+  static int? _parseDay(String text) {
+    final value = int.tryParse(text.trim());
+    if (value == null) return null;
+    return value.clamp(1, 31);
+  }
+
+  static String _fmtDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[d.month - 1]} ${d.day}';
+  }
+
+  /// Compact "closes in N days" / "due Mar 3" chip for the collapsed row.
+  Widget _cycleChip(BuildContext context, CreditCard c) {
+    final scheme = Theme.of(context).colorScheme;
+    final cycle = HomebaseRepository.cycleFor(c);
+    if (cycle.statementCloses == null && cycle.paymentDue == null) {
+      return Text('${c.apr.toStringAsFixed(2)}% APR');
+    }
+    final days = cycle.daysToClose;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (cycle.statementCloses != null)
+          Text(
+            days == 0
+                ? 'Statement closes today'
+                : 'Closes in $days ${days == 1 ? 'day' : 'days'}',
+            style: TextStyle(
+                fontSize: 12,
+                color: (days ?? 99) <= 3 ? scheme.error : scheme.primary),
+          ),
+        if (cycle.paymentDue != null)
+          Text('Payment due ${_fmtDate(cycle.paymentDue!)}',
+              style: TextStyle(
+                  fontSize: 11,
+                  color: scheme.onSurface.withValues(alpha: 0.7))),
+      ],
+    );
+  }
 }

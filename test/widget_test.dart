@@ -14,6 +14,6 @@ void main() {
       child: const HomebaseApp(),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Set up profiles'), findsOneWidget);
+    expect(find.text('Welcome to Homebase'), findsOneWidget);
   });
 }

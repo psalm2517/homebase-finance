@@ -24,6 +24,15 @@ class ProfilePickerScreen extends ConsumerWidget {
           }
           final profiles = snapshot.data!;
           if (profiles.isEmpty) return const _FirstRunSetup();
+          // A device with a single PIN-less profile has nothing to choose:
+          // go straight into that profile's data.
+          if (profiles.length == 1 && profiles.single.pinHash == null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(loggedInProfileProvider.notifier).state =
+                  profiles.single;
+            });
+            return const Center(child: CircularProgressIndicator());
+          }
           return _Picker(profiles: profiles);
         },
       ),
@@ -97,8 +106,8 @@ class _Picker extends ConsumerWidget {
           Text('Who is this?',
               style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 32),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            alignment: WrapAlignment.center,
             children: [
               for (final p in profiles)
                 Padding(
@@ -141,7 +150,8 @@ class _Picker extends ConsumerWidget {
   }
 }
 
-/// Creates exactly two profiles: the admin and the regular one.
+/// First run creates only the admin profile. Everyone else is added later
+/// from the admin's Profiles screen.
 class _FirstRunSetup extends ConsumerStatefulWidget {
   const _FirstRunSetup();
 
@@ -150,35 +160,22 @@ class _FirstRunSetup extends ConsumerStatefulWidget {
 }
 
 class _FirstRunSetupState extends ConsumerState<_FirstRunSetup> {
-  final _adminName = TextEditingController();
-  final _adminPin = TextEditingController();
-  final _memberName = TextEditingController();
-  final _memberPin = TextEditingController();
+  final _name = TextEditingController();
+  final _pin = TextEditingController();
   bool _busy = false;
 
   Future<void> _create() async {
-    if (_adminName.text.trim().isEmpty || _memberName.text.trim().isEmpty) {
-      return;
-    }
+    if (_name.text.trim().isEmpty) return;
     setState(() => _busy = true);
     final repo = ref.read(repositoryProvider);
-    await repo.createProfile(ProfilesCompanion.insert(
-      name: _adminName.text.trim(),
+    final id = await repo.createProfile(ProfilesCompanion.insert(
+      name: _name.text.trim(),
       isAdmin: const Value(true),
-      pinHash: Value(
-          _adminPin.text.isEmpty ? null : hashPin(_adminPin.text)),
+      pinHash: Value(_pin.text.isEmpty ? null : hashPin(_pin.text)),
     ));
-    await repo.createProfile(ProfilesCompanion.insert(
-      name: _memberName.text.trim(),
-      pinHash: Value(
-          _memberPin.text.isEmpty ? null : hashPin(_memberPin.text)),
-    ));
-    // Re-enter the picker by rebuilding from _Root.
-    if (!mounted) return;
-    final profiles = await repo.allProfiles();
-    if (!mounted) return;
-    ref.read(loggedInProfileProvider.notifier).state =
-        profiles.firstWhere((p) => p.isAdmin);
+    final profile = await repo.profileById(id);
+    if (!mounted || profile == null) return;
+    ref.read(loggedInProfileProvider.notifier).state = profile;
   }
 
   @override
@@ -193,41 +190,31 @@ class _FirstRunSetupState extends ConsumerState<_FirstRunSetup> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Set up profiles',
+                Text('Welcome to Homebase',
                     style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 4),
-                Text('Two profiles: you (admin) and one member.',
+                const SizedBox(height: 8),
+                Text(
+                    'Create your own profile first. You can add more profiles '
+                    'later from the Profiles screen.',
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 20),
                 TextField(
-                    controller: _adminName,
+                    controller: _name,
+                    autofocus: true,
                     decoration: const InputDecoration(
-                        labelText: 'Your name (admin)',
+                        labelText: 'Your name',
                         border: OutlineInputBorder())),
                 const SizedBox(height: 12),
                 TextField(
-                    controller: _adminPin,
+                    controller: _pin,
                     obscureText: true,
                     decoration: const InputDecoration(
-                        labelText: 'Your PIN (optional)',
-                        border: OutlineInputBorder())),
-                const SizedBox(height: 20),
-                TextField(
-                    controller: _memberName,
-                    decoration: const InputDecoration(
-                        labelText: 'Member name',
-                        border: OutlineInputBorder())),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: _memberPin,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Member PIN (optional)',
+                        labelText: 'PIN (optional)',
                         border: OutlineInputBorder())),
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _busy ? null : _create,
-                  child: const Text('Create profiles'),
+                  child: const Text('Create profile'),
                 ),
               ],
             ),

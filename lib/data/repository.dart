@@ -23,6 +23,49 @@ class HomebaseRepository {
   Future<int> createProfile(ProfilesCompanion entry) =>
       _db.into(_db.profiles).insert(entry);
 
+  Future<bool> updateProfile(Profile profile) =>
+      _db.update(_db.profiles).replace(profile);
+
+  /// Removes a profile and everything belonging to it. The last admin cannot
+  /// be deleted — that would lock the household out of profile management.
+  Future<void> deleteProfile({required int id}) async {
+    final profile = await profileById(id);
+    if (profile == null) return;
+    if (profile.isAdmin) {
+      final admins = (await allProfiles()).where((p) => p.isAdmin).length;
+      if (admins <= 1) {
+        throw StateError('Cannot delete the only admin profile');
+      }
+    }
+    await _db.transaction(() async {
+      await (_db.delete(_db.paycheckAllocations)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.paychecks)..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.paycheckSchedules)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.categoryRules)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.budgetTargets)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.budgetEntries)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.creditScoreSnapshots)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.bills)..where((t) => t.profileId.equals(id))).go();
+      await (_db.delete(_db.loans)..where((t) => t.profileId.equals(id))).go();
+      await (_db.delete(_db.creditCards)..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.profiles)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
   // ---- Credit cards ----
 
   Stream<List<CreditCard>> watchCards({required int profileId}) =>

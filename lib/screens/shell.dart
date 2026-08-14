@@ -9,6 +9,7 @@ import 'cards.dart';
 import 'dashboard.dart';
 import 'loans.dart';
 import 'paychecks.dart';
+import 'profiles.dart';
 
 /// Desktop shell: NavigationRail sidebar + content. Only admins see the
 /// profile switcher; non-admins have no indication other profiles exist.
@@ -22,20 +23,22 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
 
-  static const _titles = [
-    'Dashboard',
-    'Cards',
-    'Loans',
-    'Bills',
-    'Budget',
-    'Paychecks'
-  ];
-
   @override
   Widget build(BuildContext context) {
     final loggedIn = ref.watch(loggedInProfileProvider)!;
     final active = ref.watch(activeProfileProvider) ?? loggedIn;
     final mode = ref.watch(themeModeProvider);
+
+    final titles = [
+      'Dashboard',
+      'Cards',
+      'Loans',
+      'Bills',
+      'Budget',
+      'Paychecks',
+      // Admin-only, appended last so indices stay stable for everyone else.
+      if (loggedIn.isAdmin) 'Profiles',
+    ];
 
     final pages = [
       const DashboardScreen(),
@@ -44,11 +47,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       const BillsScreen(),
       const BudgetScreen(),
       const PaychecksScreen(),
+      if (loggedIn.isAdmin) const ProfilesScreen(),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_index]),
+        title: Text(titles[_index]),
         actions: [
           if (loggedIn.isAdmin) _ProfileSwitcher(active: active),
           IconButton(
@@ -76,23 +80,27 @@ class _AppShellState extends ConsumerState<AppShell> {
             selectedIndex: _index,
             onDestinationSelected: (i) => setState(() => _index = i),
             labelType: NavigationRailLabelType.all,
-            destinations: const [
-              NavigationRailDestination(
+            destinations: [
+              const NavigationRailDestination(
                   icon: Icon(Icons.space_dashboard_outlined),
                   label: Text('Dashboard')),
-              NavigationRailDestination(
+              const NavigationRailDestination(
                   icon: Icon(Icons.credit_card), label: Text('Cards')),
-              NavigationRailDestination(
+              const NavigationRailDestination(
                   icon: Icon(Icons.account_balance_outlined),
                   label: Text('Loans')),
-              NavigationRailDestination(
+              const NavigationRailDestination(
                   icon: Icon(Icons.receipt_long_outlined),
                   label: Text('Bills')),
-              NavigationRailDestination(
+              const NavigationRailDestination(
                   icon: Icon(Icons.pie_chart_outline), label: Text('Budget')),
-              NavigationRailDestination(
+              const NavigationRailDestination(
                   icon: Icon(Icons.payments_outlined),
                   label: Text('Paychecks')),
+              if (loggedIn.isAdmin)
+                const NavigationRailDestination(
+                    icon: Icon(Icons.people_outline),
+                    label: Text('Profiles')),
             ],
           ),
           const VerticalDivider(width: 1),

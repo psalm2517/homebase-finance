@@ -5,19 +5,10 @@ import 'data/database.dart';
 import 'data/repository.dart';
 import 'screens/profile_picker.dart';
 import 'screens/shell.dart';
-import 'screens/unlock.dart';
 import 'theme/catppuccin.dart';
 
-/// Master passphrase entered on the unlock screen. The database provider
-/// stays unusable until it's set.
-final masterPassphraseProvider = StateProvider<String?>((ref) => null);
-
 final databaseProvider = Provider<AppDatabase>((ref) {
-  final passphrase = ref.watch(masterPassphraseProvider);
-  if (passphrase == null) {
-    throw StateError('Database accessed before unlock');
-  }
-  final db = AppDatabase(passphrase);
+  final db = AppDatabase();
   ref.onDispose(db.close);
   return db;
 });
@@ -62,8 +53,6 @@ class _Root extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unlocked = ref.watch(masterPassphraseProvider) != null;
-    if (!unlocked) return const UnlockScreen();
     final profile = ref.watch(loggedInProfileProvider);
     if (profile == null) return const ProfilePickerScreen();
     return const AppShell();

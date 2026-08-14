@@ -155,9 +155,7 @@ class PaycheckAllocations extends Table {
   PaycheckAllocations,
 ])
 class AppDatabase extends _$AppDatabase {
-  /// [passphrase] is the master key entered at launch; the whole DB file is
-  /// encrypted at rest with SQLCipher. Wrong passphrase fails on first query.
-  AppDatabase(String passphrase) : super(_openConnection(passphrase));
+  AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.e);
 
   @override
@@ -170,19 +168,11 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
-  static LazyDatabase _openConnection(String passphrase) {
+  static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
       final dir = await getApplicationSupportDirectory();
       final file = File(p.join(dir.path, 'homebase.sqlite'));
-      // SQLCipher is compiled in via the pubspec hook
-      // (hooks -> user_defines -> sqlite3 -> source: sqlcipher).
-      return NativeDatabase.createInBackground(
-        file,
-        setup: (db) {
-          final escaped = passphrase.replaceAll("'", "''");
-          db.execute("PRAGMA key = '$escaped'");
-        },
-      );
+      return NativeDatabase.createInBackground(file);
     });
   }
 }

@@ -169,7 +169,9 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) => SubmitOnEnter(
+          onSubmit: () => Navigator.pop(context, true),
+          child: AlertDialog(
           title: Text(existing == null ? 'Add schedule' : 'Edit schedule'),
           content: SizedBox(
             width: 360,
@@ -218,6 +220,7 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text('Save')),
           ],
+        ),
         ),
       ),
     );
@@ -384,6 +387,7 @@ class _PaycheckCard extends ConsumerWidget {
         content: TextField(
             controller: bonus,
             autofocus: true,
+            onSubmitted: (_) => Navigator.pop(context, true),
             decoration: const InputDecoration(
                 labelText: 'Bonus (\$)', border: OutlineInputBorder())),
         actions: [

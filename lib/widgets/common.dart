@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Shared layout constants so every screen lines up.
 const kPagePadding = EdgeInsets.fromLTRB(24, 24, 24, 96);
@@ -216,16 +217,25 @@ class DetailRow extends StatelessWidget {
   }
 }
 
-/// Text field with consistent spacing for dialogs.
+/// Text field with consistent spacing for dialogs. Pressing Enter submits
+/// the dialog — by default that means the same thing as clicking Save.
 class DialogField extends StatelessWidget {
   const DialogField(this.controller, this.label,
-      {super.key, this.obscure = false, this.autofocus = false, this.helper});
+      {super.key,
+      this.obscure = false,
+      this.autofocus = false,
+      this.helper,
+      this.onSubmitted});
 
   final TextEditingController controller;
   final String label;
   final bool obscure;
   final bool autofocus;
   final String? helper;
+
+  /// Runs on Enter. Defaults to closing the dialog with a `true` result,
+  /// which every edit dialog treats as "save".
+  final VoidCallback? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +245,9 @@ class DialogField extends StatelessWidget {
         controller: controller,
         obscureText: obscure,
         autofocus: autofocus,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) =>
+            (onSubmitted ?? () => Navigator.of(context).pop(true))(),
         decoration: InputDecoration(
           labelText: label,
           helperText: helper,
@@ -242,6 +255,26 @@ class DialogField extends StatelessWidget {
           border: const OutlineInputBorder(),
         ),
       ),
+    );
+  }
+}
+
+/// Makes Enter trigger [onSubmit] anywhere inside [child], so a dialog can
+/// be saved from a dropdown or checkbox, not just from a text field.
+class SubmitOnEnter extends StatelessWidget {
+  const SubmitOnEnter({super.key, required this.onSubmit, required this.child});
+
+  final VoidCallback onSubmit;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter): onSubmit,
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): onSubmit,
+      },
+      child: FocusScope(child: child),
     );
   }
 }

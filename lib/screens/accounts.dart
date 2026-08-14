@@ -193,7 +193,9 @@ class AccountsScreen extends ConsumerWidget {
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
+        builder: (context, setLocal) => SubmitOnEnter(
+          onSubmit: () => Navigator.pop(context, true),
+          child: AlertDialog(
           title: Text(existing == null ? 'Add account' : 'Edit account'),
           content: SizedBox(
             width: 380,
@@ -232,6 +234,7 @@ class AccountsScreen extends ConsumerWidget {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text('Save')),
           ],
+        ),
         ),
       ),
     );

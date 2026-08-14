@@ -367,6 +367,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: description,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => Navigator.pop(context, true),
                 decoration: const InputDecoration(
                     labelText: 'Description', border: OutlineInputBorder()),
                 onChanged: (text) async {
@@ -386,12 +388,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               const SizedBox(height: 12),
               TextField(
                   controller: amount,
+                  onSubmitted: (_) => Navigator.pop(context, true),
                   decoration: const InputDecoration(
                       labelText: 'Amount (\$)',
                       border: OutlineInputBorder())),
               const SizedBox(height: 12),
               TextField(
                   controller: category,
+                  onSubmitted: (_) => Navigator.pop(context, true),
                   onChanged: (_) => autoCategorized = false,
                   decoration: InputDecoration(
                       labelText: 'Category',
@@ -463,34 +467,40 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           width: 420,
           height: 400,
           child: Column(children: [
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: category,
-                      decoration:
-                          const InputDecoration(labelText: 'Category'))),
-              const SizedBox(width: 8),
-              SizedBox(
-                  width: 110,
-                  child: TextField(
-                      controller: target,
-                      decoration:
-                          const InputDecoration(labelText: 'Target \$'))),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () async {
-                  final cents = parseDollarsToCents(target.text);
-                  if (category.text.trim().isEmpty || cents == null) return;
-                  await repo.upsertBudgetTarget(
-                      BudgetTargetsCompanion.insert(
-                          profileId: profileId,
-                          category: category.text.trim(),
-                          monthlyTargetCents: cents));
-                  category.clear();
-                  target.clear();
-                },
-              ),
-            ]),
+            StatefulBuilder(builder: (context, _) {
+              Future<void> add() async {
+                final cents = parseDollarsToCents(target.text);
+                if (category.text.trim().isEmpty || cents == null) return;
+                await repo.upsertBudgetTarget(BudgetTargetsCompanion.insert(
+                    profileId: profileId,
+                    category: category.text.trim(),
+                    monthlyTargetCents: cents));
+                category.clear();
+                target.clear();
+              }
+
+              return Row(children: [
+                Expanded(
+                    child: TextField(
+                        controller: category,
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => add(),
+                        decoration:
+                            const InputDecoration(labelText: 'Category'))),
+                const SizedBox(width: 8),
+                SizedBox(
+                    width: 110,
+                    child: TextField(
+                        controller: target,
+                        onSubmitted: (_) => add(),
+                        decoration: const InputDecoration(
+                            labelText: 'Target \$'))),
+                IconButton(
+                    tooltip: 'Add target',
+                    icon: const Icon(Icons.add),
+                    onPressed: add),
+              ]);
+            }),
             const SizedBox(height: 8),
             Expanded(
               child: StreamBuilder<List<BudgetTarget>>(
@@ -534,7 +544,21 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) {
+          Future<void> addRule() async {
+            if (pattern.text.trim().isEmpty || category.text.trim().isEmpty) {
+              return;
+            }
+            await repo.upsertRule(CategoryRulesCompanion.insert(
+                profileId: profileId,
+                field: field,
+                pattern: pattern.text.trim(),
+                category: category.text.trim()));
+            pattern.clear();
+            category.clear();
+          }
+
+          return AlertDialog(
           title: const Text('Auto-categorization rules'),
           content: SizedBox(
             width: 480,
@@ -557,6 +581,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 Expanded(
                     child: TextField(
                         controller: pattern,
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => addRule(),
                         decoration:
                             const InputDecoration(labelText: 'Pattern'))),
                 const SizedBox(width: 8),
@@ -564,23 +590,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                     width: 110,
                     child: TextField(
                         controller: category,
+                        onSubmitted: (_) => addRule(),
                         decoration:
                             const InputDecoration(labelText: 'Category'))),
                 IconButton(
+                  tooltip: 'Add rule',
                   icon: const Icon(Icons.add),
-                  onPressed: () async {
-                    if (pattern.text.trim().isEmpty ||
-                        category.text.trim().isEmpty) {
-                      return;
-                    }
-                    await repo.upsertRule(CategoryRulesCompanion.insert(
-                        profileId: profileId,
-                        field: field,
-                        pattern: pattern.text.trim(),
-                        category: category.text.trim()));
-                    pattern.clear();
-                    category.clear();
-                  },
+                  onPressed: addRule,
                 ),
               ]),
               const SizedBox(height: 8),
@@ -612,7 +628,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Done')),
           ],
-        ),
+        );
+        },
       ),
     );
   }

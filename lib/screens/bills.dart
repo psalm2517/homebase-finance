@@ -316,7 +316,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setLocal) {
           final needsMonth = frequency != BillFrequency.monthly;
-          return AlertDialog(
+          return SubmitOnEnter(
+            onSubmit: () => Navigator.pop(context, true),
+            child: AlertDialog(
           title: Text(existing == null ? 'Add bill' : 'Edit bill'),
           content: SizedBox(
             width: 380,
@@ -408,6 +410,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text('Save')),
           ],
+        ),
         );
         },
       ),

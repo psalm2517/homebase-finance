@@ -141,7 +141,9 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
+        builder: (context, setLocal) => SubmitOnEnter(
+          onSubmit: () => Navigator.pop(context, true),
+          child: AlertDialog(
           title: Text(existing == null ? 'Add profile' : 'Edit profile'),
           content: SizedBox(
             width: 380,
@@ -151,6 +153,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 controller: pin,
                 obscureText: true,
                 enabled: !clearPin,
+                onSubmitted: (_) => Navigator.pop(context, true),
                 decoration: InputDecoration(
                   labelText: existing == null
                       ? 'PIN (optional)'
@@ -184,6 +187,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text('Save')),
           ],
+        ),
         ),
       ),
     );

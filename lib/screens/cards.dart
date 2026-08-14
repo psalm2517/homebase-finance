@@ -162,14 +162,16 @@ class CardsScreen extends ConsumerWidget {
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => SubmitOnEnter(
+        onSubmit: () => Navigator.pop(context, true),
+        child: AlertDialog(
         title: Text(existing == null ? 'Add card' : 'Edit card'),
         content: SizedBox(
           width: 360,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DialogField(name, 'Name'),
+              DialogField(name, 'Name', autofocus: true),
               DialogField(balance, 'Balance (\$)'),
               DialogField(limit, 'Credit limit (\$)'),
               DialogField(apr, 'APR (%)'),
@@ -191,6 +193,7 @@ class CardsScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Save')),
         ],
+      ),
       ),
     );
     if (saved != true || name.text.trim().isEmpty) return;

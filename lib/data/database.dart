@@ -70,6 +70,11 @@ class Bills extends Table {
   TextColumn get frequency =>
       textEnum<BillFrequency>().withDefault(const Constant('monthly'))();
 
+  /// If true, the bill is charged automatically. Once its due day passes it
+  /// is treated as paid with no manual check-off, and it never shows the
+  /// overdue warning.
+  BoolColumn get autopay => boolean().withDefault(const Constant(false))();
+
   /// Month it falls in. Required for annual and one-time bills; for
   /// quarterly it is the anchor month, repeating every three months.
   /// Unused for monthly bills.
@@ -213,7 +218,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -260,10 +265,14 @@ class AppDatabase extends _$AppDatabase {
               updates: {bills},
             );
           }
+          if (from < 5) {
+            await m.addColumn(bills, bills.autopay);
+          }
           if (from < 4) {
-            // Rebuild bills once, after every column addition, to drop the
-            // columns no longer in the schema: paid_this_month (replaced by
-            // BillPayments) and recurring (replaced by frequency).
+            // Rebuild bills once, after every column addition (including
+            // autopay above), to drop columns no longer in the schema:
+            // paid_this_month (replaced by BillPayments) and recurring
+            // (replaced by frequency).
             await m.alterTable(TableMigration(bills));
           }
         },

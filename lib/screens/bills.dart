@@ -152,6 +152,9 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                             'A due day later than a short month (the 31st in '
                                 'February) is treated as the last day of '
                                 'that month.',
+                            'Autopay bills are different: once their due '
+                                'date passes they mark themselves paid, with '
+                                'no checkbox to click and no overdue warning.',
                           ],
                         )),
                     for (final row in rows)
@@ -220,6 +223,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     final dueDate = DateTime(
         _month.year, _month.month, b.dueDay > lastDay ? lastDay : b.dueDay);
     final overdue = !row.paid &&
+        !b.autopay &&
         _month.year == today.year &&
         _month.month == today.month &&
         dueDate.isBefore(DateTime(today.year, today.month, today.day));
@@ -228,13 +232,21 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     return Card(
       child: CheckboxListTile(
         value: row.paid,
-        onChanged: (v) => ref.read(repositoryProvider).setBillPaid(
-              profileId: profileId,
-              billId: b.id,
-              month: _month,
-              paid: v ?? false,
-            ),
-        title: Text(b.name),
+        onChanged: b.autopay && row.paid
+            ? null
+            : (v) => ref.read(repositoryProvider).setBillPaid(
+                  profileId: profileId,
+                  billId: b.id,
+                  month: _month,
+                  paid: v ?? false,
+                ),
+        title: Row(children: [
+          Flexible(child: Text(b.name)),
+          if (b.autopay) ...[
+            const SizedBox(width: 6),
+            Icon(Icons.autorenew, size: 14, color: scheme.primary),
+          ],
+        ]),
         subtitle: Row(
           children: [
             Icon(
@@ -310,6 +322,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
     var frequency = existing?.frequency ?? BillFrequency.monthly;
     var dueMonth = existing?.dueMonth ?? _month.month;
     var dueYear = existing?.dueYear ?? _month.year;
+    var autopay = existing?.autopay ?? false;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -399,6 +412,16 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     helper: 'Days past the end of a short month move to its '
                         'last day'),
                 DialogField(category, 'Category'),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.autorenew),
+                  title: const Text('Autopay'),
+                  subtitle: const Text(
+                      'Charged automatically — marks itself paid once the '
+                      'due date passes, no overdue warning'),
+                  value: autopay,
+                  onChanged: (v) => setLocal(() => autopay = v),
+                ),
               ]),
             ),
           ),
@@ -429,6 +452,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
               frequency == BillFrequency.monthly ? null : dueMonth),
           dueYear:
               Value(frequency == BillFrequency.oneTime ? dueYear : null),
+          autopay: Value(autopay),
         ));
   }
 }

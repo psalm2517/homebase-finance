@@ -1899,6 +1899,21 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         requiredDuringInsert: false,
         defaultValue: const Constant('monthly'),
       ).withConverter<BillFrequency>($BillsTable.$converterfrequency);
+  static const VerificationMeta _autopayMeta = const VerificationMeta(
+    'autopay',
+  );
+  @override
+  late final GeneratedColumn<bool> autopay = GeneratedColumn<bool>(
+    'autopay',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("autopay" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _dueMonthMeta = const VerificationMeta(
     'dueMonth',
   );
@@ -1941,6 +1956,7 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     amountCents,
     dueDay,
     frequency,
+    autopay,
     dueMonth,
     dueYear,
     category,
@@ -1995,6 +2011,12 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     } else if (isInserting) {
       context.missing(_dueDayMeta);
     }
+    if (data.containsKey('autopay')) {
+      context.handle(
+        _autopayMeta,
+        autopay.isAcceptableOrUnknown(data['autopay']!, _autopayMeta),
+      );
+    }
     if (data.containsKey('due_month')) {
       context.handle(
         _dueMonthMeta,
@@ -2048,6 +2070,10 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
           data['${effectivePrefix}frequency'],
         )!,
       ),
+      autopay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}autopay'],
+      )!,
       dueMonth: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}due_month'],
@@ -2080,6 +2106,11 @@ class Bill extends DataClass implements Insertable<Bill> {
   final int dueDay;
   final BillFrequency frequency;
 
+  /// If true, the bill is charged automatically. Once its due day passes it
+  /// is treated as paid with no manual check-off, and it never shows the
+  /// overdue warning.
+  final bool autopay;
+
   /// Month it falls in. Required for annual and one-time bills; for
   /// quarterly it is the anchor month, repeating every three months.
   /// Unused for monthly bills.
@@ -2095,6 +2126,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     required this.amountCents,
     required this.dueDay,
     required this.frequency,
+    required this.autopay,
     this.dueMonth,
     this.dueYear,
     required this.category,
@@ -2112,6 +2144,7 @@ class Bill extends DataClass implements Insertable<Bill> {
         $BillsTable.$converterfrequency.toSql(frequency),
       );
     }
+    map['autopay'] = Variable<bool>(autopay);
     if (!nullToAbsent || dueMonth != null) {
       map['due_month'] = Variable<int>(dueMonth);
     }
@@ -2130,6 +2163,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       amountCents: Value(amountCents),
       dueDay: Value(dueDay),
       frequency: Value(frequency),
+      autopay: Value(autopay),
       dueMonth: dueMonth == null && nullToAbsent
           ? const Value.absent()
           : Value(dueMonth),
@@ -2154,6 +2188,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       frequency: $BillsTable.$converterfrequency.fromJson(
         serializer.fromJson<String>(json['frequency']),
       ),
+      autopay: serializer.fromJson<bool>(json['autopay']),
       dueMonth: serializer.fromJson<int?>(json['dueMonth']),
       dueYear: serializer.fromJson<int?>(json['dueYear']),
       category: serializer.fromJson<String>(json['category']),
@@ -2171,6 +2206,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       'frequency': serializer.toJson<String>(
         $BillsTable.$converterfrequency.toJson(frequency),
       ),
+      'autopay': serializer.toJson<bool>(autopay),
       'dueMonth': serializer.toJson<int?>(dueMonth),
       'dueYear': serializer.toJson<int?>(dueYear),
       'category': serializer.toJson<String>(category),
@@ -2184,6 +2220,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     int? amountCents,
     int? dueDay,
     BillFrequency? frequency,
+    bool? autopay,
     Value<int?> dueMonth = const Value.absent(),
     Value<int?> dueYear = const Value.absent(),
     String? category,
@@ -2194,6 +2231,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     amountCents: amountCents ?? this.amountCents,
     dueDay: dueDay ?? this.dueDay,
     frequency: frequency ?? this.frequency,
+    autopay: autopay ?? this.autopay,
     dueMonth: dueMonth.present ? dueMonth.value : this.dueMonth,
     dueYear: dueYear.present ? dueYear.value : this.dueYear,
     category: category ?? this.category,
@@ -2208,6 +2246,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           : this.amountCents,
       dueDay: data.dueDay.present ? data.dueDay.value : this.dueDay,
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      autopay: data.autopay.present ? data.autopay.value : this.autopay,
       dueMonth: data.dueMonth.present ? data.dueMonth.value : this.dueMonth,
       dueYear: data.dueYear.present ? data.dueYear.value : this.dueYear,
       category: data.category.present ? data.category.value : this.category,
@@ -2223,6 +2262,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('amountCents: $amountCents, ')
           ..write('dueDay: $dueDay, ')
           ..write('frequency: $frequency, ')
+          ..write('autopay: $autopay, ')
           ..write('dueMonth: $dueMonth, ')
           ..write('dueYear: $dueYear, ')
           ..write('category: $category')
@@ -2238,6 +2278,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     amountCents,
     dueDay,
     frequency,
+    autopay,
     dueMonth,
     dueYear,
     category,
@@ -2252,6 +2293,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.amountCents == this.amountCents &&
           other.dueDay == this.dueDay &&
           other.frequency == this.frequency &&
+          other.autopay == this.autopay &&
           other.dueMonth == this.dueMonth &&
           other.dueYear == this.dueYear &&
           other.category == this.category);
@@ -2264,6 +2306,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<int> amountCents;
   final Value<int> dueDay;
   final Value<BillFrequency> frequency;
+  final Value<bool> autopay;
   final Value<int?> dueMonth;
   final Value<int?> dueYear;
   final Value<String> category;
@@ -2274,6 +2317,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.amountCents = const Value.absent(),
     this.dueDay = const Value.absent(),
     this.frequency = const Value.absent(),
+    this.autopay = const Value.absent(),
     this.dueMonth = const Value.absent(),
     this.dueYear = const Value.absent(),
     this.category = const Value.absent(),
@@ -2285,6 +2329,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     required int amountCents,
     required int dueDay,
     this.frequency = const Value.absent(),
+    this.autopay = const Value.absent(),
     this.dueMonth = const Value.absent(),
     this.dueYear = const Value.absent(),
     this.category = const Value.absent(),
@@ -2299,6 +2344,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<int>? amountCents,
     Expression<int>? dueDay,
     Expression<String>? frequency,
+    Expression<bool>? autopay,
     Expression<int>? dueMonth,
     Expression<int>? dueYear,
     Expression<String>? category,
@@ -2310,6 +2356,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (amountCents != null) 'amount_cents': amountCents,
       if (dueDay != null) 'due_day': dueDay,
       if (frequency != null) 'frequency': frequency,
+      if (autopay != null) 'autopay': autopay,
       if (dueMonth != null) 'due_month': dueMonth,
       if (dueYear != null) 'due_year': dueYear,
       if (category != null) 'category': category,
@@ -2323,6 +2370,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Value<int>? amountCents,
     Value<int>? dueDay,
     Value<BillFrequency>? frequency,
+    Value<bool>? autopay,
     Value<int?>? dueMonth,
     Value<int?>? dueYear,
     Value<String>? category,
@@ -2334,6 +2382,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       amountCents: amountCents ?? this.amountCents,
       dueDay: dueDay ?? this.dueDay,
       frequency: frequency ?? this.frequency,
+      autopay: autopay ?? this.autopay,
       dueMonth: dueMonth ?? this.dueMonth,
       dueYear: dueYear ?? this.dueYear,
       category: category ?? this.category,
@@ -2363,6 +2412,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
         $BillsTable.$converterfrequency.toSql(frequency.value),
       );
     }
+    if (autopay.present) {
+      map['autopay'] = Variable<bool>(autopay.value);
+    }
     if (dueMonth.present) {
       map['due_month'] = Variable<int>(dueMonth.value);
     }
@@ -2384,6 +2436,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('amountCents: $amountCents, ')
           ..write('dueDay: $dueDay, ')
           ..write('frequency: $frequency, ')
+          ..write('autopay: $autopay, ')
           ..write('dueMonth: $dueMonth, ')
           ..write('dueYear: $dueYear, ')
           ..write('category: $category')
@@ -8525,6 +8578,7 @@ typedef $$BillsTableCreateCompanionBuilder = BillsCompanion Function({
   required int amountCents,
   required int dueDay,
   Value<BillFrequency> frequency,
+  Value<bool> autopay,
   Value<int?> dueMonth,
   Value<int?> dueYear,
   Value<String> category,
@@ -8536,6 +8590,7 @@ typedef $$BillsTableUpdateCompanionBuilder = BillsCompanion Function({
   Value<int> amountCents,
   Value<int> dueDay,
   Value<BillFrequency> frequency,
+  Value<bool> autopay,
   Value<int?> dueMonth,
   Value<int?> dueYear,
   Value<String> category,
@@ -8637,6 +8692,11 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
   get frequency => $composableBuilder(
     column: $table.frequency,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get autopay => $composableBuilder(
+    column: $table.autopay,
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<int> get dueMonth => $composableBuilder(
@@ -8762,6 +8822,11 @@ class $$BillsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get autopay => $composableBuilder(
+    column: $table.autopay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get dueMonth => $composableBuilder(
     column: $table.dueMonth,
     builder: (column) => ColumnOrderings(column),
@@ -8826,6 +8891,9 @@ class $$BillsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<BillFrequency, String> get frequency =>
       $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<bool> get autopay =>
+      $composableBuilder(column: $table.autopay, builder: (column) => column);
 
   GeneratedColumn<int> get dueMonth =>
       $composableBuilder(column: $table.dueMonth, builder: (column) => column);
@@ -8949,6 +9017,7 @@ class $$BillsTableTableManager
                 Value<int> amountCents = const Value.absent(),
                 Value<int> dueDay = const Value.absent(),
                 Value<BillFrequency> frequency = const Value.absent(),
+                Value<bool> autopay = const Value.absent(),
                 Value<int?> dueMonth = const Value.absent(),
                 Value<int?> dueYear = const Value.absent(),
                 Value<String> category = const Value.absent(),
@@ -8959,6 +9028,7 @@ class $$BillsTableTableManager
                 amountCents: amountCents,
                 dueDay: dueDay,
                 frequency: frequency,
+                autopay: autopay,
                 dueMonth: dueMonth,
                 dueYear: dueYear,
                 category: category,
@@ -8971,6 +9041,7 @@ class $$BillsTableTableManager
                 required int amountCents,
                 required int dueDay,
                 Value<BillFrequency> frequency = const Value.absent(),
+                Value<bool> autopay = const Value.absent(),
                 Value<int?> dueMonth = const Value.absent(),
                 Value<int?> dueYear = const Value.absent(),
                 Value<String> category = const Value.absent(),
@@ -8981,6 +9052,7 @@ class $$BillsTableTableManager
                 amountCents: amountCents,
                 dueDay: dueDay,
                 frequency: frequency,
+                autopay: autopay,
                 dueMonth: dueMonth,
                 dueYear: dueYear,
                 category: category,

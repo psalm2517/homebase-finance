@@ -177,6 +177,45 @@ void main() {
         reason: 'payments recorded under v3 survive the upgrade');
   });
 
+  test('a v4 database upgrades to v5 with autopay off by default', () async {
+    final v4Dir = Directory.systemTemp.createTempSync('homebase_v4');
+    addTearDown(() => v4Dir.deleteSync(recursive: true));
+    final v4File = File('${v4Dir.path}/homebase.sqlite');
+
+    final raw = sqlite3.open(v4File.path);
+    raw.execute('''
+      CREATE TABLE profiles (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        pin_hash TEXT NULL,
+        is_admin INTEGER NOT NULL DEFAULT 0);
+    ''');
+    raw.execute('''
+      CREATE TABLE bills (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        due_day INTEGER NOT NULL,
+        frequency TEXT NOT NULL DEFAULT 'monthly',
+        due_month INTEGER NULL,
+        due_year INTEGER NULL,
+        category TEXT NOT NULL DEFAULT 'Other');
+    ''');
+    raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
+    raw.execute('INSERT INTO bills '
+        '(profile_id, name, amount_cents, due_day, frequency) '
+        "VALUES (1, 'Phone', 8000, 18, 'monthly');");
+    raw.execute('PRAGMA user_version = 4;');
+    raw.close();
+
+    final db = AppDatabase.forTesting(NativeDatabase(v4File));
+    addTearDown(db.close);
+    final bill = await db.select(db.bills).getSingle();
+    expect(bill.autopay, isFalse,
+        reason: 'existing bills default to autopay off, not silently on');
+  });
+
   test('v2 database gains billing cycle columns', () async {
     final db = AppDatabase.forTesting(NativeDatabase(file));
     addTearDown(db.close);

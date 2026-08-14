@@ -225,14 +225,33 @@ class HomebaseRepository {
     ])
       ..where(_db.bills.profileId.equals(profileId))
       ..orderBy([OrderingTerm.asc(_db.bills.dueDay)]);
+    final today = DateTime.now();
     return query.watch().map((rows) => [
           for (final row in rows)
             if (billFallsIn(row.readTable(_db.bills), periodStart))
               (
                 bill: row.readTable(_db.bills),
-                paid: row.readTableOrNull(_db.billPayments) != null,
+                paid: isBillPaid(
+                  row.readTable(_db.bills),
+                  row.readTableOrNull(_db.billPayments) != null,
+                  periodStart,
+                  today,
+                ),
               )
         ]);
+  }
+
+  /// A manual payment record always counts. Otherwise, an autopay bill is
+  /// treated as paid once its due date for this period has passed — there is
+  /// no manual check-off to wait on, the bank already handled it.
+  static bool isBillPaid(
+      Bill bill, bool hasPaymentRecord, DateTime periodStart, DateTime today) {
+    if (hasPaymentRecord) return true;
+    if (!bill.autopay) return false;
+    final lastDay = DateTime(periodStart.year, periodStart.month + 1, 0).day;
+    final due = DateTime(periodStart.year, periodStart.month,
+        bill.dueDay > lastDay ? lastDay : bill.dueDay);
+    return !due.isAfter(DateTime(today.year, today.month, today.day));
   }
 
   /// Marks a bill paid (or not) for a specific month.

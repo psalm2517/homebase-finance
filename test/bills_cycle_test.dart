@@ -183,6 +183,75 @@ void main() {
     });
   });
 
+  group('autopay', () {
+    test('an autopay bill auto-marks paid once its due date passes',
+        () async {
+      final billId = await repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Phone',
+          amountCents: 8000,
+          dueDay: 18,
+          autopay: const Value(true)));
+
+      final beforeDue = await repo
+          .watchBillsForMonth(profileId: profileId, month: DateTime(2026, 8))
+          .first;
+      // _isPaid compares against DateTime.now(), so use a bill whose due day
+      // is guaranteed in the future/past relative to "today" via dueDay.
+      expect(beforeDue.single.bill.name, 'Phone');
+      // Directly exercise the date logic instead of relying on real "now".
+      expect(
+          HomebaseRepository.isBillPaid(
+              beforeDue.single.bill, false, DateTime(2026, 8), DateTime(2026, 8, 17)),
+          isFalse,
+          reason: 'due date has not arrived yet');
+      expect(
+          HomebaseRepository.isBillPaid(
+              beforeDue.single.bill, false, DateTime(2026, 8), DateTime(2026, 8, 18)),
+          isTrue,
+          reason: 'auto-paid the day it is due');
+      expect(
+          HomebaseRepository.isBillPaid(
+              beforeDue.single.bill, false, DateTime(2026, 8), DateTime(2026, 8, 25)),
+          isTrue,
+          reason: 'stays auto-paid after the due date');
+      expect(billId, isNotNull);
+    });
+
+    test('a non-autopay bill never auto-marks paid', () async {
+      final bill = Bill(
+          id: 1,
+          profileId: profileId,
+          name: 'Rent',
+          amountCents: 145000,
+          dueDay: 1,
+          frequency: BillFrequency.monthly,
+          autopay: false,
+          category: 'Other');
+      expect(
+          HomebaseRepository.isBillPaid(
+              bill, false, DateTime(2026, 8), DateTime(2026, 8, 20)),
+          isFalse,
+          reason: 'no autopay, no payment record — stays unpaid');
+    });
+
+    test('a manual payment record always counts, autopay or not', () async {
+      final bill = Bill(
+          id: 1,
+          profileId: profileId,
+          name: 'Rent',
+          amountCents: 145000,
+          dueDay: 1,
+          frequency: BillFrequency.monthly,
+          autopay: false,
+          category: 'Other');
+      expect(
+          HomebaseRepository.isBillPaid(
+              bill, true, DateTime(2026, 8), DateTime(2026, 8, 2)),
+          isTrue);
+    });
+  });
+
   group('statement cycle dates', () {
     CreditCard card({int? statementDay, int? dueDay}) => CreditCard(
           id: 1,

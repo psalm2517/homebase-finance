@@ -200,6 +200,7 @@ class DashboardScreen extends ConsumerWidget {
               final day = r.bill.dueDay > lastDay ? lastDay : r.bill.dueDay;
               final due = DateTime(today.year, today.month, day);
               return !r.paid &&
+                  !r.bill.autopay &&
                   due.isBefore(DateTime(today.year, today.month, today.day));
             }).toList();
             return Column(

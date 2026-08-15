@@ -66,7 +66,8 @@ class DashboardScreen extends ConsumerWidget {
         kSectionGap,
         StreamBuilder<List<dynamic>>(
           stream: combineLatest<dynamic>([
-            repo.watchMonthlyIncomeCents(profileId: profileId),
+            repo.watchExpectedIncomeForMonth(
+                profileId: profileId, month: DateTime.now()),
             repo.watchBillsDueThisMonthCents(
                 profileId: profileId, month: DateTime.now()),
             repo.watchCardFeesDueThisMonthCents(profileId: profileId),
@@ -94,10 +95,10 @@ class DashboardScreen extends ConsumerWidget {
                             'earn, minus the bills actually charged this '
                             'month. The Budget screen shows what has really '
                             'happened so far; this is the plan.',
-                        'Expected income comes from your paycheck schedules, '
-                            'averaged to a month — a bi-weekly schedule is '
-                            'multiplied by 26 and divided by 12, so it may '
-                            'not equal a single paycheck times two.',
+                        'Expected income is what this month\'s paychecks add '
+                            'up to, received or not, bonuses included — the '
+                            'real total rather than an average, so a month '
+                            'with three paydays counts all three.',
                         'Bills counted here are only the ones that actually '
                             'charge this month, so a quarterly or annual bill '
                             'appears only in the month it lands.',

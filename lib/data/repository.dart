@@ -543,23 +543,6 @@ class HomebaseRepository {
     }
   }
 
-  /// After-tax monthly income from active schedules, normalized
-  /// (weekly x52/12, bi-weekly x26/12, semi-monthly x2, monthly x1).
-  /// Feeds the bills-vs-income breakdown.
-  Stream<int> watchMonthlyIncomeCents({required int profileId}) =>
-      watchSchedules(profileId: profileId).map((schedules) {
-        var cents = 0.0;
-        for (final s in schedules.where((s) => s.active)) {
-          cents += switch (s.frequency) {
-            PayFrequency.weekly => s.amountCents * 52 / 12,
-            PayFrequency.biweekly => s.amountCents * 26 / 12,
-            PayFrequency.semimonthly => s.amountCents * 2.0,
-            PayFrequency.monthly => s.amountCents * 1.0,
-          };
-        }
-        return cents.round();
-      });
-
   /// Recurring bills as a monthly figure, with quarterly and annual bills
   /// spread across their period (an $80/year subscription counts as $6.67).
   /// This is a planning average, not a current-month charge — the Bills
@@ -567,6 +550,26 @@ class HomebaseRepository {
   Stream<int> watchMonthlyBillsCents({required int profileId}) =>
       watchBills(profileId: profileId).map(
           (bills) => bills.fold(0, (sum, b) => sum + monthlyCostCents(b)));
+
+  /// What the paychecks dated in [month] add up to, received or not, bonuses
+  /// included. This is the money you have to budget with for that month —
+  /// it does not start at zero and climb on each payday, and unlike a
+  /// schedule average it is exact: a bi-weekly month with three paydays
+  /// really does show three paychecks.
+  Stream<int> watchExpectedIncomeForMonth(
+      {required int profileId, required DateTime month}) {
+    final start = DateTime(month.year, month.month);
+    final end = DateTime(month.year, month.month + 1);
+    return (_db.select(_db.paychecks)
+          ..where((p) =>
+              p.profileId.equals(profileId) &
+              p.dismissed.equals(false) &
+              p.date.isBiggerOrEqualValue(start) &
+              p.date.isSmallerThanValue(end)))
+        .watch()
+        .map((rows) =>
+            rows.fold(0, (s, p) => s + p.amountCents + p.bonusCents));
+  }
 
   /// Bills that actually charge in [month] — real cash out, matches what a
   /// bank statement would show. Excludes quarterly/annual bills in months

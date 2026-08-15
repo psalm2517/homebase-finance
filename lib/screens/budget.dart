@@ -47,7 +47,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         stream: combineLatest<dynamic>([
           repo.watchBudgetForMonth(profileId: profileId, month: _month),
           repo.watchBudgetTargets(profileId: profileId),
-          repo.watchMonthlyIncomeCents(profileId: profileId),
+          repo.watchExpectedIncomeForMonth(
+              profileId: profileId, month: _month),
           repo.watchBillsDueThisMonthCents(
               profileId: profileId, month: _month),
           repo.watchCardFeesDueThisMonthCents(profileId: profileId),
@@ -56,17 +57,22 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           if (!snap.hasData) return const SizedBox.shrink();
           final entries = snap.data![0] as List<BudgetEntry>;
           final targets = snap.data![1] as List<BudgetTarget>;
-          final leftToBudget = (snap.data![2] as int) -
-              (snap.data![3] as int) -
-              (snap.data![4] as int);
-          return _body(context, entries, targets, leftToBudget, scheme);
+          final expectedIncome = snap.data![2] as int;
+          final billsDue = (snap.data![3] as int) + (snap.data![4] as int);
+          return _body(context, entries, targets, expectedIncome, billsDue,
+              scheme);
         },
       ),
     );
   }
 
-  Widget _body(BuildContext context, List<BudgetEntry> entries,
-      List<BudgetTarget> targets, int leftToBudgetCents, ColorScheme scheme) {
+  Widget _body(
+      BuildContext context,
+      List<BudgetEntry> entries,
+      List<BudgetTarget> targets,
+      int expectedIncomeCents,
+      int billsDueCents,
+      ColorScheme scheme) {
     final moneyIn = entries
         .where((e) => e.type == EntryType.income)
         .fold(0, (s, e) => s + e.amountCents);
@@ -95,65 +101,59 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             children: [
               Wrap(spacing: 16, runSpacing: 16, children: [
                 StatCard(
-                  label: 'Money in',
-                  value: fmtCents(moneyIn),
+                  label: 'Income this month',
+                  value: fmtCents(expectedIncomeCents),
                   icon: Icons.arrow_downward,
                   color: scheme.primary,
+                  note: moneyIn == expectedIncomeCents
+                      ? 'all received'
+                      : '${fmtCents(moneyIn)} received so far',
                   info: const InfoButton(
-                    title: 'Where these numbers come from',
+                    title: 'Income this month',
                     body: [
-                      'Everything on this screen is the month you are looking '
-                          'at — real money in and out, nothing projected.',
-                      'Paychecks add themselves as income once payday '
-                          'arrives, and bills add themselves as expenses once '
-                          'you mark them paid (or automatically, for autopay '
-                          'bills). You only add anything by hand for things '
-                          'Homebase cannot know about, like groceries.',
-                      'Planning ahead — expected income, upcoming bills, what '
-                          'to set aside — lives on the Dashboard.',
+                      'What your paychecks for this month add up to, whether '
+                          'or not payday has arrived yet — so you can budget '
+                          'the whole month from the 1st instead of watching '
+                          'the number climb.',
+                      'It is the real sum of this month\'s paychecks, not an '
+                          'average, so a month with three paydays shows three '
+                          'paychecks. Bonuses are included.',
+                      'The smaller line underneath tells you how much of it '
+                          'has actually landed so far.',
+                      'Add or remove paychecks on the Paychecks screen; they '
+                          'are generated 90 days ahead from your schedule.',
                     ],
                   ),
                 ),
                 StatCard(
-                  label: 'Money out',
+                  label: 'Spent so far',
                   value: fmtCents(moneyOut),
                   icon: Icons.arrow_upward,
                   color: scheme.error,
-                ),
-                StatCard(
-                  label: 'Left',
-                  value: fmtCents(moneyIn - moneyOut),
-                  icon: Icons.account_balance_wallet_outlined,
-                  color: moneyIn >= moneyOut ? scheme.primary : scheme.error,
-                  note: moneyIn >= moneyOut
-                      ? 'in minus out, so far'
-                      : 'spent more than came in',
+                  note: billsDueCents > 0
+                      ? '${fmtCents(billsDueCents)} of bills due this month'
+                      : null,
                 ),
                 StatCard(
                   label: 'Free to spend',
-                  value: fmtCents(leftToBudgetCents),
+                  value: fmtCents(expectedIncomeCents - billsDueCents),
                   icon: Icons.savings_outlined,
-                  color: leftToBudgetCents >= 0
+                  color: expectedIncomeCents - billsDueCents >= 0
                       ? scheme.secondary
                       : scheme.error,
-                  note: 'from expected pay, after bills',
+                  note: 'income minus this month\'s bills',
                   info: const InfoButton(
                     title: 'Free to spend',
                     body: [
-                      'What is left of a normal month\'s pay once this '
-                          'month\'s bills are covered — the amount you '
-                          'actually have to work with.',
-                      'It uses your paycheck schedules averaged to a month, '
-                          'not just the paychecks received so far, so the '
-                          'number is steady from the 1st rather than '
-                          'climbing each payday.',
-                      'Only bills that really charge this month are '
-                          'subtracted, so a quarterly or annual bill pulls '
-                          'this down only in the month it lands.',
-                      '"Left" beside it is different: that is simply what has '
-                          'come in minus what has gone out so far this month.',
-                      'The full breakdown, including what to set aside for '
-                          'later bills, is on the Dashboard.',
+                      'This month\'s paycheck total minus the bills that '
+                          'actually charge this month — the amount genuinely '
+                          'yours to spend or save.',
+                      'It is steady from the 1st, because it counts paychecks '
+                          'you are due as well as ones already received.',
+                      'Only bills landing in this month are subtracted, so a '
+                          'quarterly or annual bill pulls it down only in the '
+                          'month it hits. What to set aside for those is on '
+                          'the Dashboard.',
                     ],
                   ),
                 ),

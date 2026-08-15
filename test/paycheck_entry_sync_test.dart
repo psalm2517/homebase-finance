@@ -365,4 +365,85 @@ void main() {
     expect(furthest.difference(DateTime.now()).inDays, greaterThan(75),
         reason: 'the horizon should reach roughly a quarter out');
   });
+
+  group('expected income for a month', () {
+    test('counts paychecks that have not been received yet', () async {
+      // Two future paychecks totalling $2000 for next month.
+      final next = DateTime(DateTime.now().year, DateTime.now().month + 1);
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime(next.year, next.month, 7),
+          amountCents: 100000));
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime(next.year, next.month, 21),
+          amountCents: 100000));
+
+      final expected = await repo
+          .watchExpectedIncomeForMonth(profileId: profileId, month: next)
+          .first;
+      expect(expected, 200000,
+          reason: 'you can budget the full month before payday arrives');
+    });
+
+    test('includes bonuses and ignores other months', () async {
+      final august = DateTime(2026, 8);
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime(2026, 8, 14),
+          amountCents: 77500,
+          bonusCents: const Value(22500)));
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime(2026, 9, 11),
+          amountCents: 77500));
+
+      expect(
+          await repo
+              .watchExpectedIncomeForMonth(
+                  profileId: profileId, month: august)
+              .first,
+          100000);
+    });
+
+    test('a three-payday month counts all three', () async {
+      await repo.upsertSchedule(PaycheckSchedulesCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          frequency: PayFrequency.biweekly,
+          anchorDate: DateTime(2026, 5, 1),
+          amountCents: 100000));
+      await repo.generateDuePaychecks(
+          profileId: profileId, until: DateTime(2026, 6, 30));
+
+      // May 1, 15 and 29 all fall in May.
+      expect(
+          await repo
+              .watchExpectedIncomeForMonth(
+                  profileId: profileId, month: DateTime(2026, 5))
+              .first,
+          300000,
+          reason: 'an averaged figure would have understated this month');
+    });
+
+    test('a deleted paycheck stops counting', () async {
+      final id = await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime(2026, 8, 14),
+          amountCents: 77500));
+      await repo.deletePaycheck(profileId: profileId, id: id);
+
+      expect(
+          await repo
+              .watchExpectedIncomeForMonth(
+                  profileId: profileId, month: DateTime(2026, 8))
+              .first,
+          0);
+    });
+  });
 }

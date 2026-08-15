@@ -563,6 +563,53 @@ class HomebaseRepository {
     await recordNetWorthSnapshot(profileId: profileId);
   }
 
+  // ---- Goals ----
+
+  Stream<List<Goal>> watchGoals({required int profileId}) =>
+      (_db.select(_db.goals)
+            ..where((g) => g.profileId.equals(profileId))
+            ..orderBy([(g) => OrderingTerm.asc(g.id)]))
+          .watch();
+
+  Future<int> upsertGoal(GoalsCompanion entry) =>
+      _db.into(_db.goals).insertOnConflictUpdate(entry);
+
+  Future<int> deleteGoal({required int profileId, required int id}) =>
+      (_db.delete(_db.goals)
+            ..where((g) => g.profileId.equals(profileId) & g.id.equals(id)))
+          .go();
+
+  /// Moves a goal forward (or back, with a negative amount) without needing
+  /// to retype the running total. Never drops below zero.
+  Future<void> addGoalProgress({
+    required int profileId,
+    required int id,
+    required int amountCents,
+  }) async {
+    final goal = await (_db.select(_db.goals)
+          ..where((g) => g.profileId.equals(profileId) & g.id.equals(id)))
+        .getSingleOrNull();
+    if (goal == null) return;
+    final next = (goal.currentAmountCents + amountCents).clamp(0, 1 << 62);
+    await (_db.update(_db.goals)..where((g) => g.id.equals(id)))
+        .write(GoalsCompanion(currentAmountCents: Value(next)));
+  }
+
+  /// What a goal needs each month to land on time: the shortfall spread over
+  /// the whole months remaining. Null when there is no target date, when the
+  /// goal is already met, or when the date has passed — there is no
+  /// meaningful monthly figure in those cases.
+  static int? monthlyNeededFor(Goal goal, {DateTime? now}) {
+    final target = goal.targetDate;
+    if (target == null) return null;
+    final remaining = goal.targetAmountCents - goal.currentAmountCents;
+    if (remaining <= 0) return null;
+    final n = now ?? DateTime.now();
+    final months = (target.year - n.year) * 12 + (target.month - n.month);
+    if (months <= 0) return null;
+    return (remaining / months).ceil();
+  }
+
   // ---- Reminders ----
 
   /// Everything worth nudging about in the next [withinDays] days: unpaid

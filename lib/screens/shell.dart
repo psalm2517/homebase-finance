@@ -10,6 +10,7 @@ import 'bills.dart';
 import 'budget.dart';
 import 'cards.dart';
 import 'dashboard.dart';
+import 'goals.dart';
 import 'loans.dart';
 import 'paychecks.dart';
 import 'profiles.dart';
@@ -70,6 +71,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       'Bills',
       'Budget',
       'Paychecks',
+      'Goals',
       // Admin-only, appended last so indices stay stable for everyone else.
       if (loggedIn.isAdmin) 'Profiles',
     ];
@@ -82,6 +84,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       const BillsScreen(),
       const BudgetScreen(),
       const PaychecksScreen(),
+      const GoalsScreen(),
       if (loggedIn.isAdmin) const ProfilesScreen(),
     ];
 
@@ -145,6 +148,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                   icon: Icon(Icons.payments_outlined),
                   selectedIcon: Icon(Icons.payments),
                   label: Text('Paychecks')),
+              const NavigationRailDestination(
+                  icon: Icon(Icons.flag_outlined),
+                  selectedIcon: Icon(Icons.flag),
+                  label: Text('Goals')),
               if (loggedIn.isAdmin)
                 const NavigationRailDestination(
                     icon: Icon(Icons.group_outlined),

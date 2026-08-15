@@ -261,4 +261,86 @@ void main() {
       expect(entries.length, 1, reason: 'no duplicate income rows');
     });
   });
+
+  group('deleting a paycheck', () {
+    test('a scheduled paycheck stays deleted after regeneration runs',
+        () async {
+      await repo.upsertSchedule(PaycheckSchedulesCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          frequency: PayFrequency.biweekly,
+          anchorDate: DateTime(2026, 8, 7),
+          amountCents: 77500));
+      await repo.generateDuePaychecks(
+          profileId: profileId, until: DateTime(2026, 9, 30));
+
+      final before = await repo.watchPaychecks(profileId: profileId).first;
+      expect(before.length, greaterThan(1));
+      final victim = before.first;
+
+      await repo.deletePaycheck(profileId: profileId, id: victim.id);
+
+      // The catch-up that runs on every launch must not resurrect it.
+      await repo.generateDuePaychecks(
+          profileId: profileId, until: DateTime(2026, 9, 30));
+
+      final after = await repo.watchPaychecks(profileId: profileId).first;
+      expect(after.map((p) => p.id), isNot(contains(victim.id)),
+          reason: 'deleted paychecks must not come back on the next launch');
+      expect(after.length, before.length - 1);
+    });
+
+    test('deleting removes the income entry it created', () async {
+      final id = await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime.now().subtract(const Duration(days: 2)),
+          amountCents: 77500));
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+      final now = DateTime.now();
+      expect(
+          (await repo
+                  .watchBudgetForMonth(
+                      profileId: profileId,
+                      month: DateTime(now.year, now.month))
+                  .first)
+              .length,
+          1);
+
+      await repo.deletePaycheck(profileId: profileId, id: id);
+
+      expect(
+          await repo
+              .watchBudgetForMonth(
+                  profileId: profileId, month: DateTime(now.year, now.month))
+              .first,
+          isEmpty);
+    });
+
+    test('a dismissed paycheck is not auto-received later', () async {
+      await repo.upsertSchedule(PaycheckSchedulesCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          frequency: PayFrequency.monthly,
+          anchorDate: DateTime.now().subtract(const Duration(days: 5)),
+          amountCents: 77500));
+      await repo.generateDuePaychecks(
+          profileId: profileId, until: DateTime.now());
+      final generated = await repo.watchPaychecks(profileId: profileId).first;
+      await repo.deletePaycheck(
+          profileId: profileId, id: generated.first.id);
+
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+
+      expect(await repo.watchPaychecks(profileId: profileId).first, isEmpty);
+      final now = DateTime.now();
+      expect(
+          await repo
+              .watchBudgetForMonth(
+                  profileId: profileId, month: DateTime(now.year, now.month))
+              .first,
+          isEmpty,
+          reason: 'a deleted paycheck must not create income');
+    });
+  });
 }

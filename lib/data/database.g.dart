@@ -3908,6 +3908,21 @@ class $PaychecksTable extends Paychecks
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dismissedMeta = const VerificationMeta(
+    'dismissed',
+  );
+  @override
+  late final GeneratedColumn<bool> dismissed = GeneratedColumn<bool>(
+    'dismissed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dismissed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _scheduleIdMeta = const VerificationMeta(
     'scheduleId',
   );
@@ -3932,6 +3947,7 @@ class $PaychecksTable extends Paychecks
     bonusCents,
     received,
     receivedIsManual,
+    dismissed,
     scheduleId,
   ];
   @override
@@ -4005,6 +4021,12 @@ class $PaychecksTable extends Paychecks
         ),
       );
     }
+    if (data.containsKey('dismissed')) {
+      context.handle(
+        _dismissedMeta,
+        dismissed.isAcceptableOrUnknown(data['dismissed']!, _dismissedMeta),
+      );
+    }
     if (data.containsKey('schedule_id')) {
       context.handle(
         _scheduleIdMeta,
@@ -4052,6 +4074,10 @@ class $PaychecksTable extends Paychecks
         DriftSqlType.bool,
         data['${effectivePrefix}received_is_manual'],
       )!,
+      dismissed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dismissed'],
+      )!,
       scheduleId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}schedule_id'],
@@ -4079,6 +4105,11 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
   /// not undone the next time the app opens.
   final bool receivedIsManual;
 
+  /// Deleted by you. The row is kept rather than removed so the schedule
+  /// that produced it doesn't just generate the same payday again; it is
+  /// hidden everywhere in the UI.
+  final bool dismissed;
+
   /// Set when this check was generated from a schedule.
   final int? scheduleId;
   const Paycheck({
@@ -4090,6 +4121,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
     required this.bonusCents,
     required this.received,
     required this.receivedIsManual,
+    required this.dismissed,
     this.scheduleId,
   });
   @override
@@ -4103,6 +4135,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
     map['bonus_cents'] = Variable<int>(bonusCents);
     map['received'] = Variable<bool>(received);
     map['received_is_manual'] = Variable<bool>(receivedIsManual);
+    map['dismissed'] = Variable<bool>(dismissed);
     if (!nullToAbsent || scheduleId != null) {
       map['schedule_id'] = Variable<int>(scheduleId);
     }
@@ -4119,6 +4152,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
       bonusCents: Value(bonusCents),
       received: Value(received),
       receivedIsManual: Value(receivedIsManual),
+      dismissed: Value(dismissed),
       scheduleId: scheduleId == null && nullToAbsent
           ? const Value.absent()
           : Value(scheduleId),
@@ -4139,6 +4173,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
       bonusCents: serializer.fromJson<int>(json['bonusCents']),
       received: serializer.fromJson<bool>(json['received']),
       receivedIsManual: serializer.fromJson<bool>(json['receivedIsManual']),
+      dismissed: serializer.fromJson<bool>(json['dismissed']),
       scheduleId: serializer.fromJson<int?>(json['scheduleId']),
     );
   }
@@ -4154,6 +4189,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
       'bonusCents': serializer.toJson<int>(bonusCents),
       'received': serializer.toJson<bool>(received),
       'receivedIsManual': serializer.toJson<bool>(receivedIsManual),
+      'dismissed': serializer.toJson<bool>(dismissed),
       'scheduleId': serializer.toJson<int?>(scheduleId),
     };
   }
@@ -4167,6 +4203,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
     int? bonusCents,
     bool? received,
     bool? receivedIsManual,
+    bool? dismissed,
     Value<int?> scheduleId = const Value.absent(),
   }) => Paycheck(
     id: id ?? this.id,
@@ -4177,6 +4214,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
     bonusCents: bonusCents ?? this.bonusCents,
     received: received ?? this.received,
     receivedIsManual: receivedIsManual ?? this.receivedIsManual,
+    dismissed: dismissed ?? this.dismissed,
     scheduleId: scheduleId.present ? scheduleId.value : this.scheduleId,
   );
   Paycheck copyWithCompanion(PaychecksCompanion data) {
@@ -4195,6 +4233,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
       receivedIsManual: data.receivedIsManual.present
           ? data.receivedIsManual.value
           : this.receivedIsManual,
+      dismissed: data.dismissed.present ? data.dismissed.value : this.dismissed,
       scheduleId: data.scheduleId.present
           ? data.scheduleId.value
           : this.scheduleId,
@@ -4212,6 +4251,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
           ..write('bonusCents: $bonusCents, ')
           ..write('received: $received, ')
           ..write('receivedIsManual: $receivedIsManual, ')
+          ..write('dismissed: $dismissed, ')
           ..write('scheduleId: $scheduleId')
           ..write(')'))
         .toString();
@@ -4227,6 +4267,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
     bonusCents,
     received,
     receivedIsManual,
+    dismissed,
     scheduleId,
   );
   @override
@@ -4241,6 +4282,7 @@ class Paycheck extends DataClass implements Insertable<Paycheck> {
           other.bonusCents == this.bonusCents &&
           other.received == this.received &&
           other.receivedIsManual == this.receivedIsManual &&
+          other.dismissed == this.dismissed &&
           other.scheduleId == this.scheduleId);
 }
 
@@ -4253,6 +4295,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
   final Value<int> bonusCents;
   final Value<bool> received;
   final Value<bool> receivedIsManual;
+  final Value<bool> dismissed;
   final Value<int?> scheduleId;
   const PaychecksCompanion({
     this.id = const Value.absent(),
@@ -4263,6 +4306,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
     this.bonusCents = const Value.absent(),
     this.received = const Value.absent(),
     this.receivedIsManual = const Value.absent(),
+    this.dismissed = const Value.absent(),
     this.scheduleId = const Value.absent(),
   });
   PaychecksCompanion.insert({
@@ -4274,6 +4318,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
     this.bonusCents = const Value.absent(),
     this.received = const Value.absent(),
     this.receivedIsManual = const Value.absent(),
+    this.dismissed = const Value.absent(),
     this.scheduleId = const Value.absent(),
   }) : profileId = Value(profileId),
        name = Value(name),
@@ -4288,6 +4333,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
     Expression<int>? bonusCents,
     Expression<bool>? received,
     Expression<bool>? receivedIsManual,
+    Expression<bool>? dismissed,
     Expression<int>? scheduleId,
   }) {
     return RawValuesInsertable({
@@ -4299,6 +4345,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
       if (bonusCents != null) 'bonus_cents': bonusCents,
       if (received != null) 'received': received,
       if (receivedIsManual != null) 'received_is_manual': receivedIsManual,
+      if (dismissed != null) 'dismissed': dismissed,
       if (scheduleId != null) 'schedule_id': scheduleId,
     });
   }
@@ -4312,6 +4359,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
     Value<int>? bonusCents,
     Value<bool>? received,
     Value<bool>? receivedIsManual,
+    Value<bool>? dismissed,
     Value<int?>? scheduleId,
   }) {
     return PaychecksCompanion(
@@ -4323,6 +4371,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
       bonusCents: bonusCents ?? this.bonusCents,
       received: received ?? this.received,
       receivedIsManual: receivedIsManual ?? this.receivedIsManual,
+      dismissed: dismissed ?? this.dismissed,
       scheduleId: scheduleId ?? this.scheduleId,
     );
   }
@@ -4354,6 +4403,9 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
     if (receivedIsManual.present) {
       map['received_is_manual'] = Variable<bool>(receivedIsManual.value);
     }
+    if (dismissed.present) {
+      map['dismissed'] = Variable<bool>(dismissed.value);
+    }
     if (scheduleId.present) {
       map['schedule_id'] = Variable<int>(scheduleId.value);
     }
@@ -4371,6 +4423,7 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
           ..write('bonusCents: $bonusCents, ')
           ..write('received: $received, ')
           ..write('receivedIsManual: $receivedIsManual, ')
+          ..write('dismissed: $dismissed, ')
           ..write('scheduleId: $scheduleId')
           ..write(')'))
         .toString();
@@ -10723,6 +10776,7 @@ typedef $$PaychecksTableCreateCompanionBuilder = PaychecksCompanion Function({
   Value<int> bonusCents,
   Value<bool> received,
   Value<bool> receivedIsManual,
+  Value<bool> dismissed,
   Value<int?> scheduleId,
 });
 typedef $$PaychecksTableUpdateCompanionBuilder = PaychecksCompanion Function({
@@ -10734,6 +10788,7 @@ typedef $$PaychecksTableUpdateCompanionBuilder = PaychecksCompanion Function({
   Value<int> bonusCents,
   Value<bool> received,
   Value<bool> receivedIsManual,
+  Value<bool> dismissed,
   Value<int?> scheduleId,
 });
 
@@ -10860,6 +10915,11 @@ class $$PaychecksTableFilterComposer
 
   ColumnFilters<bool> get receivedIsManual => $composableBuilder(
     column: $table.receivedIsManual,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dismissed => $composableBuilder(
+    column: $table.dismissed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11004,6 +11064,11 @@ class $$PaychecksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dismissed => $composableBuilder(
+    column: $table.dismissed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProfilesTableOrderingComposer get profileId {
     final $$ProfilesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11086,6 +11151,9 @@ class $$PaychecksTableAnnotationComposer
     column: $table.receivedIsManual,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get dismissed =>
+      $composableBuilder(column: $table.dismissed, builder: (column) => column);
 
   $$ProfilesTableAnnotationComposer get profileId {
     final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
@@ -11227,6 +11295,7 @@ class $$PaychecksTableTableManager
                 Value<int> bonusCents = const Value.absent(),
                 Value<bool> received = const Value.absent(),
                 Value<bool> receivedIsManual = const Value.absent(),
+                Value<bool> dismissed = const Value.absent(),
                 Value<int?> scheduleId = const Value.absent(),
               }) => PaychecksCompanion(
                 id: id,
@@ -11237,6 +11306,7 @@ class $$PaychecksTableTableManager
                 bonusCents: bonusCents,
                 received: received,
                 receivedIsManual: receivedIsManual,
+                dismissed: dismissed,
                 scheduleId: scheduleId,
               ),
           createCompanionCallback:
@@ -11249,6 +11319,7 @@ class $$PaychecksTableTableManager
                 Value<int> bonusCents = const Value.absent(),
                 Value<bool> received = const Value.absent(),
                 Value<bool> receivedIsManual = const Value.absent(),
+                Value<bool> dismissed = const Value.absent(),
                 Value<int?> scheduleId = const Value.absent(),
               }) => PaychecksCompanion.insert(
                 id: id,
@@ -11259,6 +11330,7 @@ class $$PaychecksTableTableManager
                 bonusCents: bonusCents,
                 received: received,
                 receivedIsManual: receivedIsManual,
+                dismissed: dismissed,
                 scheduleId: scheduleId,
               ),
           withReferenceMapper: (p0) => p0

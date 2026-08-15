@@ -630,7 +630,8 @@ class HomebaseRepository {
 
   Stream<List<Paycheck>> watchPaychecks({required int profileId}) =>
       (_db.select(_db.paychecks)
-            ..where((p) => p.profileId.equals(profileId))
+            ..where((p) =>
+                p.profileId.equals(profileId) & p.dismissed.equals(false))
             ..orderBy([(p) => OrderingTerm.desc(p.date)]))
           .watch();
 
@@ -673,11 +674,35 @@ class HomebaseRepository {
     }
   }
 
-  /// Deleting a paycheck cascades to its allocations.
-  Future<int> deletePaycheck({required int profileId, required int id}) =>
-      (_db.delete(_db.paychecks)
-            ..where((p) => p.profileId.equals(profileId) & p.id.equals(id)))
-          .go();
+  /// Removes a paycheck from view, along with its allocations and any income
+  /// entry it created. A check produced by a schedule is kept as a dismissed
+  /// row rather than deleted outright — otherwise the schedule would see an
+  /// unclaimed payday and generate it right back. Manually added checks are
+  /// deleted for real.
+  Future<void> deletePaycheck(
+      {required int profileId, required int id}) async {
+    final paycheck = await (_db.select(_db.paychecks)
+          ..where((p) => p.profileId.equals(profileId) & p.id.equals(id)))
+        .getSingleOrNull();
+    if (paycheck == null) return;
+
+    await (_db.delete(_db.budgetEntries)
+          ..where((e) => e.sourcePaycheckId.equals(id)))
+        .go();
+    await (_db.delete(_db.paycheckAllocations)
+          ..where((a) => a.paycheckId.equals(id)))
+        .go();
+
+    if (paycheck.scheduleId == null) {
+      await (_db.delete(_db.paychecks)..where((p) => p.id.equals(id))).go();
+    } else {
+      await (_db.update(_db.paychecks)..where((p) => p.id.equals(id)))
+          .write(const PaychecksCompanion(
+        dismissed: Value(true),
+        received: Value(false),
+      ));
+    }
+  }
 
   /// Marks any paycheck whose date has arrived as received, creating its
   /// income entry — you get paid on payday whether or not you open the app,
@@ -692,6 +717,7 @@ class HomebaseRepository {
               p.profileId.equals(profileId) &
               p.received.equals(false) &
               p.receivedIsManual.equals(false) &
+              p.dismissed.equals(false) &
               p.date.isSmallerOrEqualValue(today)))
         .get();
     for (final paycheck in due) {

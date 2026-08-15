@@ -198,6 +198,11 @@ class Paychecks extends Table {
   BoolColumn get receivedIsManual =>
       boolean().withDefault(const Constant(false))();
 
+  /// Deleted by you. The row is kept rather than removed so the schedule
+  /// that produced it doesn't just generate the same payday again; it is
+  /// hidden everywhere in the UI.
+  BoolColumn get dismissed => boolean().withDefault(const Constant(false))();
+
   /// Set when this check was generated from a schedule.
   IntColumn get scheduleId =>
       integer().nullable().references(PaycheckSchedules, #id)();
@@ -235,7 +240,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -291,6 +296,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             await m.addColumn(
                 budgetEntries, budgetEntries.sourceBillPaymentId);
+          }
+          if (from < 9) {
+            await m.addColumn(paychecks, paychecks.dismissed);
           }
           if (from < 8) {
             await m.addColumn(paychecks, paychecks.receivedIsManual);

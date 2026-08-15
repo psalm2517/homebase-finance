@@ -886,15 +886,30 @@ class HomebaseRepository {
       watchCards(profileId: profileId).map((cards) => cards.fold(
           0, (sum, c) => sum + (c.annualFeeCents / 12).round()));
 
+  /// Utilization for a single card, from the balance the issuer actually
+  /// reported — the statement balance, not what is owed right now. This is
+  /// the number a credit score is judged on.
+  static double utilizationOf(CreditCard card) => card.creditLimitCents == 0
+      ? 0
+      : card.statementBalanceCents / card.creditLimitCents;
+
+  /// Overall reported utilization across every card.
+  static double overallUtilization(List<CreditCard> cards) {
+    final limit = cards.fold(0, (s, c) => s + c.creditLimitCents);
+    if (limit == 0) return 0;
+    final reported = cards.fold(0, (s, c) => s + c.statementBalanceCents);
+    return reported / limit;
+  }
+
   /// Where a card is in its statement cycle right now: when the statement
   /// closes next, and when payment is due. Null fields mean the card has no
   /// cycle configured.
   static ({DateTime? statementCloses, DateTime? paymentDue, int? daysToClose})
       cycleFor(CreditCard card, {DateTime? now}) {
     final today = now ?? DateTime.now();
-    final closes = card.statementDay == null
+    final closes = card.statementCloseDay == null
         ? null
-        : nextOccurrence(card.statementDay!, today);
+        : nextOccurrence(card.statementCloseDay!, today);
     final due = card.paymentDueDay == null
         ? null
         : nextOccurrence(card.paymentDueDay!, today);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
 import '../data/reminder.dart';
+import '../data/repository.dart';
 import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
@@ -207,9 +208,9 @@ class DashboardScreen extends ConsumerWidget {
           stream: repo.watchCards(profileId: profileId),
           builder: (context, snap) {
             final cards = snap.data ?? [];
-            final balance = cards.fold(0, (s, c) => s + c.balanceCents);
-            final limit = cards.fold(0, (s, c) => s + c.creditLimitCents);
-            final overall = limit == 0 ? 0.0 : balance / limit;
+            // Reported balances, not current ones: this is the number the
+            // bureaus see and score you on.
+            final overall = HomebaseRepository.overallUtilization(cards);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -227,10 +228,15 @@ class DashboardScreen extends ConsumerWidget {
                             'one maxed-out card can hurt even if your overall '
                             'number looks fine. Homebase flags anything above '
                             '30% in red.',
-                        'Scores generally use the balance reported on your '
-                            'statement date, not your balance after you pay, '
-                            'so paying before the statement closes lowers the '
-                            'number that gets reported.',
+                        'This is calculated from each card\'s statement '
+                            'balance — what the issuer actually reported — '
+                            'not what you owe right now. Paying a card down '
+                            'today does not change it until the next '
+                            'statement closes.',
+                        'Everything else in Homebase (net worth, total debt, '
+                            'the budget, the payoff simulator) uses your '
+                            'current balance instead, because that is the '
+                            'money you actually owe.',
                       ],
                     ),
                     action: cards.isEmpty
@@ -462,8 +468,7 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _utilizationTile(
       BuildContext context, CreditCard c, ColorScheme scheme) {
-    final ratio =
-        c.creditLimitCents == 0 ? 0.0 : c.balanceCents / c.creditLimitCents;
+    final ratio = HomebaseRepository.utilizationOf(c);
     final over = ratio > 0.30;
     return ListTile(
       leading: Icon(Icons.credit_card,

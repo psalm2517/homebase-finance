@@ -87,24 +87,31 @@ class CardsScreen extends ConsumerWidget {
                     leading: const Icon(Icons.credit_card),
                     title: Text(c.name),
                     subtitle: Text(
-                        '${fmtCents(c.balanceCents)} of ${fmtCents(c.creditLimitCents)}'),
+                        'Now ${fmtCents(c.balanceCents)} • reported '
+                        '${fmtCents(c.statementBalanceCents)} of '
+                        '${fmtCents(c.creditLimitCents)}'),
                     trailing: _cycleChip(context, c),
                     childrenPadding: const EdgeInsets.all(16),
                     expandedCrossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      DetailRow('Balance', fmtCents(c.balanceCents)),
+                      DetailRow('Current balance', fmtCents(c.balanceCents)),
+                      DetailRow('Statement balance (reported)',
+                          fmtCents(c.statementBalanceCents)),
                       DetailRow('Limit', fmtCents(c.creditLimitCents)),
                       DetailRow(
-                          'Utilization',
+                          'Utilization (reported)',
                           c.creditLimitCents == 0
                               ? '—'
-                              : '${(c.balanceCents / c.creditLimitCents * 100).toStringAsFixed(1)}%'),
+                              : '${(HomebaseRepository.utilizationOf(c) * 100).toStringAsFixed(1)}%'),
+                      if (c.minimumPaymentDueCents != null)
+                        DetailRow('Minimum due',
+                            fmtCents(c.minimumPaymentDueCents!)),
                       DetailRow('APR', '${c.apr.toStringAsFixed(2)}%'),
                       DetailRow('Annual fee', fmtCents(c.annualFeeCents)),
                       DetailRow('Monthly fee', fmtCents(c.monthlyFeeCents)),
                       DetailRow(
                           'Statement closes',
-                          c.statementDay == null
+                          c.statementCloseDay == null
                               ? 'not set'
                               : _fmtDate(HomebaseRepository.cycleFor(c)
                                   .statementCloses!)),
@@ -147,8 +154,10 @@ class CardsScreen extends ConsumerWidget {
   }
 
   Future<void> _whatIf(BuildContext context, CreditCard c) async {
-    final minimum = estimateCardMinimumPayment(
-        balanceCents: c.balanceCents, apr: c.apr);
+    // A real minimum from the statement beats our estimate.
+    final minimum = c.minimumPaymentDueCents ??
+        estimateCardMinimumPayment(balanceCents: c.balanceCents, apr: c.apr);
+    final usingEstimate = c.minimumPaymentDueCents == null;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -161,9 +170,12 @@ class CardsScreen extends ConsumerWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Cards do not have a fixed monthly payment, so this starts '
-                  'from a typical minimum: 1% of the balance plus interest, '
-                  'at least \$25.',
+                  usingEstimate
+                      ? 'No minimum payment is set for this card, so this '
+                          'starts from a typical one: 1% of the balance plus '
+                          'interest, at least \$25. Add the real figure when '
+                          'you edit the card.'
+                      : 'Starting from the minimum payment on your statement.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -173,7 +185,9 @@ class CardsScreen extends ConsumerWidget {
                 balanceCents: c.balanceCents,
                 apr: c.apr,
                 basePaymentCents: minimum,
-                basePaymentLabel: 'Estimated minimum payment',
+                basePaymentLabel: usingEstimate
+                    ? 'Estimated minimum payment'
+                    : 'Minimum payment due',
               ),
             ]),
           ),
@@ -254,8 +268,16 @@ class CardsScreen extends ConsumerWidget {
         text: existing == null
             ? ''
             : (existing.monthlyFeeCents / 100).toString());
-    final statementDay =
-        TextEditingController(text: existing?.statementDay?.toString() ?? '');
+    final statementDay = TextEditingController(
+        text: existing?.statementCloseDay?.toString() ?? '');
+    final statementBalance = TextEditingController(
+        text: existing == null
+            ? ''
+            : (existing.statementBalanceCents / 100).toString());
+    final minimumDue = TextEditingController(
+        text: existing?.minimumPaymentDueCents == null
+            ? ''
+            : (existing!.minimumPaymentDueCents! / 100).toString());
     final paymentDueDay =
         TextEditingController(text: existing?.paymentDueDay?.toString() ?? '');
 
@@ -271,14 +293,20 @@ class CardsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               DialogField(name, 'Name', autofocus: true),
-              DialogField(balance, 'Balance (\$)'),
+              DialogField(balance, 'Current balance (\$)',
+                  helper: 'What you owe right now'),
+              DialogField(statementBalance, 'Statement balance (\$)',
+                  helper: 'Balance on your last statement — this is what '
+                      'gets reported to the credit bureaus'),
               DialogField(limit, 'Credit limit (\$)'),
               DialogField(apr, 'APR (%)'),
               DialogField(annualFee, 'Annual fee (\$)'),
               DialogField(monthlyFee, 'Monthly fee (\$)'),
               DialogField(statementDay, 'Statement closing day (optional)',
-                  helper: 'Day of month the statement closes — this balance '
-                      'is what gets reported to the credit bureaus'),
+                  helper: 'Day of the month your statement closes'),
+              DialogField(minimumDue, 'Minimum payment due (optional)',
+                  helper: 'From your statement. Used by the What if '
+                      'simulator instead of an estimate'),
               DialogField(paymentDueDay, 'Payment due day (optional)',
                   helper: 'Usually 21-25 days after the statement closes'),
             ],
@@ -305,7 +333,11 @@ class CardsScreen extends ConsumerWidget {
           apr: Value(double.tryParse(apr.text) ?? 0),
           annualFeeCents: Value(parseDollarsToCents(annualFee.text) ?? 0),
           monthlyFeeCents: Value(parseDollarsToCents(monthlyFee.text) ?? 0),
-          statementDay: Value(_parseDay(statementDay.text)),
+          statementCloseDay: Value(_parseDay(statementDay.text)),
+          statementBalanceCents:
+              Value(parseDollarsToCents(statementBalance.text) ?? 0),
+          minimumPaymentDueCents:
+              Value(parseDollarsToCents(minimumDue.text)),
           paymentDueDay: Value(_parseDay(paymentDueDay.text)),
         ));
   }

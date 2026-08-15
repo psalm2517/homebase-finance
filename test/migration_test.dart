@@ -300,13 +300,13 @@ void main() {
     addTearDown(db.close);
 
     final cards = await db.select(db.creditCards).get();
-    expect(cards.single.statementDay, isNull);
+    expect(cards.single.statementCloseDay, isNull);
     expect(cards.single.paymentDueDay, isNull);
 
     await (db.update(db.creditCards)..where((c) => c.id.equals(1)))
-        .write(const CreditCardsCompanion(statementDay: Value(20)));
+        .write(const CreditCardsCompanion(statementCloseDay: Value(20)));
     final updated = await db.select(db.creditCards).getSingle();
-    expect(updated.statementDay, 20);
+    expect(updated.statementCloseDay, 20);
     expect(HomebaseRepository.cycleFor(updated, now: DateTime(2026, 8, 14))
         .statementCloses,
         DateTime(2026, 8, 20));
@@ -412,5 +412,54 @@ void main() {
           netWorthCents: 200)),
       throwsA(anything),
     );
+  });
+
+  test('v10 renames statement_day and seeds the statement balance',
+      () async {
+    final v10Dir = Directory.systemTemp.createTempSync('homebase_v10');
+    addTearDown(() => v10Dir.deleteSync(recursive: true));
+    final v10File = File('${v10Dir.path}/homebase.sqlite');
+
+    final raw = sqlite3.open(v10File.path);
+    raw.execute("""
+      CREATE TABLE profiles (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        pin_hash TEXT NULL,
+        is_admin INTEGER NOT NULL DEFAULT 0);
+    """);
+    raw.execute("""
+      CREATE TABLE credit_cards (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        balance_cents INTEGER NOT NULL DEFAULT 0,
+        credit_limit_cents INTEGER NOT NULL,
+        apr REAL NOT NULL DEFAULT 0,
+        annual_fee_cents INTEGER NOT NULL DEFAULT 0,
+        monthly_fee_cents INTEGER NOT NULL DEFAULT 0,
+        statement_day INTEGER NULL,
+        payment_due_day INTEGER NULL,
+        annual_fee_date INTEGER NULL);
+    """);
+    raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
+    raw.execute('INSERT INTO credit_cards '
+        '(profile_id, name, credit_limit_cents, balance_cents, statement_day, '
+        'payment_due_day) '
+        "VALUES (1, 'Visa', 500000, 120000, 20, 15);");
+    raw.execute('PRAGMA user_version = 10;');
+    raw.close();
+
+    final db = AppDatabase.forTesting(NativeDatabase(v10File));
+    addTearDown(db.close);
+
+    final card = await db.select(db.creditCards).getSingle();
+    expect(card.statementCloseDay, 20,
+        reason: 'the renamed column keeps its value');
+    expect(card.paymentDueDay, 15);
+    expect(card.statementBalanceCents, 120000,
+        reason: 'seeded from the current balance so utilization is not zero');
+    expect(card.minimumPaymentDueCents, isNull);
+    expect(HomebaseRepository.utilizationOf(card), closeTo(0.24, 0.001));
   });
 }

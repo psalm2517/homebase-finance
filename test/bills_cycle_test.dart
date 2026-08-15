@@ -351,7 +351,8 @@ void main() {
           apr: 22.99,
           annualFeeCents: 0,
           monthlyFeeCents: 0,
-          statementDay: statementDay,
+          statementBalanceCents: 0,
+          statementCloseDay: statementDay,
           paymentDueDay: dueDay,
         );
 

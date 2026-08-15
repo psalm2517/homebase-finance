@@ -41,11 +41,21 @@ class CreditCards extends Table {
   IntColumn get annualFeeCents => integer().withDefault(const Constant(0))();
   IntColumn get monthlyFeeCents => integer().withDefault(const Constant(0))();
 
-  /// Day of month the statement closes — the balance reported to the bureaus.
-  IntColumn get statementDay => integer().nullable()();
+  /// Day of month the statement closes.
+  IntColumn get statementCloseDay => integer().nullable()();
 
   /// Day of month the payment is due, typically ~21-25 days after closing.
   IntColumn get paymentDueDay => integer().nullable()();
+
+  /// Balance as of the last statement close — the figure the issuer reports
+  /// to the credit bureaus. Utilization and anything credit-score related
+  /// uses this; everything about money actually owed uses [balanceCents].
+  IntColumn get statementBalanceCents =>
+      integer().withDefault(const Constant(0))();
+
+  /// Minimum payment shown on the current statement, when known. The payoff
+  /// simulator prefers this over its own estimate.
+  IntColumn get minimumPaymentDueCents => integer().nullable()();
 
   /// When the annual fee next hits. The amount is [annualFeeCents], which
   /// already feeds the budget set-aside — a second amount field here could
@@ -300,7 +310,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -325,7 +335,7 @@ class AppDatabase extends _$AppDatabase {
                 Variable.withInt(now.millisecondsSinceEpoch ~/ 1000),
               ],
             );
-            await m.addColumn(creditCards, creditCards.statementDay);
+            await m.addColumn(creditCards, creditCards.statementCloseDay);
             await m.addColumn(creditCards, creditCards.paymentDueDay);
           }
           if (from < 4) {
@@ -365,6 +375,24 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(netWorthSnapshots);
             await m.createTable(goals);
             await m.addColumn(creditCards, creditCards.annualFeeDate);
+          }
+          if (from < 11) {
+            // statementDay becomes statementCloseDay: same meaning, clearer
+            // name now that a statement *balance* exists alongside it.
+            if (from >= 3) {
+              await m.renameColumn(
+                  creditCards, 'statement_day', creditCards.statementCloseDay);
+            }
+            await m.addColumn(creditCards, creditCards.statementBalanceCents);
+            await m.addColumn(
+                creditCards, creditCards.minimumPaymentDueCents);
+            // Seed the statement balance from the current balance so
+            // utilization is not zero for everyone on first launch.
+            await customUpdate(
+              'UPDATE credit_cards SET statement_balance_cents = '
+              'balance_cents WHERE statement_balance_cents = 0',
+              updates: {creditCards},
+            );
           }
           if (from < 8) {
             await m.addColumn(paychecks, paychecks.receivedIsManual);

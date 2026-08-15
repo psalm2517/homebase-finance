@@ -825,12 +825,12 @@ class $CreditCardsTable extends CreditCards
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _statementDayMeta = const VerificationMeta(
-    'statementDay',
+  static const VerificationMeta _statementCloseDayMeta = const VerificationMeta(
+    'statementCloseDay',
   );
   @override
-  late final GeneratedColumn<int> statementDay = GeneratedColumn<int>(
-    'statement_day',
+  late final GeneratedColumn<int> statementCloseDay = GeneratedColumn<int>(
+    'statement_close_day',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -842,6 +842,27 @@ class $CreditCardsTable extends CreditCards
   @override
   late final GeneratedColumn<int> paymentDueDay = GeneratedColumn<int>(
     'payment_due_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statementBalanceCentsMeta =
+      const VerificationMeta('statementBalanceCents');
+  @override
+  late final GeneratedColumn<int> statementBalanceCents = GeneratedColumn<int>(
+    'statement_balance_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _minimumPaymentDueCentsMeta =
+      const VerificationMeta('minimumPaymentDueCents');
+  @override
+  late final GeneratedColumn<int> minimumPaymentDueCents = GeneratedColumn<int>(
+    'minimum_payment_due_cents',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -869,8 +890,10 @@ class $CreditCardsTable extends CreditCards
     apr,
     annualFeeCents,
     monthlyFeeCents,
-    statementDay,
+    statementCloseDay,
     paymentDueDay,
+    statementBalanceCents,
+    minimumPaymentDueCents,
     annualFeeDate,
   ];
   @override
@@ -948,12 +971,12 @@ class $CreditCardsTable extends CreditCards
         ),
       );
     }
-    if (data.containsKey('statement_day')) {
+    if (data.containsKey('statement_close_day')) {
       context.handle(
-        _statementDayMeta,
-        statementDay.isAcceptableOrUnknown(
-          data['statement_day']!,
-          _statementDayMeta,
+        _statementCloseDayMeta,
+        statementCloseDay.isAcceptableOrUnknown(
+          data['statement_close_day']!,
+          _statementCloseDayMeta,
         ),
       );
     }
@@ -963,6 +986,24 @@ class $CreditCardsTable extends CreditCards
         paymentDueDay.isAcceptableOrUnknown(
           data['payment_due_day']!,
           _paymentDueDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('statement_balance_cents')) {
+      context.handle(
+        _statementBalanceCentsMeta,
+        statementBalanceCents.isAcceptableOrUnknown(
+          data['statement_balance_cents']!,
+          _statementBalanceCentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('minimum_payment_due_cents')) {
+      context.handle(
+        _minimumPaymentDueCentsMeta,
+        minimumPaymentDueCents.isAcceptableOrUnknown(
+          data['minimum_payment_due_cents']!,
+          _minimumPaymentDueCentsMeta,
         ),
       );
     }
@@ -1016,13 +1057,21 @@ class $CreditCardsTable extends CreditCards
         DriftSqlType.int,
         data['${effectivePrefix}monthly_fee_cents'],
       )!,
-      statementDay: attachedDatabase.typeMapping.read(
+      statementCloseDay: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}statement_day'],
+        data['${effectivePrefix}statement_close_day'],
       ),
       paymentDueDay: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}payment_due_day'],
+      ),
+      statementBalanceCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}statement_balance_cents'],
+      )!,
+      minimumPaymentDueCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minimum_payment_due_cents'],
       ),
       annualFeeDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -1047,11 +1096,20 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
   final int annualFeeCents;
   final int monthlyFeeCents;
 
-  /// Day of month the statement closes — the balance reported to the bureaus.
-  final int? statementDay;
+  /// Day of month the statement closes.
+  final int? statementCloseDay;
 
   /// Day of month the payment is due, typically ~21-25 days after closing.
   final int? paymentDueDay;
+
+  /// Balance as of the last statement close — the figure the issuer reports
+  /// to the credit bureaus. Utilization and anything credit-score related
+  /// uses this; everything about money actually owed uses [balanceCents].
+  final int statementBalanceCents;
+
+  /// Minimum payment shown on the current statement, when known. The payoff
+  /// simulator prefers this over its own estimate.
+  final int? minimumPaymentDueCents;
 
   /// When the annual fee next hits. The amount is [annualFeeCents], which
   /// already feeds the budget set-aside — a second amount field here could
@@ -1066,8 +1124,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     required this.apr,
     required this.annualFeeCents,
     required this.monthlyFeeCents,
-    this.statementDay,
+    this.statementCloseDay,
     this.paymentDueDay,
+    required this.statementBalanceCents,
+    this.minimumPaymentDueCents,
     this.annualFeeDate,
   });
   @override
@@ -1081,11 +1141,15 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     map['apr'] = Variable<double>(apr);
     map['annual_fee_cents'] = Variable<int>(annualFeeCents);
     map['monthly_fee_cents'] = Variable<int>(monthlyFeeCents);
-    if (!nullToAbsent || statementDay != null) {
-      map['statement_day'] = Variable<int>(statementDay);
+    if (!nullToAbsent || statementCloseDay != null) {
+      map['statement_close_day'] = Variable<int>(statementCloseDay);
     }
     if (!nullToAbsent || paymentDueDay != null) {
       map['payment_due_day'] = Variable<int>(paymentDueDay);
+    }
+    map['statement_balance_cents'] = Variable<int>(statementBalanceCents);
+    if (!nullToAbsent || minimumPaymentDueCents != null) {
+      map['minimum_payment_due_cents'] = Variable<int>(minimumPaymentDueCents);
     }
     if (!nullToAbsent || annualFeeDate != null) {
       map['annual_fee_date'] = Variable<DateTime>(annualFeeDate);
@@ -1103,12 +1167,16 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       apr: Value(apr),
       annualFeeCents: Value(annualFeeCents),
       monthlyFeeCents: Value(monthlyFeeCents),
-      statementDay: statementDay == null && nullToAbsent
+      statementCloseDay: statementCloseDay == null && nullToAbsent
           ? const Value.absent()
-          : Value(statementDay),
+          : Value(statementCloseDay),
       paymentDueDay: paymentDueDay == null && nullToAbsent
           ? const Value.absent()
           : Value(paymentDueDay),
+      statementBalanceCents: Value(statementBalanceCents),
+      minimumPaymentDueCents: minimumPaymentDueCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(minimumPaymentDueCents),
       annualFeeDate: annualFeeDate == null && nullToAbsent
           ? const Value.absent()
           : Value(annualFeeDate),
@@ -1129,8 +1197,14 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       apr: serializer.fromJson<double>(json['apr']),
       annualFeeCents: serializer.fromJson<int>(json['annualFeeCents']),
       monthlyFeeCents: serializer.fromJson<int>(json['monthlyFeeCents']),
-      statementDay: serializer.fromJson<int?>(json['statementDay']),
+      statementCloseDay: serializer.fromJson<int?>(json['statementCloseDay']),
       paymentDueDay: serializer.fromJson<int?>(json['paymentDueDay']),
+      statementBalanceCents: serializer.fromJson<int>(
+        json['statementBalanceCents'],
+      ),
+      minimumPaymentDueCents: serializer.fromJson<int?>(
+        json['minimumPaymentDueCents'],
+      ),
       annualFeeDate: serializer.fromJson<DateTime?>(json['annualFeeDate']),
     );
   }
@@ -1146,8 +1220,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       'apr': serializer.toJson<double>(apr),
       'annualFeeCents': serializer.toJson<int>(annualFeeCents),
       'monthlyFeeCents': serializer.toJson<int>(monthlyFeeCents),
-      'statementDay': serializer.toJson<int?>(statementDay),
+      'statementCloseDay': serializer.toJson<int?>(statementCloseDay),
       'paymentDueDay': serializer.toJson<int?>(paymentDueDay),
+      'statementBalanceCents': serializer.toJson<int>(statementBalanceCents),
+      'minimumPaymentDueCents': serializer.toJson<int?>(minimumPaymentDueCents),
       'annualFeeDate': serializer.toJson<DateTime?>(annualFeeDate),
     };
   }
@@ -1161,8 +1237,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     double? apr,
     int? annualFeeCents,
     int? monthlyFeeCents,
-    Value<int?> statementDay = const Value.absent(),
+    Value<int?> statementCloseDay = const Value.absent(),
     Value<int?> paymentDueDay = const Value.absent(),
+    int? statementBalanceCents,
+    Value<int?> minimumPaymentDueCents = const Value.absent(),
     Value<DateTime?> annualFeeDate = const Value.absent(),
   }) => CreditCard(
     id: id ?? this.id,
@@ -1173,10 +1251,16 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     apr: apr ?? this.apr,
     annualFeeCents: annualFeeCents ?? this.annualFeeCents,
     monthlyFeeCents: monthlyFeeCents ?? this.monthlyFeeCents,
-    statementDay: statementDay.present ? statementDay.value : this.statementDay,
+    statementCloseDay: statementCloseDay.present
+        ? statementCloseDay.value
+        : this.statementCloseDay,
     paymentDueDay: paymentDueDay.present
         ? paymentDueDay.value
         : this.paymentDueDay,
+    statementBalanceCents: statementBalanceCents ?? this.statementBalanceCents,
+    minimumPaymentDueCents: minimumPaymentDueCents.present
+        ? minimumPaymentDueCents.value
+        : this.minimumPaymentDueCents,
     annualFeeDate: annualFeeDate.present
         ? annualFeeDate.value
         : this.annualFeeDate,
@@ -1199,12 +1283,18 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       monthlyFeeCents: data.monthlyFeeCents.present
           ? data.monthlyFeeCents.value
           : this.monthlyFeeCents,
-      statementDay: data.statementDay.present
-          ? data.statementDay.value
-          : this.statementDay,
+      statementCloseDay: data.statementCloseDay.present
+          ? data.statementCloseDay.value
+          : this.statementCloseDay,
       paymentDueDay: data.paymentDueDay.present
           ? data.paymentDueDay.value
           : this.paymentDueDay,
+      statementBalanceCents: data.statementBalanceCents.present
+          ? data.statementBalanceCents.value
+          : this.statementBalanceCents,
+      minimumPaymentDueCents: data.minimumPaymentDueCents.present
+          ? data.minimumPaymentDueCents.value
+          : this.minimumPaymentDueCents,
       annualFeeDate: data.annualFeeDate.present
           ? data.annualFeeDate.value
           : this.annualFeeDate,
@@ -1222,8 +1312,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
           ..write('apr: $apr, ')
           ..write('annualFeeCents: $annualFeeCents, ')
           ..write('monthlyFeeCents: $monthlyFeeCents, ')
-          ..write('statementDay: $statementDay, ')
+          ..write('statementCloseDay: $statementCloseDay, ')
           ..write('paymentDueDay: $paymentDueDay, ')
+          ..write('statementBalanceCents: $statementBalanceCents, ')
+          ..write('minimumPaymentDueCents: $minimumPaymentDueCents, ')
           ..write('annualFeeDate: $annualFeeDate')
           ..write(')'))
         .toString();
@@ -1239,8 +1331,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     apr,
     annualFeeCents,
     monthlyFeeCents,
-    statementDay,
+    statementCloseDay,
     paymentDueDay,
+    statementBalanceCents,
+    minimumPaymentDueCents,
     annualFeeDate,
   );
   @override
@@ -1255,8 +1349,10 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
           other.apr == this.apr &&
           other.annualFeeCents == this.annualFeeCents &&
           other.monthlyFeeCents == this.monthlyFeeCents &&
-          other.statementDay == this.statementDay &&
+          other.statementCloseDay == this.statementCloseDay &&
           other.paymentDueDay == this.paymentDueDay &&
+          other.statementBalanceCents == this.statementBalanceCents &&
+          other.minimumPaymentDueCents == this.minimumPaymentDueCents &&
           other.annualFeeDate == this.annualFeeDate);
 }
 
@@ -1269,8 +1365,10 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
   final Value<double> apr;
   final Value<int> annualFeeCents;
   final Value<int> monthlyFeeCents;
-  final Value<int?> statementDay;
+  final Value<int?> statementCloseDay;
   final Value<int?> paymentDueDay;
+  final Value<int> statementBalanceCents;
+  final Value<int?> minimumPaymentDueCents;
   final Value<DateTime?> annualFeeDate;
   const CreditCardsCompanion({
     this.id = const Value.absent(),
@@ -1281,8 +1379,10 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     this.apr = const Value.absent(),
     this.annualFeeCents = const Value.absent(),
     this.monthlyFeeCents = const Value.absent(),
-    this.statementDay = const Value.absent(),
+    this.statementCloseDay = const Value.absent(),
     this.paymentDueDay = const Value.absent(),
+    this.statementBalanceCents = const Value.absent(),
+    this.minimumPaymentDueCents = const Value.absent(),
     this.annualFeeDate = const Value.absent(),
   });
   CreditCardsCompanion.insert({
@@ -1294,8 +1394,10 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     this.apr = const Value.absent(),
     this.annualFeeCents = const Value.absent(),
     this.monthlyFeeCents = const Value.absent(),
-    this.statementDay = const Value.absent(),
+    this.statementCloseDay = const Value.absent(),
     this.paymentDueDay = const Value.absent(),
+    this.statementBalanceCents = const Value.absent(),
+    this.minimumPaymentDueCents = const Value.absent(),
     this.annualFeeDate = const Value.absent(),
   }) : profileId = Value(profileId),
        name = Value(name),
@@ -1309,8 +1411,10 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     Expression<double>? apr,
     Expression<int>? annualFeeCents,
     Expression<int>? monthlyFeeCents,
-    Expression<int>? statementDay,
+    Expression<int>? statementCloseDay,
     Expression<int>? paymentDueDay,
+    Expression<int>? statementBalanceCents,
+    Expression<int>? minimumPaymentDueCents,
     Expression<DateTime>? annualFeeDate,
   }) {
     return RawValuesInsertable({
@@ -1322,8 +1426,12 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
       if (apr != null) 'apr': apr,
       if (annualFeeCents != null) 'annual_fee_cents': annualFeeCents,
       if (monthlyFeeCents != null) 'monthly_fee_cents': monthlyFeeCents,
-      if (statementDay != null) 'statement_day': statementDay,
+      if (statementCloseDay != null) 'statement_close_day': statementCloseDay,
       if (paymentDueDay != null) 'payment_due_day': paymentDueDay,
+      if (statementBalanceCents != null)
+        'statement_balance_cents': statementBalanceCents,
+      if (minimumPaymentDueCents != null)
+        'minimum_payment_due_cents': minimumPaymentDueCents,
       if (annualFeeDate != null) 'annual_fee_date': annualFeeDate,
     });
   }
@@ -1337,8 +1445,10 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     Value<double>? apr,
     Value<int>? annualFeeCents,
     Value<int>? monthlyFeeCents,
-    Value<int?>? statementDay,
+    Value<int?>? statementCloseDay,
     Value<int?>? paymentDueDay,
+    Value<int>? statementBalanceCents,
+    Value<int?>? minimumPaymentDueCents,
     Value<DateTime?>? annualFeeDate,
   }) {
     return CreditCardsCompanion(
@@ -1350,8 +1460,12 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
       apr: apr ?? this.apr,
       annualFeeCents: annualFeeCents ?? this.annualFeeCents,
       monthlyFeeCents: monthlyFeeCents ?? this.monthlyFeeCents,
-      statementDay: statementDay ?? this.statementDay,
+      statementCloseDay: statementCloseDay ?? this.statementCloseDay,
       paymentDueDay: paymentDueDay ?? this.paymentDueDay,
+      statementBalanceCents:
+          statementBalanceCents ?? this.statementBalanceCents,
+      minimumPaymentDueCents:
+          minimumPaymentDueCents ?? this.minimumPaymentDueCents,
       annualFeeDate: annualFeeDate ?? this.annualFeeDate,
     );
   }
@@ -1383,11 +1497,21 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     if (monthlyFeeCents.present) {
       map['monthly_fee_cents'] = Variable<int>(monthlyFeeCents.value);
     }
-    if (statementDay.present) {
-      map['statement_day'] = Variable<int>(statementDay.value);
+    if (statementCloseDay.present) {
+      map['statement_close_day'] = Variable<int>(statementCloseDay.value);
     }
     if (paymentDueDay.present) {
       map['payment_due_day'] = Variable<int>(paymentDueDay.value);
+    }
+    if (statementBalanceCents.present) {
+      map['statement_balance_cents'] = Variable<int>(
+        statementBalanceCents.value,
+      );
+    }
+    if (minimumPaymentDueCents.present) {
+      map['minimum_payment_due_cents'] = Variable<int>(
+        minimumPaymentDueCents.value,
+      );
     }
     if (annualFeeDate.present) {
       map['annual_fee_date'] = Variable<DateTime>(annualFeeDate.value);
@@ -1406,8 +1530,10 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
           ..write('apr: $apr, ')
           ..write('annualFeeCents: $annualFeeCents, ')
           ..write('monthlyFeeCents: $monthlyFeeCents, ')
-          ..write('statementDay: $statementDay, ')
+          ..write('statementCloseDay: $statementCloseDay, ')
           ..write('paymentDueDay: $paymentDueDay, ')
+          ..write('statementBalanceCents: $statementBalanceCents, ')
+          ..write('minimumPaymentDueCents: $minimumPaymentDueCents, ')
           ..write('annualFeeDate: $annualFeeDate')
           ..write(')'))
         .toString();
@@ -9790,8 +9916,10 @@ typedef $$CreditCardsTableCreateCompanionBuilder =
       Value<double> apr,
       Value<int> annualFeeCents,
       Value<int> monthlyFeeCents,
-      Value<int?> statementDay,
+      Value<int?> statementCloseDay,
       Value<int?> paymentDueDay,
+      Value<int> statementBalanceCents,
+      Value<int?> minimumPaymentDueCents,
       Value<DateTime?> annualFeeDate,
     });
 typedef $$CreditCardsTableUpdateCompanionBuilder =
@@ -9804,8 +9932,10 @@ typedef $$CreditCardsTableUpdateCompanionBuilder =
       Value<double> apr,
       Value<int> annualFeeCents,
       Value<int> monthlyFeeCents,
-      Value<int?> statementDay,
+      Value<int?> statementCloseDay,
       Value<int?> paymentDueDay,
+      Value<int> statementBalanceCents,
+      Value<int?> minimumPaymentDueCents,
       Value<DateTime?> annualFeeDate,
     });
 
@@ -9875,13 +10005,23 @@ class $$CreditCardsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get statementDay => $composableBuilder(
-    column: $table.statementDay,
+  ColumnFilters<int> get statementCloseDay => $composableBuilder(
+    column: $table.statementCloseDay,
     builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<int> get paymentDueDay => $composableBuilder(
     column: $table.paymentDueDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get statementBalanceCents => $composableBuilder(
+    column: $table.statementBalanceCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minimumPaymentDueCents => $composableBuilder(
+    column: $table.minimumPaymentDueCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9958,13 +10098,23 @@ class $$CreditCardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get statementDay => $composableBuilder(
-    column: $table.statementDay,
+  ColumnOrderings<int> get statementCloseDay => $composableBuilder(
+    column: $table.statementCloseDay,
     builder: (column) => ColumnOrderings(column),
   );
 
   ColumnOrderings<int> get paymentDueDay => $composableBuilder(
     column: $table.paymentDueDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get statementBalanceCents => $composableBuilder(
+    column: $table.statementBalanceCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minimumPaymentDueCents => $composableBuilder(
+    column: $table.minimumPaymentDueCents,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10035,13 +10185,23 @@ class $$CreditCardsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get statementDay => $composableBuilder(
-    column: $table.statementDay,
+  GeneratedColumn<int> get statementCloseDay => $composableBuilder(
+    column: $table.statementCloseDay,
     builder: (column) => column,
   );
 
   GeneratedColumn<int> get paymentDueDay => $composableBuilder(
     column: $table.paymentDueDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get statementBalanceCents => $composableBuilder(
+    column: $table.statementBalanceCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get minimumPaymentDueCents => $composableBuilder(
+    column: $table.minimumPaymentDueCents,
     builder: (column) => column,
   );
 
@@ -10110,8 +10270,10 @@ class $$CreditCardsTableTableManager
                 Value<double> apr = const Value.absent(),
                 Value<int> annualFeeCents = const Value.absent(),
                 Value<int> monthlyFeeCents = const Value.absent(),
-                Value<int?> statementDay = const Value.absent(),
+                Value<int?> statementCloseDay = const Value.absent(),
                 Value<int?> paymentDueDay = const Value.absent(),
+                Value<int> statementBalanceCents = const Value.absent(),
+                Value<int?> minimumPaymentDueCents = const Value.absent(),
                 Value<DateTime?> annualFeeDate = const Value.absent(),
               }) => CreditCardsCompanion(
                 id: id,
@@ -10122,8 +10284,10 @@ class $$CreditCardsTableTableManager
                 apr: apr,
                 annualFeeCents: annualFeeCents,
                 monthlyFeeCents: monthlyFeeCents,
-                statementDay: statementDay,
+                statementCloseDay: statementCloseDay,
                 paymentDueDay: paymentDueDay,
+                statementBalanceCents: statementBalanceCents,
+                minimumPaymentDueCents: minimumPaymentDueCents,
                 annualFeeDate: annualFeeDate,
               ),
           createCompanionCallback:
@@ -10136,8 +10300,10 @@ class $$CreditCardsTableTableManager
                 Value<double> apr = const Value.absent(),
                 Value<int> annualFeeCents = const Value.absent(),
                 Value<int> monthlyFeeCents = const Value.absent(),
-                Value<int?> statementDay = const Value.absent(),
+                Value<int?> statementCloseDay = const Value.absent(),
                 Value<int?> paymentDueDay = const Value.absent(),
+                Value<int> statementBalanceCents = const Value.absent(),
+                Value<int?> minimumPaymentDueCents = const Value.absent(),
                 Value<DateTime?> annualFeeDate = const Value.absent(),
               }) => CreditCardsCompanion.insert(
                 id: id,
@@ -10148,8 +10314,10 @@ class $$CreditCardsTableTableManager
                 apr: apr,
                 annualFeeCents: annualFeeCents,
                 monthlyFeeCents: monthlyFeeCents,
-                statementDay: statementDay,
+                statementCloseDay: statementCloseDay,
                 paymentDueDay: paymentDueDay,
+                statementBalanceCents: statementBalanceCents,
+                minimumPaymentDueCents: minimumPaymentDueCents,
                 annualFeeDate: annualFeeDate,
               ),
           withReferenceMapper: (p0) => p0

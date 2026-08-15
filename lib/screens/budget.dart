@@ -1,12 +1,36 @@
+import 'package:async/async.dart' show StreamZip;
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
+import '../data/repository.dart';
 import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
 import 'accounts.dart';
+
+/// Everything the monthly plan needs, combined so the screen isn't seven
+/// levels of nested StreamBuilders.
+class _PlanData {
+  const _PlanData({
+    required this.entries,
+    required this.targets,
+    required this.scheduledIncomeCents,
+    required this.billsDueThisMonthCents,
+    required this.cardFeesDueThisMonthCents,
+    required this.reserveForIrregularBillsCents,
+    required this.reserveForCardFeesCents,
+  });
+
+  final List<BudgetEntry> entries;
+  final List<BudgetTarget> targets;
+  final int scheduledIncomeCents;
+  final int billsDueThisMonthCents;
+  final int cardFeesDueThisMonthCents;
+  final int reserveForIrregularBillsCents;
+  final int reserveForCardFeesCents;
+}
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -17,6 +41,26 @@ class BudgetScreen extends ConsumerStatefulWidget {
 
 class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+
+  Stream<_PlanData> _watchPlan(HomebaseRepository repo, int profileId) {
+    return StreamZip([
+      repo.watchBudgetForMonth(profileId: profileId, month: _month),
+      repo.watchBudgetTargets(profileId: profileId),
+      repo.watchMonthlyIncomeCents(profileId: profileId),
+      repo.watchBillsDueThisMonthCents(profileId: profileId, month: _month),
+      repo.watchCardFeesDueThisMonthCents(profileId: profileId),
+      repo.watchReserveForIrregularBillsCents(profileId: profileId),
+      repo.watchReserveForCardFeesCents(profileId: profileId),
+    ]).map((values) => _PlanData(
+          entries: values[0] as List<BudgetEntry>,
+          targets: values[1] as List<BudgetTarget>,
+          scheduledIncomeCents: values[2] as int,
+          billsDueThisMonthCents: values[3] as int,
+          cardFeesDueThisMonthCents: values[4] as int,
+          reserveForIrregularBillsCents: values[5] as int,
+          reserveForCardFeesCents: values[6] as int,
+        ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,50 +74,20 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Add entry'),
       ),
-      body: StreamBuilder<List<BudgetEntry>>(
-        stream: repo.watchBudgetForMonth(profileId: profileId, month: _month),
-        builder: (context, entriesSnap) {
-          return StreamBuilder<List<BudgetTarget>>(
-            stream: repo.watchBudgetTargets(profileId: profileId),
-            builder: (context, targetsSnap) {
-              return StreamBuilder<int>(
-                stream: repo.watchMonthlyIncomeCents(profileId: profileId),
-                builder: (context, schedIncomeSnap) {
-                  return StreamBuilder<int>(
-                    stream: repo.watchMonthlyBillsCents(profileId: profileId),
-                    builder: (context, billsTotalSnap) {
-                      return StreamBuilder<int>(
-                        stream: repo.watchMonthlyCardFeesCents(
-                            profileId: profileId),
-                        builder: (context, feesSnap) {
-                          final entries = entriesSnap.data ?? [];
-                          final targets = targetsSnap.data ?? [];
-                          final schedIncome = schedIncomeSnap.data ?? 0;
-                          final billsTotal = billsTotalSnap.data ?? 0;
-                          final fees = feesSnap.data ?? 0;
-                          return _buildBody(context, entries, targets,
-                              schedIncome, billsTotal, fees, scheme);
-                        },
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
+      body: StreamBuilder<_PlanData>(
+        stream: _watchPlan(repo, profileId),
+        builder: (context, snap) {
+          final data = snap.data;
+          if (data == null) return const SizedBox.shrink();
+          return _buildBody(context, data, scheme);
         },
       ),
     );
   }
 
-  Widget _buildBody(
-      BuildContext context,
-      List<BudgetEntry> entries,
-      List<BudgetTarget> targets,
-      int schedIncomeCents,
-      int billsTotalCents,
-      int cardFeesCents,
-      ColorScheme scheme) {
+  Widget _buildBody(BuildContext context, _PlanData data, ColorScheme scheme) {
+    final entries = data.entries;
+    final targets = data.targets;
     final income = entries
         .where((e) => e.type == EntryType.income)
         .fold(0, (s, e) => s + e.amountCents);
@@ -158,19 +172,28 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               info: InfoButton(
                 title: 'Monthly plan',
                 body: [
-                  'A quick sanity check: what you expect to earn in a normal '
-                      'month, minus what your recurring bills cost, leaves '
-                      'the amount you actually have to work with.',
-                  'Income comes from your paycheck schedules on the Paychecks '
-                      'screen, normalized to a month — a bi-weekly schedule '
-                      'is multiplied by 26 and divided by 12, weekly by 52 '
-                      'and divided by 12. That is why it may not match a '
-                      'single paycheck times two.',
-                  'Bills that are not monthly are spread across their term, '
-                      'so an annual subscription counts as a twelfth each '
-                      'month — that is what you need to set aside.',
-                  'Credit card fees count too: any monthly fee in full, plus '
-                      'a twelfth of each annual fee.',
+                  'Two different things, kept separate rather than blended '
+                      'into one number: money actually charged this month, '
+                      'and money worth setting aside for bills that aren\'t '
+                      'monthly.',
+                  'Income comes from your paycheck schedules on the '
+                      'Paychecks screen, normalized to a month — a bi-weekly '
+                      'schedule is multiplied by 26 and divided by 12. That '
+                      'is why it may not match a single paycheck times two.',
+                  '"Due this month" only counts a bill in the month it '
+                      'actually charges — a quarterly or annual bill shows '
+                      'up here only in the month it hits, matching what your '
+                      'bank statement would show.',
+                  '"Set aside" is different: it spreads bills that aren\'t '
+                      'monthly evenly across their period, so an \$80/year '
+                      'subscription shows as \$6.67 here every month, even '
+                      'in months nothing is actually charged. This is not '
+                      'cash leaving your account — it is a reserve you are '
+                      'building toward the real charge.',
+                  'Card annual fees work the same way: Homebase does not '
+                      'know which month yours lands in, so the full fee '
+                      'never appears in "due this month" — only its monthly '
+                      'twelfth appears in "set aside".',
                   'Every amount you enter in Homebase is after tax, so this '
                       'is take-home money.',
                 ],
@@ -182,20 +205,35 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _planRow('Expected monthly income (from paycheck schedules)',
-                      fmtCents(schedIncomeCents)),
-                  _planRow('Recurring bills (annual and quarterly spread '
-                      'across their term)',
-                      '-${fmtCents(billsTotalCents)}'),
-                  _planRow('Credit card fees (monthly, plus a twelfth of '
-                      'each annual fee)',
-                      '-${fmtCents(cardFeesCents)}'),
+                      fmtCents(data.scheduledIncomeCents)),
+                  _planRow('Bills due this month',
+                      '-${fmtCents(data.billsDueThisMonthCents)}'),
+                  _planRow('Card fees due this month',
+                      '-${fmtCents(data.cardFeesDueThisMonthCents)}'),
                   const Divider(),
                   _planRow(
                       'Left to budget',
-                      fmtCents(schedIncomeCents -
-                          billsTotalCents -
-                          cardFeesCents),
+                      fmtCents(data.scheduledIncomeCents -
+                          data.billsDueThisMonthCents -
+                          data.cardFeesDueThisMonthCents),
                       bold: true),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Icon(Icons.savings_outlined,
+                        size: 14, color: scheme.secondary),
+                    const SizedBox(width: 6),
+                    Text('Worth setting aside (not charged yet)',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
+                            ?.copyWith(color: scheme.secondary)),
+                  ]),
+                  _planRow('For quarterly/annual bills',
+                      fmtCents(data.reserveForIrregularBillsCents),
+                      color: scheme.secondary),
+                  _planRow('For card annual fees',
+                      fmtCents(data.reserveForCardFeesCents),
+                      color: scheme.secondary),
                 ],
               ),
             ),
@@ -302,9 +340,10 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     return null;
   }
 
-  Widget _planRow(String label, String value, {bool bold = false}) {
-    final style =
-        bold ? const TextStyle(fontWeight: FontWeight.bold) : null;
+  Widget _planRow(String label, String value,
+      {bool bold = false, Color? color}) {
+    final style = TextStyle(
+        fontWeight: bold ? FontWeight.bold : null, color: color);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(

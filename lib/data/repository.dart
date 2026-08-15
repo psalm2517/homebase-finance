@@ -500,17 +500,52 @@ class HomebaseRepository {
 
   /// Recurring bills as a monthly figure, with quarterly and annual bills
   /// spread across their period (an $80/year subscription counts as $6.67).
+  /// This is a planning average, not a current-month charge — the Bills
+  /// screen labels it "true monthly cost" for exactly that reason.
   Stream<int> watchMonthlyBillsCents({required int profileId}) =>
       watchBills(profileId: profileId).map(
           (bills) => bills.fold(0, (sum, b) => sum + monthlyCostCents(b)));
 
-  /// Card fees as a monthly figure: monthly fees plus a twelfth of each
-  /// annual fee. These are real recurring costs, so they belong in the plan.
-  Stream<int> watchMonthlyCardFeesCents({required int profileId}) =>
+  /// Bills that actually charge in [month] — real cash out, matches what a
+  /// bank statement would show. Excludes quarterly/annual bills in months
+  /// they don't fall in, and excludes card fees entirely (see
+  /// [watchCardFeesDueThisMonth] for the one-time annual-fee charge).
+  Stream<int> watchBillsDueThisMonthCents(
+      {required int profileId, required DateTime month}) {
+    final periodStart = DateTime(month.year, month.month);
+    return watchBills(profileId: profileId).map((bills) => bills
+        .where((b) => billFallsIn(b, periodStart))
+        .fold(0, (sum, b) => sum + b.amountCents));
+  }
+
+  /// Monthly card fees actually charged every month — just the monthly fee.
+  /// Annual fees aren't tied to a known month in Homebase, so they live
+  /// entirely in [watchReserveForCardFeesCents] rather than guessing when
+  /// they land.
+  Stream<int> watchCardFeesDueThisMonthCents({required int profileId}) =>
+      watchCards(profileId: profileId)
+          .map((cards) => cards.fold(0, (sum, c) => sum + c.monthlyFeeCents));
+
+  /// What to set aside this month toward bills that are not monthly —
+  /// quarterly and annual bills spread evenly across their period, so a
+  /// $325/year fee is $27.08/month. This is money to reserve, not money
+  /// actually leaving your account this month; keep it separate from
+  /// [watchBillsDueThisMonthCents] rather than blending the two.
+  Stream<int> watchReserveForIrregularBillsCents({required int profileId}) =>
+      watchBills(profileId: profileId).map((bills) => bills
+          .where((b) => b.frequency != BillFrequency.oneTime)
+          .fold(
+              0,
+              (sum, b) => sum +
+                  (b.frequency == BillFrequency.monthly
+                      ? 0
+                      : monthlyCostCents(b))));
+
+  /// What to set aside this month toward annual card fees — a twelfth of
+  /// each one. Also money to reserve, not a current-month charge.
+  Stream<int> watchReserveForCardFeesCents({required int profileId}) =>
       watchCards(profileId: profileId).map((cards) => cards.fold(
-          0,
-          (sum, c) =>
-              sum + c.monthlyFeeCents + (c.annualFeeCents / 12).round()));
+          0, (sum, c) => sum + (c.annualFeeCents / 12).round()));
 
   /// Where a card is in its statement cycle right now: when the statement
   /// closes next, and when payment is due. Null fields mean the card has no

@@ -168,7 +168,8 @@ void main() {
       expect(monthly, 1000 + 3000 + 145000);
     });
 
-    test('card fees roll into a monthly figure', () async {
+    test('monthly card fee counts as due this month; annual fee does not',
+        () async {
       await repo.upsertCard(CreditCardsCompanion.insert(
           profileId: profileId,
           name: 'Gold',
@@ -176,10 +177,98 @@ void main() {
           annualFeeCents: const Value(32500),
           monthlyFeeCents: const Value(500)));
 
-      final fees =
-          await repo.watchMonthlyCardFeesCents(profileId: profileId).first;
-      // 325.00/12 = 27.08 plus the 5.00 monthly fee.
-      expect(fees, 2708 + 500);
+      final dueThisMonth =
+          await repo.watchCardFeesDueThisMonthCents(profileId: profileId).first;
+      expect(dueThisMonth, 500,
+          reason: 'annual fee is not tied to a known month, so it never '
+              'appears as a current-month charge');
+    });
+
+    test('annual card fee reserve is a twelfth, separate from real charges',
+        () async {
+      await repo.upsertCard(CreditCardsCompanion.insert(
+          profileId: profileId,
+          name: 'Gold',
+          creditLimitCents: 900000,
+          annualFeeCents: const Value(32500),
+          monthlyFeeCents: const Value(500)));
+
+      final reserve =
+          await repo.watchReserveForCardFeesCents(profileId: profileId).first;
+      // 325.00/12 = 27.08. Monthly fee is excluded — it's already a real
+      // monthly charge, not something to additionally reserve for.
+      expect(reserve, 2708);
+    });
+
+    test('quarterly and annual bill reserve excludes monthly and one-time',
+        () async {
+      final annual = repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Aura',
+          amountCents: 12000,
+          dueDay: 1,
+          frequency: const Value(BillFrequency.annual),
+          dueMonth: const Value(3)));
+      final quarterly = repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Water',
+          amountCents: 9000,
+          dueDay: 1,
+          frequency: const Value(BillFrequency.quarterly),
+          dueMonth: const Value(1)));
+      await repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Rent',
+          amountCents: 145000,
+          dueDay: 1,
+          frequency: const Value(BillFrequency.monthly)));
+      await repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Deposit',
+          amountCents: 50000,
+          dueDay: 1,
+          frequency: const Value(BillFrequency.oneTime),
+          dueMonth: const Value(9),
+          dueYear: const Value(2026)));
+      await annual;
+      await quarterly;
+
+      final reserve = await repo
+          .watchReserveForIrregularBillsCents(profileId: profileId)
+          .first;
+      // 12000/12 = 1000, 9000/3 = 3000. Monthly and one-time excluded.
+      expect(reserve, 1000 + 3000);
+    });
+
+    test('bills due this month only counts bills that actually fall in it',
+        () async {
+      await repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Aura',
+          amountCents: 12000,
+          dueDay: 1,
+          frequency: const Value(BillFrequency.annual),
+          dueMonth: const Value(3)));
+      await repo.upsertBill(BillsCompanion.insert(
+          profileId: profileId,
+          name: 'Rent',
+          amountCents: 145000,
+          dueDay: 1,
+          frequency: const Value(BillFrequency.monthly)));
+
+      final march = await repo
+          .watchBillsDueThisMonthCents(
+              profileId: profileId, month: DateTime(2026, 3))
+          .first;
+      final april = await repo
+          .watchBillsDueThisMonthCents(
+              profileId: profileId, month: DateTime(2026, 4))
+          .first;
+
+      expect(march, 12000 + 145000,
+          reason: 'the annual bill actually charges in March');
+      expect(april, 145000,
+          reason: 'the annual bill does not charge again in April');
     });
   });
 

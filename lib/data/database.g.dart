@@ -847,6 +847,18 @@ class $CreditCardsTable extends CreditCards
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _annualFeeDateMeta = const VerificationMeta(
+    'annualFeeDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> annualFeeDate =
+      GeneratedColumn<DateTime>(
+        'annual_fee_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -859,6 +871,7 @@ class $CreditCardsTable extends CreditCards
     monthlyFeeCents,
     statementDay,
     paymentDueDay,
+    annualFeeDate,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -953,6 +966,15 @@ class $CreditCardsTable extends CreditCards
         ),
       );
     }
+    if (data.containsKey('annual_fee_date')) {
+      context.handle(
+        _annualFeeDateMeta,
+        annualFeeDate.isAcceptableOrUnknown(
+          data['annual_fee_date']!,
+          _annualFeeDateMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1002,6 +1024,10 @@ class $CreditCardsTable extends CreditCards
         DriftSqlType.int,
         data['${effectivePrefix}payment_due_day'],
       ),
+      annualFeeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}annual_fee_date'],
+      ),
     );
   }
 
@@ -1026,6 +1052,11 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
 
   /// Day of month the payment is due, typically ~21-25 days after closing.
   final int? paymentDueDay;
+
+  /// When the annual fee next hits. The amount is [annualFeeCents], which
+  /// already feeds the budget set-aside — a second amount field here could
+  /// disagree with it.
+  final DateTime? annualFeeDate;
   const CreditCard({
     required this.id,
     required this.profileId,
@@ -1037,6 +1068,7 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     required this.monthlyFeeCents,
     this.statementDay,
     this.paymentDueDay,
+    this.annualFeeDate,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1054,6 +1086,9 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     }
     if (!nullToAbsent || paymentDueDay != null) {
       map['payment_due_day'] = Variable<int>(paymentDueDay);
+    }
+    if (!nullToAbsent || annualFeeDate != null) {
+      map['annual_fee_date'] = Variable<DateTime>(annualFeeDate);
     }
     return map;
   }
@@ -1074,6 +1109,9 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       paymentDueDay: paymentDueDay == null && nullToAbsent
           ? const Value.absent()
           : Value(paymentDueDay),
+      annualFeeDate: annualFeeDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(annualFeeDate),
     );
   }
 
@@ -1093,6 +1131,7 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       monthlyFeeCents: serializer.fromJson<int>(json['monthlyFeeCents']),
       statementDay: serializer.fromJson<int?>(json['statementDay']),
       paymentDueDay: serializer.fromJson<int?>(json['paymentDueDay']),
+      annualFeeDate: serializer.fromJson<DateTime?>(json['annualFeeDate']),
     );
   }
   @override
@@ -1109,6 +1148,7 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       'monthlyFeeCents': serializer.toJson<int>(monthlyFeeCents),
       'statementDay': serializer.toJson<int?>(statementDay),
       'paymentDueDay': serializer.toJson<int?>(paymentDueDay),
+      'annualFeeDate': serializer.toJson<DateTime?>(annualFeeDate),
     };
   }
 
@@ -1123,6 +1163,7 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     int? monthlyFeeCents,
     Value<int?> statementDay = const Value.absent(),
     Value<int?> paymentDueDay = const Value.absent(),
+    Value<DateTime?> annualFeeDate = const Value.absent(),
   }) => CreditCard(
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
@@ -1136,6 +1177,9 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     paymentDueDay: paymentDueDay.present
         ? paymentDueDay.value
         : this.paymentDueDay,
+    annualFeeDate: annualFeeDate.present
+        ? annualFeeDate.value
+        : this.annualFeeDate,
   );
   CreditCard copyWithCompanion(CreditCardsCompanion data) {
     return CreditCard(
@@ -1161,6 +1205,9 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
       paymentDueDay: data.paymentDueDay.present
           ? data.paymentDueDay.value
           : this.paymentDueDay,
+      annualFeeDate: data.annualFeeDate.present
+          ? data.annualFeeDate.value
+          : this.annualFeeDate,
     );
   }
 
@@ -1176,7 +1223,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
           ..write('annualFeeCents: $annualFeeCents, ')
           ..write('monthlyFeeCents: $monthlyFeeCents, ')
           ..write('statementDay: $statementDay, ')
-          ..write('paymentDueDay: $paymentDueDay')
+          ..write('paymentDueDay: $paymentDueDay, ')
+          ..write('annualFeeDate: $annualFeeDate')
           ..write(')'))
         .toString();
   }
@@ -1193,6 +1241,7 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
     monthlyFeeCents,
     statementDay,
     paymentDueDay,
+    annualFeeDate,
   );
   @override
   bool operator ==(Object other) =>
@@ -1207,7 +1256,8 @@ class CreditCard extends DataClass implements Insertable<CreditCard> {
           other.annualFeeCents == this.annualFeeCents &&
           other.monthlyFeeCents == this.monthlyFeeCents &&
           other.statementDay == this.statementDay &&
-          other.paymentDueDay == this.paymentDueDay);
+          other.paymentDueDay == this.paymentDueDay &&
+          other.annualFeeDate == this.annualFeeDate);
 }
 
 class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
@@ -1221,6 +1271,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
   final Value<int> monthlyFeeCents;
   final Value<int?> statementDay;
   final Value<int?> paymentDueDay;
+  final Value<DateTime?> annualFeeDate;
   const CreditCardsCompanion({
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
@@ -1232,6 +1283,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     this.monthlyFeeCents = const Value.absent(),
     this.statementDay = const Value.absent(),
     this.paymentDueDay = const Value.absent(),
+    this.annualFeeDate = const Value.absent(),
   });
   CreditCardsCompanion.insert({
     this.id = const Value.absent(),
@@ -1244,6 +1296,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     this.monthlyFeeCents = const Value.absent(),
     this.statementDay = const Value.absent(),
     this.paymentDueDay = const Value.absent(),
+    this.annualFeeDate = const Value.absent(),
   }) : profileId = Value(profileId),
        name = Value(name),
        creditLimitCents = Value(creditLimitCents);
@@ -1258,6 +1311,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     Expression<int>? monthlyFeeCents,
     Expression<int>? statementDay,
     Expression<int>? paymentDueDay,
+    Expression<DateTime>? annualFeeDate,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1270,6 +1324,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
       if (monthlyFeeCents != null) 'monthly_fee_cents': monthlyFeeCents,
       if (statementDay != null) 'statement_day': statementDay,
       if (paymentDueDay != null) 'payment_due_day': paymentDueDay,
+      if (annualFeeDate != null) 'annual_fee_date': annualFeeDate,
     });
   }
 
@@ -1284,6 +1339,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     Value<int>? monthlyFeeCents,
     Value<int?>? statementDay,
     Value<int?>? paymentDueDay,
+    Value<DateTime?>? annualFeeDate,
   }) {
     return CreditCardsCompanion(
       id: id ?? this.id,
@@ -1296,6 +1352,7 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
       monthlyFeeCents: monthlyFeeCents ?? this.monthlyFeeCents,
       statementDay: statementDay ?? this.statementDay,
       paymentDueDay: paymentDueDay ?? this.paymentDueDay,
+      annualFeeDate: annualFeeDate ?? this.annualFeeDate,
     );
   }
 
@@ -1332,6 +1389,9 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
     if (paymentDueDay.present) {
       map['payment_due_day'] = Variable<int>(paymentDueDay.value);
     }
+    if (annualFeeDate.present) {
+      map['annual_fee_date'] = Variable<DateTime>(annualFeeDate.value);
+    }
     return map;
   }
 
@@ -1347,7 +1407,8 @@ class CreditCardsCompanion extends UpdateCompanion<CreditCard> {
           ..write('annualFeeCents: $annualFeeCents, ')
           ..write('monthlyFeeCents: $monthlyFeeCents, ')
           ..write('statementDay: $statementDay, ')
-          ..write('paymentDueDay: $paymentDueDay')
+          ..write('paymentDueDay: $paymentDueDay, ')
+          ..write('annualFeeDate: $annualFeeDate')
           ..write(')'))
         .toString();
   }
@@ -5814,6 +5875,1376 @@ class CategoryRulesCompanion extends UpdateCompanion<CategoryRule> {
   }
 }
 
+class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<PaymentAccountType, String>
+  accountType = GeneratedColumn<String>(
+    'account_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<PaymentAccountType>($PaymentsTable.$converteraccountType);
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    accountType,
+    accountId,
+    amountCents,
+    date,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Payment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Payment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Payment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      accountType: $PaymentsTable.$converteraccountType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}account_type'],
+        )!,
+      ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+    );
+  }
+
+  @override
+  $PaymentsTable createAlias(String alias) {
+    return $PaymentsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<PaymentAccountType, String, String>
+  $converteraccountType = const EnumNameConverter<PaymentAccountType>(
+    PaymentAccountType.values,
+  );
+}
+
+class Payment extends DataClass implements Insertable<Payment> {
+  final int id;
+  final int profileId;
+  final PaymentAccountType accountType;
+
+  /// Row id in CreditCards or Loans, depending on [accountType]. Not a
+  /// foreign key because it points at one of two tables; cleanup is handled
+  /// when a card or loan is deleted.
+  final int accountId;
+  final int amountCents;
+  final DateTime date;
+  final String? note;
+  const Payment({
+    required this.id,
+    required this.profileId,
+    required this.accountType,
+    required this.accountId,
+    required this.amountCents,
+    required this.date,
+    this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    {
+      map['account_type'] = Variable<String>(
+        $PaymentsTable.$converteraccountType.toSql(accountType),
+      );
+    }
+    map['account_id'] = Variable<int>(accountId);
+    map['amount_cents'] = Variable<int>(amountCents);
+    map['date'] = Variable<DateTime>(date);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  PaymentsCompanion toCompanion(bool nullToAbsent) {
+    return PaymentsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      accountType: Value(accountType),
+      accountId: Value(accountId),
+      amountCents: Value(amountCents),
+      date: Value(date),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory Payment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Payment(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      accountType: $PaymentsTable.$converteraccountType.fromJson(
+        serializer.fromJson<String>(json['accountType']),
+      ),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'accountType': serializer.toJson<String>(
+        $PaymentsTable.$converteraccountType.toJson(accountType),
+      ),
+      'accountId': serializer.toJson<int>(accountId),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'date': serializer.toJson<DateTime>(date),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  Payment copyWith({
+    int? id,
+    int? profileId,
+    PaymentAccountType? accountType,
+    int? accountId,
+    int? amountCents,
+    DateTime? date,
+    Value<String?> note = const Value.absent(),
+  }) => Payment(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    accountType: accountType ?? this.accountType,
+    accountId: accountId ?? this.accountId,
+    amountCents: amountCents ?? this.amountCents,
+    date: date ?? this.date,
+    note: note.present ? note.value : this.note,
+  );
+  Payment copyWithCompanion(PaymentsCompanion data) {
+    return Payment(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      accountType: data.accountType.present
+          ? data.accountType.value
+          : this.accountType,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
+      date: data.date.present ? data.date.value : this.date,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Payment(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('accountType: $accountType, ')
+          ..write('accountId: $accountId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('date: $date, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    accountType,
+    accountId,
+    amountCents,
+    date,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Payment &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.accountType == this.accountType &&
+          other.accountId == this.accountId &&
+          other.amountCents == this.amountCents &&
+          other.date == this.date &&
+          other.note == this.note);
+}
+
+class PaymentsCompanion extends UpdateCompanion<Payment> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<PaymentAccountType> accountType;
+  final Value<int> accountId;
+  final Value<int> amountCents;
+  final Value<DateTime> date;
+  final Value<String?> note;
+  const PaymentsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.accountType = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.date = const Value.absent(),
+    this.note = const Value.absent(),
+  });
+  PaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required PaymentAccountType accountType,
+    required int accountId,
+    required int amountCents,
+    required DateTime date,
+    this.note = const Value.absent(),
+  }) : profileId = Value(profileId),
+       accountType = Value(accountType),
+       accountId = Value(accountId),
+       amountCents = Value(amountCents),
+       date = Value(date);
+  static Insertable<Payment> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? accountType,
+    Expression<int>? accountId,
+    Expression<int>? amountCents,
+    Expression<DateTime>? date,
+    Expression<String>? note,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (accountType != null) 'account_type': accountType,
+      if (accountId != null) 'account_id': accountId,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (date != null) 'date': date,
+      if (note != null) 'note': note,
+    });
+  }
+
+  PaymentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<PaymentAccountType>? accountType,
+    Value<int>? accountId,
+    Value<int>? amountCents,
+    Value<DateTime>? date,
+    Value<String?>? note,
+  }) {
+    return PaymentsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      accountType: accountType ?? this.accountType,
+      accountId: accountId ?? this.accountId,
+      amountCents: amountCents ?? this.amountCents,
+      date: date ?? this.date,
+      note: note ?? this.note,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (accountType.present) {
+      map['account_type'] = Variable<String>(
+        $PaymentsTable.$converteraccountType.toSql(accountType.value),
+      );
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('accountType: $accountType, ')
+          ..write('accountId: $accountId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('date: $date, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $NetWorthSnapshotsTable extends NetWorthSnapshots
+    with TableInfo<$NetWorthSnapshotsTable, NetWorthSnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NetWorthSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalAssetsCentsMeta = const VerificationMeta(
+    'totalAssetsCents',
+  );
+  @override
+  late final GeneratedColumn<int> totalAssetsCents = GeneratedColumn<int>(
+    'total_assets_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalDebtCentsMeta = const VerificationMeta(
+    'totalDebtCents',
+  );
+  @override
+  late final GeneratedColumn<int> totalDebtCents = GeneratedColumn<int>(
+    'total_debt_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _netWorthCentsMeta = const VerificationMeta(
+    'netWorthCents',
+  );
+  @override
+  late final GeneratedColumn<int> netWorthCents = GeneratedColumn<int>(
+    'net_worth_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    date,
+    totalAssetsCents,
+    totalDebtCents,
+    netWorthCents,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'net_worth_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NetWorthSnapshot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('total_assets_cents')) {
+      context.handle(
+        _totalAssetsCentsMeta,
+        totalAssetsCents.isAcceptableOrUnknown(
+          data['total_assets_cents']!,
+          _totalAssetsCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalAssetsCentsMeta);
+    }
+    if (data.containsKey('total_debt_cents')) {
+      context.handle(
+        _totalDebtCentsMeta,
+        totalDebtCents.isAcceptableOrUnknown(
+          data['total_debt_cents']!,
+          _totalDebtCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalDebtCentsMeta);
+    }
+    if (data.containsKey('net_worth_cents')) {
+      context.handle(
+        _netWorthCentsMeta,
+        netWorthCents.isAcceptableOrUnknown(
+          data['net_worth_cents']!,
+          _netWorthCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_netWorthCentsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {profileId, date},
+  ];
+  @override
+  NetWorthSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NetWorthSnapshot(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      totalAssetsCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_assets_cents'],
+      )!,
+      totalDebtCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_debt_cents'],
+      )!,
+      netWorthCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}net_worth_cents'],
+      )!,
+    );
+  }
+
+  @override
+  $NetWorthSnapshotsTable createAlias(String alias) {
+    return $NetWorthSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class NetWorthSnapshot extends DataClass
+    implements Insertable<NetWorthSnapshot> {
+  final int id;
+  final int profileId;
+
+  /// Midnight of the day being recorded — one snapshot per profile per day.
+  final DateTime date;
+  final int totalAssetsCents;
+  final int totalDebtCents;
+  final int netWorthCents;
+  const NetWorthSnapshot({
+    required this.id,
+    required this.profileId,
+    required this.date,
+    required this.totalAssetsCents,
+    required this.totalDebtCents,
+    required this.netWorthCents,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['date'] = Variable<DateTime>(date);
+    map['total_assets_cents'] = Variable<int>(totalAssetsCents);
+    map['total_debt_cents'] = Variable<int>(totalDebtCents);
+    map['net_worth_cents'] = Variable<int>(netWorthCents);
+    return map;
+  }
+
+  NetWorthSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return NetWorthSnapshotsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      date: Value(date),
+      totalAssetsCents: Value(totalAssetsCents),
+      totalDebtCents: Value(totalDebtCents),
+      netWorthCents: Value(netWorthCents),
+    );
+  }
+
+  factory NetWorthSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NetWorthSnapshot(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      totalAssetsCents: serializer.fromJson<int>(json['totalAssetsCents']),
+      totalDebtCents: serializer.fromJson<int>(json['totalDebtCents']),
+      netWorthCents: serializer.fromJson<int>(json['netWorthCents']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'date': serializer.toJson<DateTime>(date),
+      'totalAssetsCents': serializer.toJson<int>(totalAssetsCents),
+      'totalDebtCents': serializer.toJson<int>(totalDebtCents),
+      'netWorthCents': serializer.toJson<int>(netWorthCents),
+    };
+  }
+
+  NetWorthSnapshot copyWith({
+    int? id,
+    int? profileId,
+    DateTime? date,
+    int? totalAssetsCents,
+    int? totalDebtCents,
+    int? netWorthCents,
+  }) => NetWorthSnapshot(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    date: date ?? this.date,
+    totalAssetsCents: totalAssetsCents ?? this.totalAssetsCents,
+    totalDebtCents: totalDebtCents ?? this.totalDebtCents,
+    netWorthCents: netWorthCents ?? this.netWorthCents,
+  );
+  NetWorthSnapshot copyWithCompanion(NetWorthSnapshotsCompanion data) {
+    return NetWorthSnapshot(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      date: data.date.present ? data.date.value : this.date,
+      totalAssetsCents: data.totalAssetsCents.present
+          ? data.totalAssetsCents.value
+          : this.totalAssetsCents,
+      totalDebtCents: data.totalDebtCents.present
+          ? data.totalDebtCents.value
+          : this.totalDebtCents,
+      netWorthCents: data.netWorthCents.present
+          ? data.netWorthCents.value
+          : this.netWorthCents,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NetWorthSnapshot(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('date: $date, ')
+          ..write('totalAssetsCents: $totalAssetsCents, ')
+          ..write('totalDebtCents: $totalDebtCents, ')
+          ..write('netWorthCents: $netWorthCents')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    date,
+    totalAssetsCents,
+    totalDebtCents,
+    netWorthCents,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NetWorthSnapshot &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.date == this.date &&
+          other.totalAssetsCents == this.totalAssetsCents &&
+          other.totalDebtCents == this.totalDebtCents &&
+          other.netWorthCents == this.netWorthCents);
+}
+
+class NetWorthSnapshotsCompanion extends UpdateCompanion<NetWorthSnapshot> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<DateTime> date;
+  final Value<int> totalAssetsCents;
+  final Value<int> totalDebtCents;
+  final Value<int> netWorthCents;
+  const NetWorthSnapshotsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.totalAssetsCents = const Value.absent(),
+    this.totalDebtCents = const Value.absent(),
+    this.netWorthCents = const Value.absent(),
+  });
+  NetWorthSnapshotsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required DateTime date,
+    required int totalAssetsCents,
+    required int totalDebtCents,
+    required int netWorthCents,
+  }) : profileId = Value(profileId),
+       date = Value(date),
+       totalAssetsCents = Value(totalAssetsCents),
+       totalDebtCents = Value(totalDebtCents),
+       netWorthCents = Value(netWorthCents);
+  static Insertable<NetWorthSnapshot> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<DateTime>? date,
+    Expression<int>? totalAssetsCents,
+    Expression<int>? totalDebtCents,
+    Expression<int>? netWorthCents,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (date != null) 'date': date,
+      if (totalAssetsCents != null) 'total_assets_cents': totalAssetsCents,
+      if (totalDebtCents != null) 'total_debt_cents': totalDebtCents,
+      if (netWorthCents != null) 'net_worth_cents': netWorthCents,
+    });
+  }
+
+  NetWorthSnapshotsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<DateTime>? date,
+    Value<int>? totalAssetsCents,
+    Value<int>? totalDebtCents,
+    Value<int>? netWorthCents,
+  }) {
+    return NetWorthSnapshotsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      date: date ?? this.date,
+      totalAssetsCents: totalAssetsCents ?? this.totalAssetsCents,
+      totalDebtCents: totalDebtCents ?? this.totalDebtCents,
+      netWorthCents: netWorthCents ?? this.netWorthCents,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (totalAssetsCents.present) {
+      map['total_assets_cents'] = Variable<int>(totalAssetsCents.value);
+    }
+    if (totalDebtCents.present) {
+      map['total_debt_cents'] = Variable<int>(totalDebtCents.value);
+    }
+    if (netWorthCents.present) {
+      map['net_worth_cents'] = Variable<int>(netWorthCents.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NetWorthSnapshotsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('date: $date, ')
+          ..write('totalAssetsCents: $totalAssetsCents, ')
+          ..write('totalDebtCents: $totalDebtCents, ')
+          ..write('netWorthCents: $netWorthCents')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<GoalType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<GoalType>($GoalsTable.$convertertype);
+  static const VerificationMeta _targetAmountCentsMeta = const VerificationMeta(
+    'targetAmountCents',
+  );
+  @override
+  late final GeneratedColumn<int> targetAmountCents = GeneratedColumn<int>(
+    'target_amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currentAmountCentsMeta =
+      const VerificationMeta('currentAmountCents');
+  @override
+  late final GeneratedColumn<int> currentAmountCents = GeneratedColumn<int>(
+    'current_amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _targetDateMeta = const VerificationMeta(
+    'targetDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> targetDate = GeneratedColumn<DateTime>(
+    'target_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    name,
+    type,
+    targetAmountCents,
+    currentAmountCents,
+    targetDate,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'goals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Goal> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('target_amount_cents')) {
+      context.handle(
+        _targetAmountCentsMeta,
+        targetAmountCents.isAcceptableOrUnknown(
+          data['target_amount_cents']!,
+          _targetAmountCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetAmountCentsMeta);
+    }
+    if (data.containsKey('current_amount_cents')) {
+      context.handle(
+        _currentAmountCentsMeta,
+        currentAmountCents.isAcceptableOrUnknown(
+          data['current_amount_cents']!,
+          _currentAmountCentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_date')) {
+      context.handle(
+        _targetDateMeta,
+        targetDate.isAcceptableOrUnknown(data['target_date']!, _targetDateMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Goal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Goal(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      type: $GoalsTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      targetAmountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_amount_cents'],
+      )!,
+      currentAmountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_amount_cents'],
+      )!,
+      targetDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}target_date'],
+      ),
+    );
+  }
+
+  @override
+  $GoalsTable createAlias(String alias) {
+    return $GoalsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<GoalType, String, String> $convertertype =
+      const EnumNameConverter<GoalType>(GoalType.values);
+}
+
+class Goal extends DataClass implements Insertable<Goal> {
+  final int id;
+  final int profileId;
+  final String name;
+  final GoalType type;
+  final int targetAmountCents;
+  final int currentAmountCents;
+  final DateTime? targetDate;
+  const Goal({
+    required this.id,
+    required this.profileId,
+    required this.name,
+    required this.type,
+    required this.targetAmountCents,
+    required this.currentAmountCents,
+    this.targetDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['name'] = Variable<String>(name);
+    {
+      map['type'] = Variable<String>($GoalsTable.$convertertype.toSql(type));
+    }
+    map['target_amount_cents'] = Variable<int>(targetAmountCents);
+    map['current_amount_cents'] = Variable<int>(currentAmountCents);
+    if (!nullToAbsent || targetDate != null) {
+      map['target_date'] = Variable<DateTime>(targetDate);
+    }
+    return map;
+  }
+
+  GoalsCompanion toCompanion(bool nullToAbsent) {
+    return GoalsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      name: Value(name),
+      type: Value(type),
+      targetAmountCents: Value(targetAmountCents),
+      currentAmountCents: Value(currentAmountCents),
+      targetDate: targetDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetDate),
+    );
+  }
+
+  factory Goal.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Goal(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      name: serializer.fromJson<String>(json['name']),
+      type: $GoalsTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      targetAmountCents: serializer.fromJson<int>(json['targetAmountCents']),
+      currentAmountCents: serializer.fromJson<int>(json['currentAmountCents']),
+      targetDate: serializer.fromJson<DateTime?>(json['targetDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'name': serializer.toJson<String>(name),
+      'type': serializer.toJson<String>(
+        $GoalsTable.$convertertype.toJson(type),
+      ),
+      'targetAmountCents': serializer.toJson<int>(targetAmountCents),
+      'currentAmountCents': serializer.toJson<int>(currentAmountCents),
+      'targetDate': serializer.toJson<DateTime?>(targetDate),
+    };
+  }
+
+  Goal copyWith({
+    int? id,
+    int? profileId,
+    String? name,
+    GoalType? type,
+    int? targetAmountCents,
+    int? currentAmountCents,
+    Value<DateTime?> targetDate = const Value.absent(),
+  }) => Goal(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    name: name ?? this.name,
+    type: type ?? this.type,
+    targetAmountCents: targetAmountCents ?? this.targetAmountCents,
+    currentAmountCents: currentAmountCents ?? this.currentAmountCents,
+    targetDate: targetDate.present ? targetDate.value : this.targetDate,
+  );
+  Goal copyWithCompanion(GoalsCompanion data) {
+    return Goal(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      name: data.name.present ? data.name.value : this.name,
+      type: data.type.present ? data.type.value : this.type,
+      targetAmountCents: data.targetAmountCents.present
+          ? data.targetAmountCents.value
+          : this.targetAmountCents,
+      currentAmountCents: data.currentAmountCents.present
+          ? data.currentAmountCents.value
+          : this.currentAmountCents,
+      targetDate: data.targetDate.present
+          ? data.targetDate.value
+          : this.targetDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Goal(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('name: $name, ')
+          ..write('type: $type, ')
+          ..write('targetAmountCents: $targetAmountCents, ')
+          ..write('currentAmountCents: $currentAmountCents, ')
+          ..write('targetDate: $targetDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    name,
+    type,
+    targetAmountCents,
+    currentAmountCents,
+    targetDate,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Goal &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.name == this.name &&
+          other.type == this.type &&
+          other.targetAmountCents == this.targetAmountCents &&
+          other.currentAmountCents == this.currentAmountCents &&
+          other.targetDate == this.targetDate);
+}
+
+class GoalsCompanion extends UpdateCompanion<Goal> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<String> name;
+  final Value<GoalType> type;
+  final Value<int> targetAmountCents;
+  final Value<int> currentAmountCents;
+  final Value<DateTime?> targetDate;
+  const GoalsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.type = const Value.absent(),
+    this.targetAmountCents = const Value.absent(),
+    this.currentAmountCents = const Value.absent(),
+    this.targetDate = const Value.absent(),
+  });
+  GoalsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required String name,
+    required GoalType type,
+    required int targetAmountCents,
+    this.currentAmountCents = const Value.absent(),
+    this.targetDate = const Value.absent(),
+  }) : profileId = Value(profileId),
+       name = Value(name),
+       type = Value(type),
+       targetAmountCents = Value(targetAmountCents);
+  static Insertable<Goal> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? name,
+    Expression<String>? type,
+    Expression<int>? targetAmountCents,
+    Expression<int>? currentAmountCents,
+    Expression<DateTime>? targetDate,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (name != null) 'name': name,
+      if (type != null) 'type': type,
+      if (targetAmountCents != null) 'target_amount_cents': targetAmountCents,
+      if (currentAmountCents != null)
+        'current_amount_cents': currentAmountCents,
+      if (targetDate != null) 'target_date': targetDate,
+    });
+  }
+
+  GoalsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<String>? name,
+    Value<GoalType>? type,
+    Value<int>? targetAmountCents,
+    Value<int>? currentAmountCents,
+    Value<DateTime?>? targetDate,
+  }) {
+    return GoalsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      targetAmountCents: targetAmountCents ?? this.targetAmountCents,
+      currentAmountCents: currentAmountCents ?? this.currentAmountCents,
+      targetDate: targetDate ?? this.targetDate,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $GoalsTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (targetAmountCents.present) {
+      map['target_amount_cents'] = Variable<int>(targetAmountCents.value);
+    }
+    if (currentAmountCents.present) {
+      map['current_amount_cents'] = Variable<int>(currentAmountCents.value);
+    }
+    if (targetDate.present) {
+      map['target_date'] = Variable<DateTime>(targetDate.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('name: $name, ')
+          ..write('type: $type, ')
+          ..write('targetAmountCents: $targetAmountCents, ')
+          ..write('currentAmountCents: $currentAmountCents, ')
+          ..write('targetDate: $targetDate')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PaycheckAllocationsTable extends PaycheckAllocations
     with TableInfo<$PaycheckAllocationsTable, PaycheckAllocation> {
   @override
@@ -6249,6 +7680,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BudgetEntriesTable budgetEntries = $BudgetEntriesTable(this);
   late final $BudgetTargetsTable budgetTargets = $BudgetTargetsTable(this);
   late final $CategoryRulesTable categoryRules = $CategoryRulesTable(this);
+  late final $PaymentsTable payments = $PaymentsTable(this);
+  late final $NetWorthSnapshotsTable netWorthSnapshots =
+      $NetWorthSnapshotsTable(this);
+  late final $GoalsTable goals = $GoalsTable(this);
   late final $PaycheckAllocationsTable paycheckAllocations =
       $PaycheckAllocationsTable(this);
   @override
@@ -6268,6 +7703,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     budgetEntries,
     budgetTargets,
     categoryRules,
+    payments,
+    netWorthSnapshots,
+    goals,
     paycheckAllocations,
   ];
   @override
@@ -6526,6 +7964,65 @@ final class $$ProfilesTableReferences
     ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_categoryRulesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PaymentsTable, List<Payment>> _paymentsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.payments,
+    aliasName: 'profiles__id__payments__profile_id',
+  );
+
+  $$PaymentsTableProcessedTableManager get paymentsRefs {
+    final manager = $$PaymentsTableTableManager(
+      $_db,
+      $_db.payments,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_paymentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$NetWorthSnapshotsTable, List<NetWorthSnapshot>>
+  _netWorthSnapshotsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.netWorthSnapshots,
+        aliasName: 'profiles__id__net_worth_snapshots__profile_id',
+      );
+
+  $$NetWorthSnapshotsTableProcessedTableManager get netWorthSnapshotsRefs {
+    final manager = $$NetWorthSnapshotsTableTableManager(
+      $_db,
+      $_db.netWorthSnapshots,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _netWorthSnapshotsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$GoalsTable, List<Goal>> _goalsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.goals,
+    aliasName: 'profiles__id__goals__profile_id',
+  );
+
+  $$GoalsTableProcessedTableManager get goalsRefs {
+    final manager = $$GoalsTableTableManager(
+      $_db,
+      $_db.goals,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_goalsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6851,6 +8348,81 @@ class $$ProfilesTableFilterComposer
           }) => $$CategoryRulesTableFilterComposer(
             $db: $db,
             $table: $db.categoryRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> paymentsRefs(
+    Expression<bool> Function($$PaymentsTableFilterComposer f) f,
+  ) {
+    final $$PaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.payments,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.payments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> netWorthSnapshotsRefs(
+    Expression<bool> Function($$NetWorthSnapshotsTableFilterComposer f) f,
+  ) {
+    final $$NetWorthSnapshotsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.netWorthSnapshots,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NetWorthSnapshotsTableFilterComposer(
+            $db: $db,
+            $table: $db.netWorthSnapshots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> goalsRefs(
+    Expression<bool> Function($$GoalsTableFilterComposer f) f,
+  ) {
+    final $$GoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.goals,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.goals,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7214,6 +8786,82 @@ class $$ProfilesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> paymentsRefs<T extends Object>(
+    Expression<T> Function($$PaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$PaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.payments,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.payments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> netWorthSnapshotsRefs<T extends Object>(
+    Expression<T> Function($$NetWorthSnapshotsTableAnnotationComposer a) f,
+  ) {
+    final $$NetWorthSnapshotsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.netWorthSnapshots,
+          getReferencedColumn: (t) => t.profileId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$NetWorthSnapshotsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.netWorthSnapshots,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> goalsRefs<T extends Object>(
+    Expression<T> Function($$GoalsTableAnnotationComposer a) f,
+  ) {
+    final $$GoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.goals,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.goals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> paycheckAllocationsRefs<T extends Object>(
     Expression<T> Function($$PaycheckAllocationsTableAnnotationComposer a) f,
   ) {
@@ -7266,6 +8914,9 @@ class $$ProfilesTableTableManager
             bool budgetEntriesRefs,
             bool budgetTargetsRefs,
             bool categoryRulesRefs,
+            bool paymentsRefs,
+            bool netWorthSnapshotsRefs,
+            bool goalsRefs,
             bool paycheckAllocationsRefs,
           })
         > {
@@ -7325,6 +8976,9 @@ class $$ProfilesTableTableManager
                 budgetEntriesRefs = false,
                 budgetTargetsRefs = false,
                 categoryRulesRefs = false,
+                paymentsRefs = false,
+                netWorthSnapshotsRefs = false,
+                goalsRefs = false,
                 paycheckAllocationsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -7341,6 +8995,9 @@ class $$ProfilesTableTableManager
                     if (budgetEntriesRefs) db.budgetEntries,
                     if (budgetTargetsRefs) db.budgetTargets,
                     if (categoryRulesRefs) db.categoryRules,
+                    if (paymentsRefs) db.payments,
+                    if (netWorthSnapshotsRefs) db.netWorthSnapshots,
+                    if (goalsRefs) db.goals,
                     if (paycheckAllocationsRefs) db.paycheckAllocations,
                   ],
                   addJoins: null,
@@ -7577,6 +9234,69 @@ class $$ProfilesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (paymentsRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          Payment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._paymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (netWorthSnapshotsRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          NetWorthSnapshot
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._netWorthSnapshotsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).netWorthSnapshotsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (goalsRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          Goal
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._goalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).goalsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (paycheckAllocationsRefs)
                         await $_getPrefetchedData<
                           Profile,
@@ -7630,6 +9350,9 @@ typedef $$ProfilesTableProcessedTableManager =
         bool budgetEntriesRefs,
         bool budgetTargetsRefs,
         bool categoryRulesRefs,
+        bool paymentsRefs,
+        bool netWorthSnapshotsRefs,
+        bool goalsRefs,
         bool paycheckAllocationsRefs,
       })
     >;
@@ -8069,6 +9792,7 @@ typedef $$CreditCardsTableCreateCompanionBuilder =
       Value<int> monthlyFeeCents,
       Value<int?> statementDay,
       Value<int?> paymentDueDay,
+      Value<DateTime?> annualFeeDate,
     });
 typedef $$CreditCardsTableUpdateCompanionBuilder =
     CreditCardsCompanion Function({
@@ -8082,6 +9806,7 @@ typedef $$CreditCardsTableUpdateCompanionBuilder =
       Value<int> monthlyFeeCents,
       Value<int?> statementDay,
       Value<int?> paymentDueDay,
+      Value<DateTime?> annualFeeDate,
     });
 
 final class $$CreditCardsTableReferences
@@ -8157,6 +9882,11 @@ class $$CreditCardsTableFilterComposer
 
   ColumnFilters<int> get paymentDueDay => $composableBuilder(
     column: $table.paymentDueDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get annualFeeDate => $composableBuilder(
+    column: $table.annualFeeDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8238,6 +9968,11 @@ class $$CreditCardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get annualFeeDate => $composableBuilder(
+    column: $table.annualFeeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProfilesTableOrderingComposer get profileId {
     final $$ProfilesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8310,6 +10045,11 @@ class $$CreditCardsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<DateTime> get annualFeeDate => $composableBuilder(
+    column: $table.annualFeeDate,
+    builder: (column) => column,
+  );
+
   $$ProfilesTableAnnotationComposer get profileId {
     final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -8372,6 +10112,7 @@ class $$CreditCardsTableTableManager
                 Value<int> monthlyFeeCents = const Value.absent(),
                 Value<int?> statementDay = const Value.absent(),
                 Value<int?> paymentDueDay = const Value.absent(),
+                Value<DateTime?> annualFeeDate = const Value.absent(),
               }) => CreditCardsCompanion(
                 id: id,
                 profileId: profileId,
@@ -8383,6 +10124,7 @@ class $$CreditCardsTableTableManager
                 monthlyFeeCents: monthlyFeeCents,
                 statementDay: statementDay,
                 paymentDueDay: paymentDueDay,
+                annualFeeDate: annualFeeDate,
               ),
           createCompanionCallback:
               ({
@@ -8396,6 +10138,7 @@ class $$CreditCardsTableTableManager
                 Value<int> monthlyFeeCents = const Value.absent(),
                 Value<int?> statementDay = const Value.absent(),
                 Value<int?> paymentDueDay = const Value.absent(),
+                Value<DateTime?> annualFeeDate = const Value.absent(),
               }) => CreditCardsCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -8407,6 +10150,7 @@ class $$CreditCardsTableTableManager
                 monthlyFeeCents: monthlyFeeCents,
                 statementDay: statementDay,
                 paymentDueDay: paymentDueDay,
+                annualFeeDate: annualFeeDate,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -12778,6 +14522,1055 @@ typedef $$CategoryRulesTableProcessedTableManager =
       CategoryRule,
       PrefetchHooks Function({bool profileId})
     >;
+typedef $$PaymentsTableCreateCompanionBuilder = PaymentsCompanion Function({
+  Value<int> id,
+  required int profileId,
+  required PaymentAccountType accountType,
+  required int accountId,
+  required int amountCents,
+  required DateTime date,
+  Value<String?> note,
+});
+typedef $$PaymentsTableUpdateCompanionBuilder = PaymentsCompanion Function({
+  Value<int> id,
+  Value<int> profileId,
+  Value<PaymentAccountType> accountType,
+  Value<int> accountId,
+  Value<int> amountCents,
+  Value<DateTime> date,
+  Value<String?> note,
+});
+
+final class $$PaymentsTableReferences
+    extends BaseReferences<_$AppDatabase, $PaymentsTable, Payment> {
+  $$PaymentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('payments__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentsTable> {
+  $$PaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<PaymentAccountType, PaymentAccountType, String>
+  get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentsTable> {
+  $$PaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentsTable> {
+  $$PaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PaymentAccountType, String>
+  get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentsTable,
+          Payment,
+          $$PaymentsTableFilterComposer,
+          $$PaymentsTableOrderingComposer,
+          $$PaymentsTableAnnotationComposer,
+          $$PaymentsTableCreateCompanionBuilder,
+          $$PaymentsTableUpdateCompanionBuilder,
+          (Payment, $$PaymentsTableReferences),
+          Payment,
+          PrefetchHooks Function({bool profileId})
+        > {
+  $$PaymentsTableTableManager(_$AppDatabase db, $PaymentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<PaymentAccountType> accountType = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => PaymentsCompanion(
+                id: id,
+                profileId: profileId,
+                accountType: accountType,
+                accountId: accountId,
+                amountCents: amountCents,
+                date: date,
+                note: note,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required PaymentAccountType accountType,
+                required int accountId,
+                required int amountCents,
+                required DateTime date,
+                Value<String?> note = const Value.absent(),
+              }) => PaymentsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                accountType: accountType,
+                accountId: accountId,
+                amountCents: amountCents,
+                date: date,
+                note: note,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PaymentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$PaymentsTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$PaymentsTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentsTable,
+      Payment,
+      $$PaymentsTableFilterComposer,
+      $$PaymentsTableOrderingComposer,
+      $$PaymentsTableAnnotationComposer,
+      $$PaymentsTableCreateCompanionBuilder,
+      $$PaymentsTableUpdateCompanionBuilder,
+      (Payment, $$PaymentsTableReferences),
+      Payment,
+      PrefetchHooks Function({bool profileId})
+    >;
+typedef $$NetWorthSnapshotsTableCreateCompanionBuilder =
+    NetWorthSnapshotsCompanion Function({
+      Value<int> id,
+      required int profileId,
+      required DateTime date,
+      required int totalAssetsCents,
+      required int totalDebtCents,
+      required int netWorthCents,
+    });
+typedef $$NetWorthSnapshotsTableUpdateCompanionBuilder =
+    NetWorthSnapshotsCompanion Function({
+      Value<int> id,
+      Value<int> profileId,
+      Value<DateTime> date,
+      Value<int> totalAssetsCents,
+      Value<int> totalDebtCents,
+      Value<int> netWorthCents,
+    });
+
+final class $$NetWorthSnapshotsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $NetWorthSnapshotsTable,
+          NetWorthSnapshot
+        > {
+  $$NetWorthSnapshotsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('net_worth_snapshots__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$NetWorthSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $NetWorthSnapshotsTable> {
+  $$NetWorthSnapshotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalAssetsCents => $composableBuilder(
+    column: $table.totalAssetsCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalDebtCents => $composableBuilder(
+    column: $table.totalDebtCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get netWorthCents => $composableBuilder(
+    column: $table.netWorthCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NetWorthSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $NetWorthSnapshotsTable> {
+  $$NetWorthSnapshotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalAssetsCents => $composableBuilder(
+    column: $table.totalAssetsCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalDebtCents => $composableBuilder(
+    column: $table.totalDebtCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get netWorthCents => $composableBuilder(
+    column: $table.netWorthCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NetWorthSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NetWorthSnapshotsTable> {
+  $$NetWorthSnapshotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get totalAssetsCents => $composableBuilder(
+    column: $table.totalAssetsCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalDebtCents => $composableBuilder(
+    column: $table.totalDebtCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get netWorthCents => $composableBuilder(
+    column: $table.netWorthCents,
+    builder: (column) => column,
+  );
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NetWorthSnapshotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NetWorthSnapshotsTable,
+          NetWorthSnapshot,
+          $$NetWorthSnapshotsTableFilterComposer,
+          $$NetWorthSnapshotsTableOrderingComposer,
+          $$NetWorthSnapshotsTableAnnotationComposer,
+          $$NetWorthSnapshotsTableCreateCompanionBuilder,
+          $$NetWorthSnapshotsTableUpdateCompanionBuilder,
+          (NetWorthSnapshot, $$NetWorthSnapshotsTableReferences),
+          NetWorthSnapshot,
+          PrefetchHooks Function({bool profileId})
+        > {
+  $$NetWorthSnapshotsTableTableManager(
+    _$AppDatabase db,
+    $NetWorthSnapshotsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NetWorthSnapshotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NetWorthSnapshotsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NetWorthSnapshotsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<int> totalAssetsCents = const Value.absent(),
+                Value<int> totalDebtCents = const Value.absent(),
+                Value<int> netWorthCents = const Value.absent(),
+              }) => NetWorthSnapshotsCompanion(
+                id: id,
+                profileId: profileId,
+                date: date,
+                totalAssetsCents: totalAssetsCents,
+                totalDebtCents: totalDebtCents,
+                netWorthCents: netWorthCents,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required DateTime date,
+                required int totalAssetsCents,
+                required int totalDebtCents,
+                required int netWorthCents,
+              }) => NetWorthSnapshotsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                date: date,
+                totalAssetsCents: totalAssetsCents,
+                totalDebtCents: totalDebtCents,
+                netWorthCents: netWorthCents,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$NetWorthSnapshotsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$NetWorthSnapshotsTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$NetWorthSnapshotsTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$NetWorthSnapshotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NetWorthSnapshotsTable,
+      NetWorthSnapshot,
+      $$NetWorthSnapshotsTableFilterComposer,
+      $$NetWorthSnapshotsTableOrderingComposer,
+      $$NetWorthSnapshotsTableAnnotationComposer,
+      $$NetWorthSnapshotsTableCreateCompanionBuilder,
+      $$NetWorthSnapshotsTableUpdateCompanionBuilder,
+      (NetWorthSnapshot, $$NetWorthSnapshotsTableReferences),
+      NetWorthSnapshot,
+      PrefetchHooks Function({bool profileId})
+    >;
+typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
+  Value<int> id,
+  required int profileId,
+  required String name,
+  required GoalType type,
+  required int targetAmountCents,
+  Value<int> currentAmountCents,
+  Value<DateTime?> targetDate,
+});
+typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
+  Value<int> id,
+  Value<int> profileId,
+  Value<String> name,
+  Value<GoalType> type,
+  Value<int> targetAmountCents,
+  Value<int> currentAmountCents,
+  Value<DateTime?> targetDate,
+});
+
+final class $$GoalsTableReferences
+    extends BaseReferences<_$AppDatabase, $GoalsTable, Goal> {
+  $$GoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('goals__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
+  $$GoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<GoalType, GoalType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get targetAmountCents => $composableBuilder(
+    column: $table.targetAmountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currentAmountCents => $composableBuilder(
+    column: $table.currentAmountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GoalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GoalsTable> {
+  $$GoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetAmountCents => $composableBuilder(
+    column: $table.targetAmountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currentAmountCents => $composableBuilder(
+    column: $table.currentAmountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GoalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GoalsTable> {
+  $$GoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<GoalType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<int> get targetAmountCents => $composableBuilder(
+    column: $table.targetAmountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get currentAmountCents => $composableBuilder(
+    column: $table.currentAmountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => column,
+  );
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GoalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GoalsTable,
+          Goal,
+          $$GoalsTableFilterComposer,
+          $$GoalsTableOrderingComposer,
+          $$GoalsTableAnnotationComposer,
+          $$GoalsTableCreateCompanionBuilder,
+          $$GoalsTableUpdateCompanionBuilder,
+          (Goal, $$GoalsTableReferences),
+          Goal,
+          PrefetchHooks Function({bool profileId})
+        > {
+  $$GoalsTableTableManager(_$AppDatabase db, $GoalsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GoalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<GoalType> type = const Value.absent(),
+                Value<int> targetAmountCents = const Value.absent(),
+                Value<int> currentAmountCents = const Value.absent(),
+                Value<DateTime?> targetDate = const Value.absent(),
+              }) => GoalsCompanion(
+                id: id,
+                profileId: profileId,
+                name: name,
+                type: type,
+                targetAmountCents: targetAmountCents,
+                currentAmountCents: currentAmountCents,
+                targetDate: targetDate,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required String name,
+                required GoalType type,
+                required int targetAmountCents,
+                Value<int> currentAmountCents = const Value.absent(),
+                Value<DateTime?> targetDate = const Value.absent(),
+              }) => GoalsCompanion.insert(
+                id: id,
+                profileId: profileId,
+                name: name,
+                type: type,
+                targetAmountCents: targetAmountCents,
+                currentAmountCents: currentAmountCents,
+                targetDate: targetDate,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$GoalsTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$GoalsTableReferences._profileIdTable(
+                          db,
+                        ),
+                        referencedColumn: $$GoalsTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$GoalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GoalsTable,
+      Goal,
+      $$GoalsTableFilterComposer,
+      $$GoalsTableOrderingComposer,
+      $$GoalsTableAnnotationComposer,
+      $$GoalsTableCreateCompanionBuilder,
+      $$GoalsTableUpdateCompanionBuilder,
+      (Goal, $$GoalsTableReferences),
+      Goal,
+      PrefetchHooks Function({bool profileId})
+    >;
 typedef $$PaycheckAllocationsTableCreateCompanionBuilder =
     PaycheckAllocationsCompanion Function({
       Value<int> id,
@@ -13328,6 +16121,12 @@ class $AppDatabaseManager {
       $$BudgetTargetsTableTableManager(_db, _db.budgetTargets);
   $$CategoryRulesTableTableManager get categoryRules =>
       $$CategoryRulesTableTableManager(_db, _db.categoryRules);
+  $$PaymentsTableTableManager get payments =>
+      $$PaymentsTableTableManager(_db, _db.payments);
+  $$NetWorthSnapshotsTableTableManager get netWorthSnapshots =>
+      $$NetWorthSnapshotsTableTableManager(_db, _db.netWorthSnapshots);
+  $$GoalsTableTableManager get goals =>
+      $$GoalsTableTableManager(_db, _db.goals);
   $$PaycheckAllocationsTableTableManager get paycheckAllocations =>
       $$PaycheckAllocationsTableTableManager(_db, _db.paycheckAllocations);
 }

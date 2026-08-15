@@ -268,6 +268,19 @@ void main() {
         description TEXT NULL,
         account_id INTEGER NULL);
     ''');
+    raw.execute('''
+      CREATE TABLE credit_cards (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        balance_cents INTEGER NOT NULL DEFAULT 0,
+        credit_limit_cents INTEGER NOT NULL,
+        apr REAL NOT NULL DEFAULT 0,
+        annual_fee_cents INTEGER NOT NULL DEFAULT 0,
+        monthly_fee_cents INTEGER NOT NULL DEFAULT 0,
+        statement_day INTEGER NULL,
+        payment_due_day INTEGER NULL);
+    ''');
     raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
     raw.execute('INSERT INTO bills '
         '(profile_id, name, amount_cents, due_day, frequency) '
@@ -297,5 +310,107 @@ void main() {
     expect(HomebaseRepository.cycleFor(updated, now: DateTime(2026, 8, 14))
         .statementCloses,
         DateTime(2026, 8, 20));
+  });
+
+  test('a v9 database gains payments, snapshots, goals and the fee date',
+      () async {
+    final v9Dir = Directory.systemTemp.createTempSync('homebase_v9');
+    addTearDown(() => v9Dir.deleteSync(recursive: true));
+    final v9File = File('${v9Dir.path}/homebase.sqlite');
+
+    final raw = sqlite3.open(v9File.path);
+    raw.execute("""
+      CREATE TABLE profiles (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        pin_hash TEXT NULL,
+        is_admin INTEGER NOT NULL DEFAULT 0);
+    """);
+    raw.execute("""
+      CREATE TABLE credit_cards (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        balance_cents INTEGER NOT NULL DEFAULT 0,
+        credit_limit_cents INTEGER NOT NULL,
+        apr REAL NOT NULL DEFAULT 0,
+        annual_fee_cents INTEGER NOT NULL DEFAULT 0,
+        monthly_fee_cents INTEGER NOT NULL DEFAULT 0,
+        statement_day INTEGER NULL,
+        payment_due_day INTEGER NULL);
+    """);
+    raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
+    raw.execute('INSERT INTO credit_cards '
+        '(profile_id, name, credit_limit_cents, balance_cents, '
+        'annual_fee_cents) '
+        "VALUES (1, 'Gold', 900000, 120000, 32500);");
+    raw.execute('PRAGMA user_version = 9;');
+    raw.close();
+
+    final db = AppDatabase.forTesting(NativeDatabase(v9File));
+    addTearDown(db.close);
+    final repo = HomebaseRepository(db);
+
+    // Existing card data survives, with the new date column empty.
+    final card = await db.select(db.creditCards).getSingle();
+    expect(card.name, 'Gold');
+    expect(card.annualFeeCents, 32500,
+        reason: 'the existing fee amount is reused, not duplicated');
+    expect(card.annualFeeDate, isNull);
+
+    // The three new tables exist and are usable.
+    await db.into(db.payments).insert(PaymentsCompanion.insert(
+        profileId: 1,
+        accountType: PaymentAccountType.card,
+        accountId: card.id,
+        amountCents: 5000,
+        date: DateTime(2026, 8, 14)));
+    await db.into(db.netWorthSnapshots).insert(
+        NetWorthSnapshotsCompanion.insert(
+            profileId: 1,
+            date: DateTime(2026, 8, 14),
+            totalAssetsCents: 500000,
+            totalDebtCents: 120000,
+            netWorthCents: 380000));
+    await db.into(db.goals).insert(GoalsCompanion.insert(
+        profileId: 1,
+        name: 'Emergency fund',
+        type: GoalType.savings,
+        targetAmountCents: 1000000));
+
+    expect((await db.select(db.payments).get()).length, 1);
+    expect((await db.select(db.netWorthSnapshots).get()).single.netWorthCents,
+        380000);
+    expect((await db.select(db.goals).get()).single.name, 'Emergency fund');
+
+    // Nothing existing broke.
+    expect(await repo.allProfiles(), hasLength(1));
+  });
+
+  test('one net worth snapshot per profile per day', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = HomebaseRepository(db);
+    final pid = await repo.createProfile(
+        ProfilesCompanion.insert(name: 'Owner', isAdmin: const Value(true)));
+
+    await db.into(db.netWorthSnapshots).insert(
+        NetWorthSnapshotsCompanion.insert(
+            profileId: pid,
+            date: DateTime(2026, 8, 14),
+            totalAssetsCents: 100,
+            totalDebtCents: 0,
+            netWorthCents: 100));
+
+    // A second row for the same day must collide rather than duplicate.
+    await expectLater(
+      db.into(db.netWorthSnapshots).insert(NetWorthSnapshotsCompanion.insert(
+          profileId: pid,
+          date: DateTime(2026, 8, 14),
+          totalAssetsCents: 200,
+          totalDebtCents: 0,
+          netWorthCents: 200)),
+      throwsA(anything),
+    );
   });
 }

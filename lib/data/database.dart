@@ -46,6 +46,63 @@ class CreditCards extends Table {
 
   /// Day of month the payment is due, typically ~21-25 days after closing.
   IntColumn get paymentDueDay => integer().nullable()();
+
+  /// When the annual fee next hits. The amount is [annualFeeCents], which
+  /// already feeds the budget set-aside — a second amount field here could
+  /// disagree with it.
+  DateTimeColumn get annualFeeDate => dateTime().nullable()();
+}
+
+/// Which kind of debt a payment was made against.
+enum PaymentAccountType { card, loan }
+
+/// A logged payment toward a card or loan. Kept as its own history so a
+/// balance can be explained (and recomputed) rather than just overwritten.
+class Payments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get accountType => textEnum<PaymentAccountType>()();
+
+  /// Row id in CreditCards or Loans, depending on [accountType]. Not a
+  /// foreign key because it points at one of two tables; cleanup is handled
+  /// when a card or loan is deleted.
+  IntColumn get accountId => integer()();
+
+  IntColumn get amountCents => integer()();
+  DateTimeColumn get date => dateTime()();
+  TextColumn get note => text().nullable()();
+}
+
+/// Point-in-time record of net worth, so the trend can be charted. Written
+/// whenever a balance changes, at most once per day.
+class NetWorthSnapshots extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+
+  /// Midnight of the day being recorded — one snapshot per profile per day.
+  DateTimeColumn get date => dateTime()();
+  IntColumn get totalAssetsCents => integer()();
+  IntColumn get totalDebtCents => integer()();
+  IntColumn get netWorthCents => integer()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {profileId, date},
+      ];
+}
+
+/// Saving toward something, or paying something off.
+enum GoalType { savings, payoff }
+
+class Goals extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get profileId => integer().references(Profiles, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 64)();
+  TextColumn get type => textEnum<GoalType>()();
+  IntColumn get targetAmountCents => integer()();
+  IntColumn get currentAmountCents =>
+      integer().withDefault(const Constant(0))();
+  DateTimeColumn get targetDate => dateTime().nullable()();
 }
 
 class Loans extends Table {
@@ -231,6 +288,9 @@ class PaycheckAllocations extends Table {
   BudgetEntries,
   BudgetTargets,
   CategoryRules,
+  Payments,
+  NetWorthSnapshots,
+  Goals,
   PaycheckSchedules,
   Paychecks,
   PaycheckAllocations,
@@ -240,7 +300,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -299,6 +359,12 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 9) {
             await m.addColumn(paychecks, paychecks.dismissed);
+          }
+          if (from < 10) {
+            await m.createTable(payments);
+            await m.createTable(netWorthSnapshots);
+            await m.createTable(goals);
+            await m.addColumn(creditCards, creditCards.annualFeeDate);
           }
           if (from < 8) {
             await m.addColumn(paychecks, paychecks.receivedIsManual);

@@ -7,6 +7,7 @@ import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
 import '../widgets/payment_dialog.dart';
+import '../widgets/payoff_simulator.dart';
 
 class LoansScreen extends ConsumerWidget {
   const LoansScreen({super.key});
@@ -89,6 +90,10 @@ class LoansScreen extends ConsumerWidget {
                               icon: const Icon(Icons.payments_outlined),
                               label: const Text('Pay')),
                           TextButton.icon(
+                              onPressed: () => _whatIf(context, l),
+                              icon: const Icon(Icons.query_stats),
+                              label: const Text('What if')),
+                          TextButton.icon(
                               onPressed: () => _edit(context, ref, l),
                               icon: const Icon(Icons.edit_outlined),
                               label: const Text('Edit')),
@@ -104,6 +109,32 @@ class LoansScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _whatIf(BuildContext context, Loan l) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.query_stats),
+        title: Text('What if — ${l.name}'),
+        content: SizedBox(
+          width: 640,
+          child: SingleChildScrollView(
+            child: PayoffSimulator(
+              name: l.name,
+              balanceCents: l.balanceCents,
+              apr: l.apr,
+              basePaymentCents: l.monthlyPaymentCents,
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Done')),
+        ],
       ),
     );
   }

@@ -8,6 +8,8 @@ import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
 import '../widgets/payment_dialog.dart';
+import '../widgets/payoff_simulator.dart';
+import '../util/payoff.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -121,6 +123,10 @@ class CardsScreen extends ConsumerWidget {
                               icon: const Icon(Icons.payments_outlined),
                               label: const Text('Pay')),
                           TextButton.icon(
+                              onPressed: () => _whatIf(context, c),
+                              icon: const Icon(Icons.query_stats),
+                              label: const Text('What if')),
+                          TextButton.icon(
                               onPressed: () => _edit(context, ref, c),
                               icon: const Icon(Icons.edit_outlined),
                               label: const Text('Edit')),
@@ -136,6 +142,47 @@ class CardsScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _whatIf(BuildContext context, CreditCard c) async {
+    final minimum = estimateCardMinimumPayment(
+        balanceCents: c.balanceCents, apr: c.apr);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.query_stats),
+        title: Text('What if — ${c.name}'),
+        content: SizedBox(
+          width: 640,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Cards do not have a fixed monthly payment, so this starts '
+                  'from a typical minimum: 1% of the balance plus interest, '
+                  'at least \$25.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 12),
+              PayoffSimulator(
+                name: c.name,
+                balanceCents: c.balanceCents,
+                apr: c.apr,
+                basePaymentCents: minimum,
+                basePaymentLabel: 'Estimated minimum payment',
+              ),
+            ]),
+          ),
+        ),
+        actions: [
+          FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Done')),
+        ],
       ),
     );
   }

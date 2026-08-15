@@ -170,7 +170,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                           'much of it you have used, turning red once you go '
                           'over. Targets are optional — without one you just '
                           'see the amount.',
-                      'Set targets from the menu in the top right.',
+                      'Set one with the button on any row here, or manage '
+                          'them all with Targets at the top.',
                     ],
                   )),
               if (categories.isEmpty)
@@ -262,35 +263,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 },
               ),
             const Spacer(),
-            PopupMenuButton<String>(
-              tooltip: 'More',
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) {
-                if (value == 'targets') _manageTargets(context);
-                if (value == 'rules') _manageRules(context);
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: 'targets',
-                  child: ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.track_changes),
-                    title: Text('Spending targets'),
-                    subtitle: Text('Optional limit per category'),
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'rules',
-                  child: ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.rule),
-                    title: Text('Auto-categorize'),
-                    subtitle: Text('Fill categories in for you'),
-                  ),
-                ),
-              ],
+            TextButton.icon(
+              onPressed: () => _manageTargets(context),
+              icon: const Icon(Icons.track_changes, size: 18),
+              label: const Text('Targets'),
+            ),
+            const SizedBox(width: 4),
+            TextButton.icon(
+              onPressed: () => _manageRules(context),
+              icon: const Icon(Icons.rule, size: 18),
+              label: const Text('Auto-categorize'),
             ),
           ],
         ),
@@ -360,14 +342,90 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 color: over ? scheme.error : scheme.primary,
               ),
             ),
-      trailing: Text(
-        targetCents == null
-            ? fmtCents(spentCents)
-            : '${fmtCents(spentCents)} of ${fmtCents(targetCents)}',
-        style: TextStyle(
-            fontWeight: FontWeight.w600, color: over ? scheme.error : null),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            targetCents == null
+                ? fmtCents(spentCents)
+                : '${fmtCents(spentCents)} of ${fmtCents(targetCents)}',
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: over ? scheme.error : null),
+          ),
+          const SizedBox(width: 4),
+          // The most useful place to set a limit is next to what you spent.
+          targetCents == null
+              ? TextButton(
+                  onPressed: () => _setTarget(context, category, null),
+                  child: const Text('Set target'),
+                )
+              : IconButton(
+                  tooltip: 'Change target',
+                  icon: const Icon(Icons.track_changes, size: 18),
+                  onPressed: () => _setTarget(context, category, targetCents),
+                ),
+        ],
       ),
     );
+  }
+
+  /// Sets or clears the target for one category, without opening the full
+  /// targets list.
+  Future<void> _setTarget(
+      BuildContext context, String category, int? currentCents) async {
+    final repo = ref.read(repositoryProvider);
+    final profileId = ref.read(activeProfileProvider)!.id;
+    final amount = TextEditingController(
+        text: currentCents == null ? '' : (currentCents / 100).toString());
+
+    final action = await showDialog<String>(
+      context: context,
+      builder: (context) => SubmitOnEnter(
+        onSubmit: () => Navigator.pop(context, 'save'),
+        child: AlertDialog(
+          title: Text('Monthly target for $category'),
+          content: SizedBox(
+            width: 320,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              DialogField(amount, 'Target (\$)',
+                  autofocus: true,
+                  helper: 'What you want to keep this category under'),
+            ]),
+          ),
+          actions: [
+            if (currentCents != null)
+              TextButton(
+                  onPressed: () => Navigator.pop(context, 'clear'),
+                  child: const Text('Remove target')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, 'cancel'),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, 'save'),
+                child: const Text('Save')),
+          ],
+        ),
+      ),
+    );
+    if (action == null || action == 'cancel') return;
+
+    if (action == 'clear') {
+      final targets = await repo.watchBudgetTargets(profileId: profileId).first;
+      final existing =
+          targets.where((t) => t.category == category).firstOrNull;
+      if (existing != null) {
+        await repo.deleteBudgetTarget(profileId: profileId, id: existing.id);
+      }
+      return;
+    }
+
+    final cents = parseDollarsToCents(amount.text);
+    if (cents == null) return;
+    await repo.upsertBudgetTarget(BudgetTargetsCompanion.insert(
+        profileId: profileId,
+        category: category,
+        monthlyTargetCents: cents));
   }
 
   Future<void> _addEntry(BuildContext context) async {

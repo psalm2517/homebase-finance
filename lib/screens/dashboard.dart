@@ -64,6 +64,86 @@ class DashboardScreen extends ConsumerWidget {
           },
         ),
         kSectionGap,
+        StreamBuilder<List<dynamic>>(
+          stream: combineLatest<dynamic>([
+            repo.watchMonthlyIncomeCents(profileId: profileId),
+            repo.watchBillsDueThisMonthCents(
+                profileId: profileId, month: DateTime.now()),
+            repo.watchCardFeesDueThisMonthCents(profileId: profileId),
+            repo.watchReserveForIrregularBillsCents(profileId: profileId),
+            repo.watchReserveForCardFeesCents(profileId: profileId),
+          ]),
+          builder: (context, snap) {
+            final v = snap.data;
+            final expectedIncome = (v?[0] as int?) ?? 0;
+            final billsDue = (v?[1] as int?) ?? 0;
+            final feesDue = (v?[2] as int?) ?? 0;
+            final reserveBills = (v?[3] as int?) ?? 0;
+            final reserveFees = (v?[4] as int?) ?? 0;
+            final leftOver = expectedIncome - billsDue - feesDue;
+            final setAside = reserveBills + reserveFees;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader('This month\'s outlook',
+                    icon: Icons.calculate_outlined,
+                    info: InfoButton(
+                      title: 'This month\'s outlook',
+                      body: [
+                        'A forward look at the month: what you expect to '
+                            'earn, minus the bills actually charged this '
+                            'month. The Budget screen shows what has really '
+                            'happened so far; this is the plan.',
+                        'Expected income comes from your paycheck schedules, '
+                            'averaged to a month — a bi-weekly schedule is '
+                            'multiplied by 26 and divided by 12, so it may '
+                            'not equal a single paycheck times two.',
+                        'Bills counted here are only the ones that actually '
+                            'charge this month, so a quarterly or annual bill '
+                            'appears only in the month it lands.',
+                        '"Set aside" is separate on purpose: it is a twelfth '
+                            'of each annual cost and a third of each '
+                            'quarterly one, money worth reserving now for a '
+                            'charge that comes later. It is not subtracted '
+                            'from what is left, because it has not been '
+                            'spent.',
+                      ],
+                    )),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _outlookRow(context, 'Expected income',
+                            fmtCents(expectedIncome)),
+                        _outlookRow(context, 'Bills due this month',
+                            '-${fmtCents(billsDue)}'),
+                        if (feesDue > 0)
+                          _outlookRow(context, 'Card fees this month',
+                              '-${fmtCents(feesDue)}'),
+                        const Divider(),
+                        _outlookRow(context, 'Should be left over',
+                            fmtCents(leftOver),
+                            bold: true,
+                            color: leftOver >= 0 ? null : scheme.error),
+                        if (setAside > 0) ...[
+                          const SizedBox(height: 10),
+                          _outlookRow(
+                              context,
+                              'Worth setting aside for later bills',
+                              fmtCents(setAside),
+                              color: scheme.secondary),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        kSectionGap,
         StreamBuilder<List<CreditCard>>(
           stream: repo.watchCards(profileId: profileId),
           builder: (context, snap) {
@@ -317,6 +397,22 @@ class DashboardScreen extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _outlookRow(BuildContext context, String label, String value,
+      {bool bold = false, Color? color}) {
+    final style = TextStyle(
+        fontWeight: bold ? FontWeight.bold : null, color: color);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(child: Text(label, style: style)),
+          Text(value, style: style),
+        ],
+      ),
     );
   }
 

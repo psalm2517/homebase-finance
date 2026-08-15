@@ -129,10 +129,11 @@ class CardsScreen extends ConsumerWidget {
                                   _logPayment(context, ref, [c], c),
                               icon: const Icon(Icons.payments_outlined),
                               label: const Text('Pay')),
-                          TextButton.icon(
+                          FilledButton.tonalIcon(
                               onPressed: () => _whatIf(context, c),
                               icon: const Icon(Icons.query_stats),
-                              label: const Text('What if')),
+                              label: const Text('What if?')),
+                          const SizedBox(width: 8),
                           TextButton.icon(
                               onPressed: () => _edit(context, ref, c),
                               icon: const Icon(Icons.edit_outlined),

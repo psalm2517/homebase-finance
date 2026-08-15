@@ -76,27 +76,125 @@ ThemeData _theme({
   required Color secondary,
   required Color error,
 }) {
-  final onPrimary = brightness == Brightness.dark ? mantle : Colors.white;
+  final dark = brightness == Brightness.dark;
+  final onPrimary = dark ? mantle : Colors.white;
+
+  // Cards need to read as raised. In Catppuccin the palette runs from crust
+  // (darkest) up through surface1, so "raised" means a lighter colour in
+  // Mocha and a lighter one in Latte too — which lands on opposite sides of
+  // `base`. Using base as the page in dark mode and mantle in light mode
+  // keeps a real step between the page and the things sitting on it,
+  // without inventing any colours outside the palette.
+  final pageColor = dark ? base : mantle;
+  final cardColor = dark ? surface0 : base;
+  final borderColor = dark ? surface1 : surface0;
+
   final scheme = ColorScheme(
     brightness: brightness,
     primary: primary,
     onPrimary: onPrimary,
+    primaryContainer: dark ? surface1 : surface0,
+    onPrimaryContainer: text,
     secondary: secondary,
     onSecondary: onPrimary,
+    secondaryContainer: dark ? surface1 : surface0,
+    onSecondaryContainer: text,
     error: error,
     onError: onPrimary,
-    surface: base,
+    errorContainer: error.withValues(alpha: dark ? 0.22 : 0.16),
+    onErrorContainer: error,
+    surface: pageColor,
     onSurface: text,
-    surfaceContainerHighest: surface0,
-    outline: surface1,
+    surfaceContainerLowest: dark ? mantle : mantle,
+    surfaceContainerLow: dark ? base : base,
+    surfaceContainer: cardColor,
+    surfaceContainerHigh: dark ? surface0 : base,
+    surfaceContainerHighest: surface1,
+    onSurfaceVariant: subtext,
+    outline: borderColor,
+    outlineVariant: borderColor.withValues(alpha: 0.5),
   );
+
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: base,
-    cardTheme: CardThemeData(color: mantle, elevation: 0),
-    appBarTheme: AppBarTheme(backgroundColor: mantle, foregroundColor: text),
-    dividerColor: surface1,
+    scaffoldBackgroundColor: pageColor,
+    // A hairline border does most of the work of separating a card from the
+    // page, and reads clearly in both themes without a drop shadow.
+    cardTheme: CardThemeData(
+      color: cardColor,
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.9)),
+      ),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: dark ? mantle : base,
+      foregroundColor: text,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: Border(bottom: BorderSide(color: borderColor)),
+    ),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: dark ? mantle : base,
+      indicatorColor: primary.withValues(alpha: 0.22),
+      selectedIconTheme: IconThemeData(color: primary),
+      unselectedIconTheme: IconThemeData(color: subtext),
+      selectedLabelTextStyle:
+          TextStyle(color: primary, fontWeight: FontWeight.w600),
+      unselectedLabelTextStyle: TextStyle(color: subtext),
+    ),
+    dividerTheme: DividerThemeData(color: borderColor, thickness: 1),
+    dividerColor: borderColor,
     listTileTheme: ListTileThemeData(iconColor: subtext),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: dark ? base : mantle,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: primary, width: 2),
+      ),
+      helperMaxLines: 3,
+    ),
+    // Progress bars were washing out against the card behind them.
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      linearTrackColor: dark ? mantle : surface0.withValues(alpha: 0.5),
+      linearMinHeight: 6,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: borderColor),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: dark ? surface1 : surface0,
+      contentTextStyle: TextStyle(color: text),
+      behavior: SnackBarBehavior.floating,
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: dark ? surface1 : surface0,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      textStyle: TextStyle(color: text, fontSize: 12),
+    ),
+    expansionTileTheme: ExpansionTileThemeData(
+      iconColor: primary,
+      collapsedIconColor: subtext,
+      textColor: text,
+      collapsedTextColor: text,
+    ),
   );
 }

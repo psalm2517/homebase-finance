@@ -81,3 +81,119 @@ int estimateCardMinimumPayment({
   // Never suggest more than the balance itself.
   return capped > balanceCents ? balanceCents : capped;
 }
+
+/// One debt in a multi-debt payoff plan.
+class DebtInput {
+  const DebtInput({
+    required this.id,
+    required this.balanceCents,
+    required this.apr,
+    required this.minimumPaymentCents,
+  });
+
+  final int id;
+  final int balanceCents;
+  final double apr;
+  final int minimumPaymentCents;
+}
+
+/// Which debt gets the spare money first.
+enum PayoffStrategy {
+  /// Smallest balance first — clears individual debts sooner.
+  snowball,
+
+  /// Highest APR first — mathematically cheapest.
+  avalanche,
+}
+
+class MultiDebtProjection {
+  const MultiDebtProjection({
+    required this.months,
+    required this.totalInterestCents,
+    required this.payoffOrder,
+  });
+
+  final int months;
+  final int totalInterestCents;
+
+  /// Debt ids in the order they were cleared.
+  final List<int> payoffOrder;
+}
+
+/// Projects several debts paid off together: every minimum is paid each
+/// month, then any extra — plus the freed-up minimum of anything already
+/// cleared — is thrown at whichever debt the strategy prioritises.
+///
+/// Returns null when the debts cannot be cleared, which happens when the
+/// minimums do not cover the interest and there is no extra to make up the
+/// difference.
+MultiDebtProjection? simulateMultiDebtPayoff({
+  required List<DebtInput> debts,
+  required PayoffStrategy strategy,
+  int extraCents = 0,
+  int maxMonths = 1200,
+}) {
+  final live = debts.where((d) => d.balanceCents > 0).toList();
+  if (live.isEmpty) {
+    return const MultiDebtProjection(
+        months: 0, totalInterestCents: 0, payoffOrder: []);
+  }
+
+  final balances = {for (final d in live) d.id: d.balanceCents};
+  final order = [...live]..sort((a, b) => switch (strategy) {
+        PayoffStrategy.snowball =>
+          a.balanceCents.compareTo(b.balanceCents),
+        PayoffStrategy.avalanche => b.apr.compareTo(a.apr),
+      });
+
+  var months = 0;
+  var totalInterest = 0;
+  final cleared = <int>[];
+
+  while (balances.values.any((b) => b > 0)) {
+    months++;
+    if (months > maxMonths) return null;
+
+    var budget = extraCents;
+    var progressed = false;
+
+    for (final d in live) {
+      final balance = balances[d.id]!;
+      if (balance <= 0) {
+        // A cleared debt frees its minimum for the others.
+        budget += d.minimumPaymentCents;
+        continue;
+      }
+      final interest = (balance * d.apr / 100 / 12).round();
+      totalInterest += interest;
+      var next = balance + interest - d.minimumPaymentCents;
+      if (next < balance) progressed = true;
+      if (next < 0) {
+        budget += -next;
+        next = 0;
+      }
+      balances[d.id] = next;
+      if (next == 0 && !cleared.contains(d.id)) cleared.add(d.id);
+    }
+
+    for (final d in order) {
+      if (budget <= 0) break;
+      final balance = balances[d.id]!;
+      if (balance <= 0) continue;
+      final pay = balance < budget ? balance : budget;
+      balances[d.id] = balance - pay;
+      budget -= pay;
+      if (pay > 0) progressed = true;
+      if (balances[d.id] == 0 && !cleared.contains(d.id)) cleared.add(d.id);
+    }
+
+    // Nothing moved this month, so nothing ever will.
+    if (!progressed) return null;
+  }
+
+  return MultiDebtProjection(
+    months: months,
+    totalInterestCents: totalInterest,
+    payoffOrder: cleared,
+  );
+}

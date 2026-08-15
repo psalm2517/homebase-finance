@@ -170,4 +170,95 @@ void main() {
     expect(entries, isEmpty,
         reason: 'generated checks are not received yet, so no entry exists');
   });
+
+  group('automatic receiving', () {
+    test('a paycheck whose payday has passed marks itself received',
+        () async {
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime.now().subtract(const Duration(days: 3)),
+          amountCents: 77500));
+
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+
+      final checks = await repo.watchPaychecks(profileId: profileId).first;
+      expect(checks.single.received, isTrue);
+
+      final now = DateTime.now();
+      final entries = await repo
+          .watchBudgetForMonth(
+              profileId: profileId, month: DateTime(now.year, now.month))
+          .first;
+      expect(entries.length, 1);
+      expect(entries.single.amountCents, 77500);
+      expect(entries.single.type, EntryType.income);
+    });
+
+    test('a future paycheck is left alone', () async {
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime.now().add(const Duration(days: 10)),
+          amountCents: 77500));
+
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+
+      final checks = await repo.watchPaychecks(profileId: profileId).first;
+      expect(checks.single.received, isFalse,
+          reason: 'payday has not arrived');
+    });
+
+    test('a manual override is not undone by automatic processing',
+        () async {
+      final id = await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime.now().subtract(const Duration(days: 3)),
+          amountCents: 77500));
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+
+      // The check never actually arrived — say so by hand.
+      await repo.upsertPaycheck(PaychecksCompanion(
+        id: Value(id),
+        profileId: Value(profileId),
+        name: const Value('Work'),
+        date: Value(DateTime.now().subtract(const Duration(days: 3))),
+        amountCents: const Value(77500),
+        received: const Value(false),
+        receivedIsManual: const Value(true),
+      ));
+
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+
+      final checks = await repo.watchPaychecks(profileId: profileId).first;
+      expect(checks.single.received, isFalse,
+          reason: 'the override must survive the next app launch');
+      final now = DateTime.now();
+      final entries = await repo
+          .watchBudgetForMonth(
+              profileId: profileId, month: DateTime(now.year, now.month))
+          .first;
+      expect(entries, isEmpty);
+    });
+
+    test('is idempotent across repeated launches', () async {
+      await repo.upsertPaycheck(PaychecksCompanion.insert(
+          profileId: profileId,
+          name: 'Work',
+          date: DateTime.now().subtract(const Duration(days: 3)),
+          amountCents: 77500));
+
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+
+      final now = DateTime.now();
+      final entries = await repo
+          .watchBudgetForMonth(
+              profileId: profileId, month: DateTime(now.year, now.month))
+          .first;
+      expect(entries.length, 1, reason: 'no duplicate income rows');
+    });
+  });
 }

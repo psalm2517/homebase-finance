@@ -192,6 +192,12 @@ class Paychecks extends Table {
   IntColumn get bonusCents => integer().withDefault(const Constant(0))();
   BoolColumn get received => boolean().withDefault(const Constant(false))();
 
+  /// True once you set [received] by hand. Automatic processing skips these
+  /// rows, so overriding a paycheck (it was delayed, it never arrived) is
+  /// not undone the next time the app opens.
+  BoolColumn get receivedIsManual =>
+      boolean().withDefault(const Constant(false))();
+
   /// Set when this check was generated from a schedule.
   IntColumn get scheduleId =>
       integer().nullable().references(PaycheckSchedules, #id)();
@@ -229,7 +235,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -285,6 +291,15 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             await m.addColumn(
                 budgetEntries, budgetEntries.sourceBillPaymentId);
+          }
+          if (from < 8) {
+            await m.addColumn(paychecks, paychecks.receivedIsManual);
+            // Anything already marked received was marked by hand, so keep
+            // it that way rather than letting automation reinterpret it.
+            await customUpdate(
+              'UPDATE paychecks SET received_is_manual = 1 WHERE received = 1',
+              updates: {paychecks},
+            );
           }
           if (from < 4) {
             // Rebuild bills once, after every column addition (including

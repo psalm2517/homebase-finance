@@ -23,11 +23,31 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
+  int? _caughtUpFor;
+
+  /// Brings the books up to date for whoever is being viewed: generate
+  /// upcoming paychecks, mark ones whose payday has passed as received, and
+  /// record autopay bills that have come due. Runs on entry and on profile
+  /// switch so it never depends on visiting a particular screen.
+  void _catchUp(int profileId) {
+    if (_caughtUpFor == profileId) return;
+    _caughtUpFor = profileId;
+    Future.microtask(() async {
+      final repo = ref.read(repositoryProvider);
+      final now = DateTime.now();
+      await repo.generateDuePaychecks(
+          profileId: profileId, until: DateTime(now.year, now.month + 2, 0));
+      await repo.materializeReceivedPaychecks(profileId: profileId);
+      await repo.materializeAutopayPayments(
+          profileId: profileId, month: now);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final loggedIn = ref.watch(loggedInProfileProvider)!;
     final active = ref.watch(activeProfileProvider) ?? loggedIn;
+    _catchUp(active.id);
     final mode = ref.watch(themeModeProvider);
 
     final titles = [

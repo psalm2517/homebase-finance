@@ -18,13 +18,17 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
   @override
   void initState() {
     super.initState();
-    // Materialize any due paychecks through the end of next month.
-    Future.microtask(() {
+    // Materialize any due paychecks through the end of next month, then mark
+    // the ones whose payday has arrived as received.
+    Future.microtask(() async {
       final now = DateTime.now();
-      ref.read(repositoryProvider).generateDuePaychecks(
-            profileId: ref.read(activeProfileProvider)!.id,
-            until: DateTime(now.year, now.month + 2, 0),
-          );
+      final repo = ref.read(repositoryProvider);
+      final profileId = ref.read(activeProfileProvider)!.id;
+      await repo.generateDuePaychecks(
+        profileId: profileId,
+        until: DateTime(now.year, now.month + 2, 0),
+      );
+      await repo.materializeReceivedPaychecks(profileId: profileId);
     });
   }
 
@@ -117,6 +121,13 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
                     'The card shows what is still unassigned, and warns you '
                         'in red if your allocations add up to more than the '
                         'check is worth.',
+                    'A paycheck marks itself received once its payday '
+                        'arrives, and an income entry appears on the Budget '
+                        'screen automatically — nothing to click.',
+                    'Override it only if reality differs: mark it not '
+                        'received if a check was delayed or never came. Your '
+                        'override sticks and is not undone on the next '
+                        'launch.',
                     'Use Bonus to add a one-off amount to a single check '
                         'without changing the schedule.',
                   ],
@@ -315,6 +326,8 @@ class _PaycheckCard extends ConsumerWidget {
                           bonusCents: Value(paycheck.bonusCents),
                           scheduleId: Value(paycheck.scheduleId),
                           received: Value(!paycheck.received),
+                          // Flagged manual so automation leaves it alone.
+                          receivedIsManual: const Value(true),
                         )),
                     icon: Icon(
                         paycheck.received

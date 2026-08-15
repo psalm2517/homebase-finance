@@ -679,6 +679,28 @@ class HomebaseRepository {
             ..where((p) => p.profileId.equals(profileId) & p.id.equals(id)))
           .go();
 
+  /// Marks any paycheck whose date has arrived as received, creating its
+  /// income entry — you get paid on payday whether or not you open the app,
+  /// so this shouldn't need a click. Paychecks you set by hand are left
+  /// alone, so an override (delayed, never arrived) is not undone.
+  /// Idempotent — safe to call on every screen load.
+  Future<void> materializeReceivedPaychecks({required int profileId}) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = await (_db.select(_db.paychecks)
+          ..where((p) =>
+              p.profileId.equals(profileId) &
+              p.received.equals(false) &
+              p.receivedIsManual.equals(false) &
+              p.date.isSmallerOrEqualValue(today)))
+        .get();
+    for (final paycheck in due) {
+      await (_db.update(_db.paychecks)..where((p) => p.id.equals(paycheck.id)))
+          .write(const PaychecksCompanion(received: Value(true)));
+      await _syncPaycheckEntry(paycheck.copyWith(received: true));
+    }
+  }
+
   Stream<List<PaycheckAllocation>> watchAllocations(
           {required int profileId, required int paycheckId}) =>
       (_db.select(_db.paycheckAllocations)

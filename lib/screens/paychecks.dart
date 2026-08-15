@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
+import '../data/repository.dart';
 import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
@@ -18,15 +19,15 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
   @override
   void initState() {
     super.initState();
-    // Materialize any due paychecks through the end of next month, then mark
-    // the ones whose payday has arrived as received.
+    // Generate paychecks 90 days out, then mark the ones whose payday has
+    // arrived as received.
     Future.microtask(() async {
       final now = DateTime.now();
       final repo = ref.read(repositoryProvider);
       final profileId = ref.read(activeProfileProvider)!.id;
       await repo.generateDuePaychecks(
         profileId: profileId,
-        until: DateTime(now.year, now.month + 2, 0),
+        until: now.add(HomebaseRepository.paycheckHorizon),
       );
       await repo.materializeReceivedPaychecks(profileId: profileId);
     });
@@ -53,7 +54,7 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
                   title: 'Paycheck schedules',
                   body: [
                     'Set a schedule once and Homebase generates the '
-                        'individual paychecks for you, two months ahead, so '
+                        'individual paychecks for you, 90 days ahead, so '
                         'you never type a payday date twice.',
                     'Weekly is every 7 days and bi-weekly every 14 days, '
                         'which means 52 and 26 checks a year — bi-weekly '
@@ -249,7 +250,8 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
     ));
     final now = DateTime.now();
     await repo.generateDuePaychecks(
-        profileId: profileId, until: DateTime(now.year, now.month + 2, 0));
+        profileId: profileId,
+          until: now.add(HomebaseRepository.paycheckHorizon));
   }
 }
 

@@ -343,4 +343,26 @@ void main() {
           reason: 'a deleted paycheck must not create income');
     });
   });
+
+  test('paychecks are generated 90 days ahead', () async {
+    final anchor = DateTime.now();
+    await repo.upsertSchedule(PaycheckSchedulesCompanion.insert(
+        profileId: profileId,
+        name: 'Work',
+        frequency: PayFrequency.biweekly,
+        anchorDate: DateTime(anchor.year, anchor.month, anchor.day),
+        amountCents: 77500));
+
+    await repo.generateDuePaychecks(
+        profileId: profileId,
+        until: DateTime.now().add(HomebaseRepository.paycheckHorizon));
+
+    final checks = await repo.watchPaychecks(profileId: profileId).first;
+    // 90 days of bi-weekly pay is 7 checks (day 0 through day 84).
+    expect(checks.length, 7);
+    final furthest =
+        checks.map((c) => c.date).reduce((a, b) => a.isAfter(b) ? a : b);
+    expect(furthest.difference(DateTime.now()).inDays, greaterThan(75),
+        reason: 'the horizon should reach roughly a quarter out');
+  });
 }

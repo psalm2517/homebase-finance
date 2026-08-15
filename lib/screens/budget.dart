@@ -47,19 +47,26 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         stream: combineLatest<dynamic>([
           repo.watchBudgetForMonth(profileId: profileId, month: _month),
           repo.watchBudgetTargets(profileId: profileId),
+          repo.watchMonthlyIncomeCents(profileId: profileId),
+          repo.watchBillsDueThisMonthCents(
+              profileId: profileId, month: _month),
+          repo.watchCardFeesDueThisMonthCents(profileId: profileId),
         ]),
         builder: (context, snap) {
           if (!snap.hasData) return const SizedBox.shrink();
           final entries = snap.data![0] as List<BudgetEntry>;
           final targets = snap.data![1] as List<BudgetTarget>;
-          return _body(context, entries, targets, scheme);
+          final leftToBudget = (snap.data![2] as int) -
+              (snap.data![3] as int) -
+              (snap.data![4] as int);
+          return _body(context, entries, targets, leftToBudget, scheme);
         },
       ),
     );
   }
 
   Widget _body(BuildContext context, List<BudgetEntry> entries,
-      List<BudgetTarget> targets, ColorScheme scheme) {
+      List<BudgetTarget> targets, int leftToBudgetCents, ColorScheme scheme) {
     final moneyIn = entries
         .where((e) => e.type == EntryType.income)
         .fold(0, (s, e) => s + e.amountCents);
@@ -118,7 +125,37 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   value: fmtCents(moneyIn - moneyOut),
                   icon: Icons.account_balance_wallet_outlined,
                   color: moneyIn >= moneyOut ? scheme.primary : scheme.error,
-                  note: moneyIn >= moneyOut ? null : 'spent more than came in',
+                  note: moneyIn >= moneyOut
+                      ? 'in minus out, so far'
+                      : 'spent more than came in',
+                ),
+                StatCard(
+                  label: 'Free to spend',
+                  value: fmtCents(leftToBudgetCents),
+                  icon: Icons.savings_outlined,
+                  color: leftToBudgetCents >= 0
+                      ? scheme.secondary
+                      : scheme.error,
+                  note: 'from expected pay, after bills',
+                  info: const InfoButton(
+                    title: 'Free to spend',
+                    body: [
+                      'What is left of a normal month\'s pay once this '
+                          'month\'s bills are covered — the amount you '
+                          'actually have to work with.',
+                      'It uses your paycheck schedules averaged to a month, '
+                          'not just the paychecks received so far, so the '
+                          'number is steady from the 1st rather than '
+                          'climbing each payday.',
+                      'Only bills that really charge this month are '
+                          'subtracted, so a quarterly or annual bill pulls '
+                          'this down only in the month it lands.',
+                      '"Left" beside it is different: that is simply what has '
+                          'come in minus what has gone out so far this month.',
+                      'The full breakdown, including what to set aside for '
+                          'later bills, is on the Dashboard.',
+                    ],
+                  ),
                 ),
               ]),
               kSectionGap,

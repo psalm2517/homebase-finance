@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
+import '../data/repository.dart';
 import '../main.dart';
 import 'accounts.dart';
 import 'bills.dart';
@@ -36,7 +37,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       final repo = ref.read(repositoryProvider);
       final now = DateTime.now();
       await repo.generateDuePaychecks(
-          profileId: profileId, until: DateTime(now.year, now.month + 2, 0));
+          profileId: profileId,
+          until: now.add(HomebaseRepository.paycheckHorizon));
       await repo.materializeReceivedPaychecks(profileId: profileId);
       await repo.materializeAutopayPayments(
           profileId: profileId, month: now);

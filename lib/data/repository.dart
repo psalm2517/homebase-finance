@@ -510,6 +510,10 @@ class HomebaseRepository {
     return dates;
   }
 
+  /// How far ahead paychecks are generated. Far enough to plan a quarter
+  /// without the list running away from you.
+  static const paycheckHorizon = Duration(days: 90);
+
   /// Materialize any due-but-missing paychecks for active schedules, through
   /// [until] (e.g. end of next month). Idempotent: skips dates that already
   /// have a check. Call on app launch / paycheck screen open.

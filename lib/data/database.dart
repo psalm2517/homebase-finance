@@ -416,6 +416,13 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
+  /// Where the database file lives, or null when it is in memory.
+  Future<String?> get databasePath async {
+    final dir = await getApplicationSupportDirectory();
+    final file = File(p.join(dir.path, 'homebase.sqlite'));
+    return file.existsSync() ? file.path : null;
+  }
+
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
       final dir = await getApplicationSupportDirectory();

@@ -14,6 +14,7 @@ import 'goals.dart';
 import 'loans.dart';
 import 'paychecks.dart';
 import 'profiles.dart';
+import 'settings.dart';
 
 /// Desktop shell: NavigationRail sidebar + content. Only admins see the
 /// profile switcher; non-admins have no indication other profiles exist.
@@ -72,6 +73,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       'Budget',
       'Paychecks',
       'Goals',
+      'Settings',
       // Admin-only, appended last so indices stay stable for everyone else.
       if (loggedIn.isAdmin) 'Profiles',
     ];
@@ -85,6 +87,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       const BudgetScreen(),
       const PaychecksScreen(),
       const GoalsScreen(),
+      const SettingsScreen(),
       if (loggedIn.isAdmin) const ProfilesScreen(),
     ];
 
@@ -152,6 +155,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                   icon: Icon(Icons.flag_outlined),
                   selectedIcon: Icon(Icons.flag),
                   label: Text('Goals')),
+              const NavigationRailDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: Text('Settings')),
               if (loggedIn.isAdmin)
                 const NavigationRailDestination(
                     icon: Icon(Icons.group_outlined),

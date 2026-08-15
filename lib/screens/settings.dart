@@ -1,0 +1,257 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/backup.dart';
+import '../data/database.dart';
+import '../main.dart';
+import '../widgets/common.dart';
+
+final backupServiceProvider = Provider<BackupService>(
+    (ref) => BackupService(ref.watch(databaseProvider)));
+
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final loggedIn = ref.watch(loggedInProfileProvider)!;
+    final mode = ref.watch(themeModeProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    return ListView(
+      padding: kPagePadding,
+      children: [
+        const SectionHeader('Appearance', icon: Icons.palette_outlined),
+        Card(
+          child: SwitchListTile(
+            secondary: Icon(mode == ThemeMode.dark
+                ? Icons.dark_mode_outlined
+                : Icons.light_mode_outlined),
+            title: const Text('Dark mode'),
+            subtitle: const Text('Catppuccin Mocha, or Latte when off'),
+            value: mode == ThemeMode.dark,
+            onChanged: (on) => ref.read(themeModeProvider.notifier).state =
+                on ? ThemeMode.dark : ThemeMode.light,
+          ),
+        ),
+        kSectionGap,
+        SectionHeader('Backup',
+            icon: Icons.save_outlined,
+            info: InfoButton(
+              title: 'How backups work',
+              body: [
+                'Homebase keeps everything on this computer — there is no '
+                    'cloud and nothing is uploaded. A backup writes a file '
+                    'wherever you choose, and looking after that file is up '
+                    'to you: another drive, or a folder you sync yourself.',
+                'The file is JSON, so it is readable and can be checked or '
+                    'repaired by hand if it ever comes to that. It records '
+                    'the schema version it came from, so an older backup can '
+                    'still be understood after Homebase changes.',
+                loggedIn.isAdmin
+                    ? 'As an admin, your backup covers every profile in the '
+                        'household.'
+                    : 'Your backup covers your own data only.',
+                'Restoring replaces what is there. Homebase copies the '
+                    'current database next to itself first, so a mistaken '
+                    'restore can still be undone by hand.',
+              ],
+            )),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Back up to a file'),
+                subtitle: Text(loggedIn.isAdmin
+                    ? 'Every profile, saved where you choose'
+                    : 'Your data, saved where you choose'),
+                trailing: FilledButton.tonal(
+                  onPressed: _busy ? null : _backup,
+                  child: const Text('Back up'),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(Icons.restore, color: scheme.error),
+                title: const Text('Restore from a file'),
+                subtitle: const Text(
+                    'Replaces current data with the contents of a backup'),
+                trailing: OutlinedButton(
+                  onPressed: _busy ? null : _restore,
+                  child: const Text('Restore'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_busy)
+          const Padding(
+            padding: EdgeInsets.only(top: 16),
+            child: LinearProgressIndicator(),
+          ),
+      ],
+    );
+  }
+
+  List<int> _visibleProfileIds(Profile loggedIn, List<Profile> all) =>
+      loggedIn.isAdmin ? [for (final p in all) p.id] : [loggedIn.id];
+
+  Future<void> _backup() async {
+    final repo = ref.read(repositoryProvider);
+    final service = ref.read(backupServiceProvider);
+    final loggedIn = ref.read(loggedInProfileProvider)!;
+    final ids = _visibleProfileIds(loggedIn, await repo.allProfiles());
+
+    final stamp = DateTime.now().toIso8601String().split('T').first;
+    final location = await getSaveLocation(
+      suggestedName: 'homebase-backup-$stamp.json',
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'Homebase backup', extensions: ['json']),
+      ],
+    );
+    if (location == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final json = await service.exportJson(profileIds: ids);
+      await File(location.path).writeAsString(json);
+      if (!mounted) return;
+      _say('Backed up to ${location.path}');
+    } catch (e) {
+      if (!mounted) return;
+      _say('Backup failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    final service = ref.read(backupServiceProvider);
+    final repo = ref.read(repositoryProvider);
+    final loggedIn = ref.read(loggedInProfileProvider)!;
+
+    final file = await openFile(acceptedTypeGroups: const [
+      XTypeGroup(label: 'Homebase backup', extensions: ['json']),
+    ]);
+    if (file == null) return;
+
+    late final String json;
+    late final BackupSummary summary;
+    try {
+      json = await file.readAsString();
+      summary = service.inspect(json);
+    } on BackupException catch (e) {
+      if (!mounted) return;
+      _say(e.message, error: true);
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      _say('That file could not be read: $e', error: true);
+      return;
+    }
+
+    final allowed = _visibleProfileIds(loggedIn, await repo.allProfiles());
+    final restoring =
+        summary.profileIds.where(allowed.contains).toList();
+    final skipped = summary.profileNames.length - restoring.length;
+
+    if (!mounted) return;
+    if (restoring.isEmpty) {
+      _say('That backup has nothing for your profile.', error: true);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(Icons.warning_amber_outlined,
+            color: Theme.of(context).colorScheme.error),
+        title: const Text('Restore and replace?'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Backup from '
+                  '${summary.exportedAt.toLocal().toString().split('.').first}'),
+              const SizedBox(height: 8),
+              Text('Profiles: ${summary.profileNames.join(', ')}'),
+              Text('${summary.totalRows} rows across '
+                  '${summary.rowCounts.length} tables'),
+              if (skipped > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                    '$skipped profile${skipped == 1 ? '' : 's'} in this file '
+                    'will be skipped — you can only restore your own data.',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.error)),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                'This replaces the current data for '
+                '${restoring.length == 1 ? 'that profile' : 'those profiles'}. '
+                'Anything added since the backup will be lost. The current '
+                'database is copied next to itself first, so this can still '
+                'be undone by hand.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Replace my data'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _busy = true);
+    try {
+      final copy = await service.writeSafetyCopy();
+      await service.restore(json, allowedProfileIds: allowed);
+      if (!mounted) return;
+      // The signed-in profile row was just replaced, so send the user back
+      // to the picker rather than leaving a stale profile in memory.
+      ref.read(loggedInProfileProvider.notifier).state = null;
+      ref.invalidate(activeProfileProvider);
+      _say(copy == null
+          ? 'Restored. Sign in again to see your data.'
+          : 'Restored. Previous database saved to $copy');
+    } on BackupException catch (e) {
+      if (mounted) _say(e.message, error: true);
+    } catch (e) {
+      if (mounted) _say('Restore failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _say(String message, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor:
+          error ? Theme.of(context).colorScheme.error : null,
+      duration: Duration(seconds: error ? 6 : 5),
+    ));
+  }
+}

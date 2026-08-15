@@ -38,6 +38,12 @@ class HomebaseRepository {
       }
     }
     await _db.transaction(() async {
+      await (_db.delete(_db.payments)..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.netWorthSnapshots)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.goals)..where((t) => t.profileId.equals(id))).go();
       await (_db.delete(_db.paycheckAllocations)
             ..where((t) => t.profileId.equals(id)))
           .go();
@@ -58,6 +64,12 @@ class HomebaseRepository {
       await (_db.delete(_db.creditScoreSnapshots)
             ..where((t) => t.profileId.equals(id)))
           .go();
+      // Accounts must go after budget entries, which reference them.
+      await (_db.delete(_db.accounts)..where((t) => t.profileId.equals(id)))
+          .go();
+      await (_db.delete(_db.billPayments)
+            ..where((t) => t.profileId.equals(id)))
+          .go();
       await (_db.delete(_db.bills)..where((t) => t.profileId.equals(id))).go();
       await (_db.delete(_db.loans)..where((t) => t.profileId.equals(id))).go();
       await (_db.delete(_db.creditCards)..where((t) => t.profileId.equals(id)))
@@ -72,13 +84,20 @@ class HomebaseRepository {
       (_db.select(_db.accounts)..where((a) => a.profileId.equals(profileId)))
           .watch();
 
-  Future<int> upsertAccount(AccountsCompanion entry) =>
-      _db.into(_db.accounts).insertOnConflictUpdate(entry);
+  Future<int> upsertAccount(AccountsCompanion entry) async {
+    final id = await _db.into(_db.accounts).insertOnConflictUpdate(entry);
+    await recordNetWorthSnapshot(profileId: entry.profileId.value);
+    return id;
+  }
 
-  Future<int> deleteAccount({required int profileId, required int id}) =>
-      (_db.delete(_db.accounts)
-            ..where((a) => a.profileId.equals(profileId) & a.id.equals(id)))
-          .go();
+  Future<int> deleteAccount(
+      {required int profileId, required int id}) async {
+    final rows = await (_db.delete(_db.accounts)
+          ..where((a) => a.profileId.equals(profileId) & a.id.equals(id)))
+        .go();
+    await recordNetWorthSnapshot(profileId: profileId);
+    return rows;
+  }
 
   /// Assets (accounts) minus liabilities (card + loan balances). Re-emits
   /// whenever any of the three tables change.
@@ -109,6 +128,48 @@ class HomebaseRepository {
       );
     });
   }
+
+  /// Records today's net worth, replacing today's row if one exists. Called
+  /// after anything that moves a balance, and on app entry so a day with no
+  /// edits still gets a point once you open Homebase.
+  Future<void> recordNetWorthSnapshot({required int profileId}) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final net = await watchNetWorth(profileId: profileId).first;
+    await _db.into(_db.netWorthSnapshots).insert(
+          NetWorthSnapshotsCompanion.insert(
+            profileId: profileId,
+            date: today,
+            totalAssetsCents: net.assetsCents,
+            totalDebtCents: net.debtsCents,
+            netWorthCents: net.netCents,
+          ),
+          // One row per profile per day: a later edit updates the day's
+          // figure rather than adding a second point.
+          onConflict: DoUpdate(
+            (_) => NetWorthSnapshotsCompanion(
+              totalAssetsCents: Value(net.assetsCents),
+              totalDebtCents: Value(net.debtsCents),
+              netWorthCents: Value(net.netCents),
+            ),
+            target: [
+              _db.netWorthSnapshots.profileId,
+              _db.netWorthSnapshots.date
+            ],
+          ),
+        );
+  }
+
+  /// Net worth history, oldest first, for the trend chart.
+  Stream<List<NetWorthSnapshot>> watchNetWorthHistory(
+          {required int profileId, int days = 180}) =>
+      (_db.select(_db.netWorthSnapshots)
+            ..where((s) =>
+                s.profileId.equals(profileId) &
+                s.date.isBiggerOrEqualValue(
+                    DateTime.now().subtract(Duration(days: days))))
+            ..orderBy([(s) => OrderingTerm.asc(s.date)]))
+          .watch();
 
   /// Income and expense totals for the last [months] calendar months,
   /// oldest first — feeds the dashboard cashflow chart.
@@ -149,13 +210,27 @@ class HomebaseRepository {
             ..where((c) => c.profileId.equals(profileId)))
           .watch();
 
-  Future<int> upsertCard(CreditCardsCompanion entry) =>
-      _db.into(_db.creditCards).insertOnConflictUpdate(entry);
+  Future<int> upsertCard(CreditCardsCompanion entry) async {
+    final id = await _db.into(_db.creditCards).insertOnConflictUpdate(entry);
+    await recordNetWorthSnapshot(profileId: entry.profileId.value);
+    return id;
+  }
 
-  Future<int> deleteCard({required int profileId, required int id}) =>
-      (_db.delete(_db.creditCards)
-            ..where((c) => c.profileId.equals(profileId) & c.id.equals(id)))
-          .go();
+  Future<int> deleteCard({required int profileId, required int id}) async {
+    // Payments logged against this card would otherwise be orphaned; the
+    // accountId is not a foreign key because it spans two tables.
+    await (_db.delete(_db.payments)
+          ..where((p) =>
+              p.profileId.equals(profileId) &
+              p.accountType.equalsValue(PaymentAccountType.card) &
+              p.accountId.equals(id)))
+        .go();
+    final rows = await (_db.delete(_db.creditCards)
+          ..where((c) => c.profileId.equals(profileId) & c.id.equals(id)))
+        .go();
+    await recordNetWorthSnapshot(profileId: profileId);
+    return rows;
+  }
 
   // ---- Loans ----
 
@@ -163,13 +238,25 @@ class HomebaseRepository {
       (_db.select(_db.loans)..where((l) => l.profileId.equals(profileId)))
           .watch();
 
-  Future<int> upsertLoan(LoansCompanion entry) =>
-      _db.into(_db.loans).insertOnConflictUpdate(entry);
+  Future<int> upsertLoan(LoansCompanion entry) async {
+    final id = await _db.into(_db.loans).insertOnConflictUpdate(entry);
+    await recordNetWorthSnapshot(profileId: entry.profileId.value);
+    return id;
+  }
 
-  Future<int> deleteLoan({required int profileId, required int id}) =>
-      (_db.delete(_db.loans)
-            ..where((l) => l.profileId.equals(profileId) & l.id.equals(id)))
-          .go();
+  Future<int> deleteLoan({required int profileId, required int id}) async {
+    await (_db.delete(_db.payments)
+          ..where((p) =>
+              p.profileId.equals(profileId) &
+              p.accountType.equalsValue(PaymentAccountType.loan) &
+              p.accountId.equals(id)))
+        .go();
+    final rows = await (_db.delete(_db.loans)
+          ..where((l) => l.profileId.equals(profileId) & l.id.equals(id)))
+        .go();
+    await recordNetWorthSnapshot(profileId: profileId);
+    return rows;
+  }
 
   // ---- Bills ----
 

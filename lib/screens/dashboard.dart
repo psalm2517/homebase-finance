@@ -64,6 +64,82 @@ class DashboardScreen extends ConsumerWidget {
           },
         ),
         kSectionGap,
+        StreamBuilder<List<NetWorthSnapshot>>(
+          stream: repo.watchNetWorthHistory(profileId: profileId),
+          builder: (context, snap) {
+            final history = snap.data ?? [];
+            final first = history.isEmpty ? null : history.first;
+            final last = history.isEmpty ? null : history.last;
+            final change = (first == null || last == null)
+                ? 0
+                : last.netWorthCents - first.netWorthCents;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader('Net worth trend',
+                    icon: Icons.timeline,
+                    info: const InfoButton(
+                      title: 'Net worth trend',
+                      body: [
+                        'Your net worth recorded over time, so you can see '
+                            'the direction rather than just today\'s number.',
+                        'A point is written whenever you change an account, '
+                            'card or loan balance, and once when you open '
+                            'Homebase on a new day. Only one point is kept '
+                            'per day — later edits update that day rather '
+                            'than adding another.',
+                        'The dashed line is zero. Below it you owe more than '
+                            'you own, which is common with a car loan or '
+                            'student debt; what matters is the slope.',
+                        'History starts from when you first ran this version, '
+                            'so the line will look short until a few days '
+                            'have passed.',
+                      ],
+                    ),
+                    action: history.length < 2
+                        ? null
+                        : Text(
+                            '${change >= 0 ? '+' : ''}${fmtCents(change)} '
+                            'over ${history.length} days',
+                            style: TextStyle(
+                                color: change >= 0
+                                    ? scheme.primary
+                                    : scheme.error),
+                          )),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: history.length < 2
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: EmptyState(
+                              icon: Icons.timeline,
+                              title: 'Not enough history yet',
+                              message:
+                                  'Come back tomorrow, or change a balance, '
+                                  'and the trend will start to build.',
+                            ),
+                          )
+                        : SizedBox(
+                            height: 220,
+                            child: CustomPaint(
+                              size: Size.infinite,
+                              painter: _NetWorthChartPainter(
+                                history: history,
+                                line: scheme.primary,
+                                negative: scheme.error,
+                                label: scheme.onSurface,
+                                grid: scheme.outline,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        kSectionGap,
         StreamBuilder<List<CreditCard>>(
           stream: repo.watchCards(profileId: profileId),
           builder: (context, snap) {
@@ -520,4 +596,106 @@ class _ScoreChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ScoreChartPainter old) =>
       old.scores != scores || old.lineColor != lineColor;
+}
+
+/// Net worth over time. Handles negative values by anchoring the scale to
+/// include zero and drawing a dashed baseline there.
+class _NetWorthChartPainter extends CustomPainter {
+  _NetWorthChartPainter({
+    required this.history,
+    required this.line,
+    required this.negative,
+    required this.label,
+    required this.grid,
+  });
+
+  final List<NetWorthSnapshot> history;
+  final Color line;
+  final Color negative;
+  final Color label;
+  final Color grid;
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (history.length < 2) return;
+    const labelHeight = 20.0;
+    final chartHeight = size.height - labelHeight;
+
+    final values = history.map((s) => s.netWorthCents).toList();
+    // Always include zero so the baseline is meaningful.
+    var minValue = values.reduce((a, b) => a < b ? a : b);
+    var maxValue = values.reduce((a, b) => a > b ? a : b);
+    if (minValue > 0) minValue = 0;
+    if (maxValue < 0) maxValue = 0;
+    final range = (maxValue - minValue) == 0 ? 1 : (maxValue - minValue);
+
+    double yFor(int cents) =>
+        chartHeight - ((cents - minValue) / range) * (chartHeight - 8) - 4;
+    double xFor(int i) =>
+        history.length == 1 ? size.width / 2 : i * size.width / (history.length - 1);
+
+    // Zero baseline, dashed.
+    final zeroY = yFor(0);
+    final dash = Paint()
+      ..color = grid.withValues(alpha: 0.6)
+      ..strokeWidth = 1;
+    for (var x = 0.0; x < size.width; x += 8) {
+      canvas.drawLine(Offset(x, zeroY), Offset(x + 4, zeroY), dash);
+    }
+
+    final path = Path()..moveTo(xFor(0), yFor(values[0]));
+    for (var i = 1; i < values.length; i++) {
+      path.lineTo(xFor(i), yFor(values[i]));
+    }
+
+    // Soft fill under the line, tinted by whether it ends up or down.
+    final ending = values.last >= 0 ? line : negative;
+    final fill = Path.from(path)
+      ..lineTo(xFor(values.length - 1), zeroY)
+      ..lineTo(xFor(0), zeroY)
+      ..close();
+    canvas.drawPath(fill, Paint()..color = ending.withValues(alpha: 0.12));
+
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = ending
+          ..strokeWidth = 2.5
+          ..style = PaintingStyle.stroke);
+
+    // End point emphasised with its value.
+    final lastX = xFor(values.length - 1);
+    final lastY = yFor(values.last);
+    canvas.drawCircle(Offset(lastX, lastY), 4, Paint()..color = ending);
+
+    void drawText(String text, Offset at, {Color? color, bool right = false}) {
+      final tp = TextPainter(
+        text: TextSpan(
+            text: text,
+            style: TextStyle(color: color ?? label, fontSize: 11)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, at - (right ? Offset(tp.width, 0) : Offset.zero));
+    }
+
+    drawText(fmtCents(values.last),
+        Offset(lastX - 6, lastY - 18), color: ending, right: true);
+
+    // First and last dates along the bottom.
+    final firstDate = history.first.date;
+    final lastDate = history.last.date;
+    drawText('${_months[firstDate.month - 1]} ${firstDate.day}',
+        Offset(0, size.height - labelHeight + 4));
+    drawText('${_months[lastDate.month - 1]} ${lastDate.day}',
+        Offset(size.width, size.height - labelHeight + 4), right: true);
+  }
+
+  @override
+  bool shouldRepaint(_NetWorthChartPainter old) =>
+      old.history != history || old.line != line;
 }

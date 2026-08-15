@@ -42,6 +42,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       await repo.materializeReceivedPaychecks(profileId: profileId);
       await repo.materializeAutopayPayments(
           profileId: profileId, month: now);
+      // A point for today even on a day with no edits.
+      await repo.recordNetWorthSnapshot(profileId: profileId);
     });
   }
 

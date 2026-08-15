@@ -276,6 +276,8 @@ class HomebaseRepository {
                 target: [_db.billPayments.billId,
                     _db.billPayments.periodStart]),
           );
+      await _syncBillPaymentEntry(
+          profileId: profileId, billId: billId, periodStart: periodStart);
     } else {
       await (_db.delete(_db.billPayments)
             ..where((p) =>
@@ -290,6 +292,62 @@ class HomebaseRepository {
       (_db.delete(_db.bills)
             ..where((b) => b.profileId.equals(profileId) & b.id.equals(id)))
           .go();
+
+  /// Creates the expense entry that mirrors a bill payment, so paying a bill
+  /// shows up in the month's spending without typing it twice. Un-paying
+  /// removes the payment row, and the cascade removes this entry with it.
+  Future<void> _syncBillPaymentEntry({
+    required int profileId,
+    required int billId,
+    required DateTime periodStart,
+  }) async {
+    final payment = await (_db.select(_db.billPayments)
+          ..where((p) =>
+              p.billId.equals(billId) & p.periodStart.equals(periodStart)))
+        .getSingleOrNull();
+    if (payment == null) return;
+
+    final existing = await (_db.select(_db.budgetEntries)
+          ..where((e) => e.sourceBillPaymentId.equals(payment.id)))
+        .getSingleOrNull();
+    if (existing != null) return; // already mirrored
+
+    final bill = await (_db.select(_db.bills)..where((b) => b.id.equals(billId)))
+        .getSingle();
+    await _db.into(_db.budgetEntries).insert(BudgetEntriesCompanion.insert(
+          profileId: profileId,
+          date: dayInMonth(periodStart.year, periodStart.month, bill.dueDay),
+          amountCents: bill.amountCents,
+          type: EntryType.expense,
+          category: Value(bill.category),
+          description: Value(bill.name),
+          sourceBillPaymentId: Value(payment.id),
+        ));
+  }
+
+  /// Autopay bills are treated as paid once their due date passes, but that
+  /// status is computed rather than stored. This writes the real payment
+  /// rows (and their expense entries) for any autopay bill now past due in
+  /// [month], so autopay spending appears in the budget like everything
+  /// else. Idempotent — safe to call on every screen load.
+  Future<void> materializeAutopayPayments({
+    required int profileId,
+    required DateTime month,
+  }) async {
+    final periodStart = DateTime(month.year, month.month);
+    final today = DateTime.now();
+    final bills = await (_db.select(_db.bills)
+          ..where((b) => b.profileId.equals(profileId) & b.autopay.equals(true)))
+        .get();
+    for (final bill in bills) {
+      if (!billFallsIn(bill, periodStart)) continue;
+      final due =
+          dayInMonth(periodStart.year, periodStart.month, bill.dueDay);
+      if (due.isAfter(DateTime(today.year, today.month, today.day))) continue;
+      await setBillPaid(
+          profileId: profileId, billId: bill.id, month: periodStart, paid: true);
+    }
+  }
 
   /// Clamps [day] to a month that may be shorter (a 31st due date lands on
   /// the 28th in February).

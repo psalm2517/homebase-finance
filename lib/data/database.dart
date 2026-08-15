@@ -131,6 +131,12 @@ class BudgetEntries extends Table {
   /// marked received — keeps the two in sync instead of double-entry.
   IntColumn get sourcePaycheckId =>
       integer().nullable().references(Paychecks, #id, onDelete: KeyAction.cascade)();
+
+  /// Set when this entry was generated automatically because a bill was
+  /// marked paid. Deleting the payment (or the bill) removes this entry.
+  IntColumn get sourceBillPaymentId => integer()
+      .nullable()
+      .references(BillPayments, #id, onDelete: KeyAction.cascade)();
 }
 
 /// Per-category monthly spending target for the budget screen.
@@ -223,7 +229,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -275,6 +281,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 6) {
             await m.addColumn(budgetEntries, budgetEntries.sourcePaycheckId);
+          }
+          if (from < 7) {
+            await m.addColumn(
+                budgetEntries, budgetEntries.sourceBillPaymentId);
           }
           if (from < 4) {
             // Rebuild bills once, after every column addition (including

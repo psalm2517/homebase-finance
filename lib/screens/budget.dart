@@ -287,9 +287,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                       'are built from.',
                   'A paycheck marked received on the Paychecks screen drops '
                       'an income entry here automatically, amount and bonus '
-                      'included, so you do not have to enter it twice. It '
-                      'shows a paycheck icon and cannot be deleted directly '
-                      '— mark the paycheck unreceived instead.',
+                      'included, so you do not have to enter it twice.',
+                  'A bill marked paid does the same on the expense side, '
+                      'using the bill\'s amount and category. Autopay bills '
+                      'do it themselves once their due date passes.',
+                  'Both kinds show a source icon and cannot be deleted here '
+                      '— un-mark them on Paychecks or Bills instead, so the '
+                      'two screens can never disagree.',
                   'Everything else — groceries, a side gig, cash you found '
                       'in a coat pocket — you add yourself with Add entry.',
                 ],
@@ -315,16 +319,19 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                       leading: Icon(
                           e.sourcePaycheckId != null
                               ? Icons.payments_outlined
-                              : e.type == EntryType.income
-                                  ? Icons.arrow_downward
-                                  : Icons.arrow_upward,
+                              : e.sourceBillPaymentId != null
+                                  ? Icons.receipt_long_outlined
+                                  : e.type == EntryType.income
+                                      ? Icons.arrow_downward
+                                      : Icons.arrow_upward,
                           color: e.type == EntryType.income
                               ? scheme.primary
                               : scheme.error),
                       title: Text(e.description ?? e.category),
                       subtitle: Text(
                           '${e.category} • ${e.date.year}-${e.date.month.toString().padLeft(2, '0')}-${e.date.day.toString().padLeft(2, '0')}'
-                          '${e.sourcePaycheckId != null ? ' • from a paycheck' : ''}'),
+                          '${e.sourcePaycheckId != null ? ' • from a paycheck' : ''}'
+                          '${e.sourceBillPaymentId != null ? ' • from a bill' : ''}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -334,9 +341,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                             tooltip: e.sourcePaycheckId != null
                                 ? 'Managed by its paycheck — mark it '
                                     'unreceived on Paychecks to remove this'
-                                : 'Delete',
+                                : e.sourceBillPaymentId != null
+                                    ? 'Managed by its bill — mark it unpaid '
+                                        'on Bills to remove this'
+                                    : 'Delete',
                             icon: const Icon(Icons.delete_outline, size: 18),
-                            onPressed: e.sourcePaycheckId != null
+                            onPressed: (e.sourcePaycheckId != null ||
+                                    e.sourceBillPaymentId != null)
                                 ? null
                                 : () => ref
                                     .read(repositoryProvider)

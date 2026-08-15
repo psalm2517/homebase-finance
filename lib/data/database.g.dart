@@ -4432,6 +4432,19 @@ class $BudgetEntriesTable extends BudgetEntries
       'REFERENCES paychecks (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _sourceBillPaymentIdMeta =
+      const VerificationMeta('sourceBillPaymentId');
+  @override
+  late final GeneratedColumn<int> sourceBillPaymentId = GeneratedColumn<int>(
+    'source_bill_payment_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES bill_payments (id) ON DELETE CASCADE',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4443,6 +4456,7 @@ class $BudgetEntriesTable extends BudgetEntries
     description,
     accountId,
     sourcePaycheckId,
+    sourceBillPaymentId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4516,6 +4530,15 @@ class $BudgetEntriesTable extends BudgetEntries
         ),
       );
     }
+    if (data.containsKey('source_bill_payment_id')) {
+      context.handle(
+        _sourceBillPaymentIdMeta,
+        sourceBillPaymentId.isAcceptableOrUnknown(
+          data['source_bill_payment_id']!,
+          _sourceBillPaymentIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4563,6 +4586,10 @@ class $BudgetEntriesTable extends BudgetEntries
         DriftSqlType.int,
         data['${effectivePrefix}source_paycheck_id'],
       ),
+      sourceBillPaymentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_bill_payment_id'],
+      ),
     );
   }
 
@@ -4590,6 +4617,10 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
   /// Set when this entry was generated automatically because a paycheck was
   /// marked received — keeps the two in sync instead of double-entry.
   final int? sourcePaycheckId;
+
+  /// Set when this entry was generated automatically because a bill was
+  /// marked paid. Deleting the payment (or the bill) removes this entry.
+  final int? sourceBillPaymentId;
   const BudgetEntry({
     required this.id,
     required this.profileId,
@@ -4600,6 +4631,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     this.description,
     this.accountId,
     this.sourcePaycheckId,
+    this.sourceBillPaymentId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4623,6 +4655,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     if (!nullToAbsent || sourcePaycheckId != null) {
       map['source_paycheck_id'] = Variable<int>(sourcePaycheckId);
     }
+    if (!nullToAbsent || sourceBillPaymentId != null) {
+      map['source_bill_payment_id'] = Variable<int>(sourceBillPaymentId);
+    }
     return map;
   }
 
@@ -4643,6 +4678,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       sourcePaycheckId: sourcePaycheckId == null && nullToAbsent
           ? const Value.absent()
           : Value(sourcePaycheckId),
+      sourceBillPaymentId: sourceBillPaymentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceBillPaymentId),
     );
   }
 
@@ -4663,6 +4701,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       description: serializer.fromJson<String?>(json['description']),
       accountId: serializer.fromJson<int?>(json['accountId']),
       sourcePaycheckId: serializer.fromJson<int?>(json['sourcePaycheckId']),
+      sourceBillPaymentId: serializer.fromJson<int?>(
+        json['sourceBillPaymentId'],
+      ),
     );
   }
   @override
@@ -4680,6 +4721,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       'description': serializer.toJson<String?>(description),
       'accountId': serializer.toJson<int?>(accountId),
       'sourcePaycheckId': serializer.toJson<int?>(sourcePaycheckId),
+      'sourceBillPaymentId': serializer.toJson<int?>(sourceBillPaymentId),
     };
   }
 
@@ -4693,6 +4735,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     Value<String?> description = const Value.absent(),
     Value<int?> accountId = const Value.absent(),
     Value<int?> sourcePaycheckId = const Value.absent(),
+    Value<int?> sourceBillPaymentId = const Value.absent(),
   }) => BudgetEntry(
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
@@ -4705,6 +4748,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     sourcePaycheckId: sourcePaycheckId.present
         ? sourcePaycheckId.value
         : this.sourcePaycheckId,
+    sourceBillPaymentId: sourceBillPaymentId.present
+        ? sourceBillPaymentId.value
+        : this.sourceBillPaymentId,
   );
   BudgetEntry copyWithCompanion(BudgetEntriesCompanion data) {
     return BudgetEntry(
@@ -4723,6 +4769,9 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
       sourcePaycheckId: data.sourcePaycheckId.present
           ? data.sourcePaycheckId.value
           : this.sourcePaycheckId,
+      sourceBillPaymentId: data.sourceBillPaymentId.present
+          ? data.sourceBillPaymentId.value
+          : this.sourceBillPaymentId,
     );
   }
 
@@ -4737,7 +4786,8 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
           ..write('type: $type, ')
           ..write('description: $description, ')
           ..write('accountId: $accountId, ')
-          ..write('sourcePaycheckId: $sourcePaycheckId')
+          ..write('sourcePaycheckId: $sourcePaycheckId, ')
+          ..write('sourceBillPaymentId: $sourceBillPaymentId')
           ..write(')'))
         .toString();
   }
@@ -4753,6 +4803,7 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
     description,
     accountId,
     sourcePaycheckId,
+    sourceBillPaymentId,
   );
   @override
   bool operator ==(Object other) =>
@@ -4766,7 +4817,8 @@ class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
           other.type == this.type &&
           other.description == this.description &&
           other.accountId == this.accountId &&
-          other.sourcePaycheckId == this.sourcePaycheckId);
+          other.sourcePaycheckId == this.sourcePaycheckId &&
+          other.sourceBillPaymentId == this.sourceBillPaymentId);
 }
 
 class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
@@ -4779,6 +4831,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
   final Value<String?> description;
   final Value<int?> accountId;
   final Value<int?> sourcePaycheckId;
+  final Value<int?> sourceBillPaymentId;
   const BudgetEntriesCompanion({
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
@@ -4789,6 +4842,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     this.description = const Value.absent(),
     this.accountId = const Value.absent(),
     this.sourcePaycheckId = const Value.absent(),
+    this.sourceBillPaymentId = const Value.absent(),
   });
   BudgetEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -4800,6 +4854,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     this.description = const Value.absent(),
     this.accountId = const Value.absent(),
     this.sourcePaycheckId = const Value.absent(),
+    this.sourceBillPaymentId = const Value.absent(),
   }) : profileId = Value(profileId),
        date = Value(date),
        amountCents = Value(amountCents),
@@ -4814,6 +4869,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     Expression<String>? description,
     Expression<int>? accountId,
     Expression<int>? sourcePaycheckId,
+    Expression<int>? sourceBillPaymentId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4825,6 +4881,8 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
       if (description != null) 'description': description,
       if (accountId != null) 'account_id': accountId,
       if (sourcePaycheckId != null) 'source_paycheck_id': sourcePaycheckId,
+      if (sourceBillPaymentId != null)
+        'source_bill_payment_id': sourceBillPaymentId,
     });
   }
 
@@ -4838,6 +4896,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     Value<String?>? description,
     Value<int?>? accountId,
     Value<int?>? sourcePaycheckId,
+    Value<int?>? sourceBillPaymentId,
   }) {
     return BudgetEntriesCompanion(
       id: id ?? this.id,
@@ -4849,6 +4908,7 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
       description: description ?? this.description,
       accountId: accountId ?? this.accountId,
       sourcePaycheckId: sourcePaycheckId ?? this.sourcePaycheckId,
+      sourceBillPaymentId: sourceBillPaymentId ?? this.sourceBillPaymentId,
     );
   }
 
@@ -4884,6 +4944,9 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
     if (sourcePaycheckId.present) {
       map['source_paycheck_id'] = Variable<int>(sourcePaycheckId.value);
     }
+    if (sourceBillPaymentId.present) {
+      map['source_bill_payment_id'] = Variable<int>(sourceBillPaymentId.value);
+    }
     return map;
   }
 
@@ -4898,7 +4961,8 @@ class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
           ..write('type: $type, ')
           ..write('description: $description, ')
           ..write('accountId: $accountId, ')
-          ..write('sourcePaycheckId: $sourcePaycheckId')
+          ..write('sourcePaycheckId: $sourcePaycheckId, ')
+          ..write('sourceBillPaymentId: $sourceBillPaymentId')
           ..write(')'))
         .toString();
   }
@@ -6107,6 +6171,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'paychecks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('budget_entries', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'bill_payments',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('budget_entries', kind: UpdateKind.delete)],
@@ -9298,6 +9369,24 @@ final class $$BillPaymentsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<$BudgetEntriesTable, List<BudgetEntry>>
+  _budgetEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.budgetEntries,
+    aliasName: 'bill_payments__id__budget_entries__source_bill_payment_id',
+  );
+
+  $$BudgetEntriesTableProcessedTableManager get budgetEntriesRefs {
+    final manager = $$BudgetEntriesTableTableManager($_db, $_db.budgetEntries)
+        .filter(
+          (f) => f.sourceBillPaymentId.id.sqlEquals($_itemColumn<int>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(_budgetEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$BillPaymentsTableFilterComposer
@@ -9368,6 +9457,31 @@ class $$BillPaymentsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> budgetEntriesRefs(
+    Expression<bool> Function($$BudgetEntriesTableFilterComposer f) f,
+  ) {
+    final $$BudgetEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetEntries,
+      getReferencedColumn: (t) => t.sourceBillPaymentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -9507,6 +9621,31 @@ class $$BillPaymentsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> budgetEntriesRefs<T extends Object>(
+    Expression<T> Function($$BudgetEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$BudgetEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetEntries,
+      getReferencedColumn: (t) => t.sourceBillPaymentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BillPaymentsTableTableManager
@@ -9522,7 +9661,11 @@ class $$BillPaymentsTableTableManager
           $$BillPaymentsTableUpdateCompanionBuilder,
           (BillPayment, $$BillPaymentsTableReferences),
           BillPayment,
-          PrefetchHooks Function({bool profileId, bool billId})
+          PrefetchHooks Function({
+            bool profileId,
+            bool billId,
+            bool budgetEntriesRefs,
+          })
         > {
   $$BillPaymentsTableTableManager(_$AppDatabase db, $BillPaymentsTable table)
     : super(
@@ -9571,56 +9714,81 @@ class $$BillPaymentsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({profileId = false, billId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (profileId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.profileId,
-                        referencedTable: $$BillPaymentsTableReferences
-                            ._profileIdTable(db),
-                        referencedColumn: $$BillPaymentsTableReferences
-                            ._profileIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-                    if (billId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.billId,
-                        referencedTable: $$BillPaymentsTableReferences
-                            ._billIdTable(db),
-                        referencedColumn: $$BillPaymentsTableReferences
-                            ._billIdTable(db)
-                            .id,
-                      ) as T;
-                    }
+          prefetchHooksCallback:
+              ({profileId = false, billId = false, budgetEntriesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (budgetEntriesRefs) db.budgetEntries,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (profileId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.profileId,
+                            referencedTable: $$BillPaymentsTableReferences
+                                ._profileIdTable(db),
+                            referencedColumn: $$BillPaymentsTableReferences
+                                ._profileIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (billId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.billId,
+                            referencedTable: $$BillPaymentsTableReferences
+                                ._billIdTable(db),
+                            referencedColumn: $$BillPaymentsTableReferences
+                                ._billIdTable(db)
+                                .id,
+                          ) as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (budgetEntriesRefs)
+                        await $_getPrefetchedData<
+                          BillPayment,
+                          $BillPaymentsTable,
+                          BudgetEntry
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BillPaymentsTableReferences
+                              ._budgetEntriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BillPaymentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).budgetEntriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sourceBillPaymentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -9637,7 +9805,11 @@ typedef $$BillPaymentsTableProcessedTableManager =
       $$BillPaymentsTableUpdateCompanionBuilder,
       (BillPayment, $$BillPaymentsTableReferences),
       BillPayment,
-      PrefetchHooks Function({bool profileId, bool billId})
+      PrefetchHooks Function({
+        bool profileId,
+        bool billId,
+        bool budgetEntriesRefs,
+      })
     >;
 typedef $$CreditScoreSnapshotsTableCreateCompanionBuilder =
     CreditScoreSnapshotsCompanion Function({
@@ -11154,6 +11326,7 @@ typedef $$BudgetEntriesTableCreateCompanionBuilder =
       Value<String?> description,
       Value<int?> accountId,
       Value<int?> sourcePaycheckId,
+      Value<int?> sourceBillPaymentId,
     });
 typedef $$BudgetEntriesTableUpdateCompanionBuilder =
     BudgetEntriesCompanion Function({
@@ -11166,6 +11339,7 @@ typedef $$BudgetEntriesTableUpdateCompanionBuilder =
       Value<String?> description,
       Value<int?> accountId,
       Value<int?> sourcePaycheckId,
+      Value<int?> sourceBillPaymentId,
     });
 
 final class $$BudgetEntriesTableReferences
@@ -11222,6 +11396,24 @@ final class $$BudgetEntriesTableReferences
       $_db.paychecks,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_sourcePaycheckIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $BillPaymentsTable _sourceBillPaymentIdTable(_$AppDatabase db) => db
+      .billPayments
+      .createAlias('budget_entries__source_bill_payment_id__bill_payments__id');
+
+  $$BillPaymentsTableProcessedTableManager? get sourceBillPaymentId {
+    final $_column = $_itemColumn<int>('source_bill_payment_id');
+    if ($_column == null) return null;
+    final manager = $$BillPaymentsTableTableManager(
+      $_db,
+      $_db.billPayments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sourceBillPaymentIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -11329,6 +11521,29 @@ class $$BudgetEntriesTableFilterComposer
           }) => $$PaychecksTableFilterComposer(
             $db: $db,
             $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$BillPaymentsTableFilterComposer get sourceBillPaymentId {
+    final $$BillPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceBillPaymentId,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.billPayments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11446,6 +11661,29 @@ class $$BudgetEntriesTableOrderingComposer
     );
     return composer;
   }
+
+  $$BillPaymentsTableOrderingComposer get sourceBillPaymentId {
+    final $$BillPaymentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceBillPaymentId,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.billPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$BudgetEntriesTableAnnotationComposer
@@ -11547,6 +11785,29 @@ class $$BudgetEntriesTableAnnotationComposer
     );
     return composer;
   }
+
+  $$BillPaymentsTableAnnotationComposer get sourceBillPaymentId {
+    final $$BillPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceBillPaymentId,
+      referencedTable: $db.billPayments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.billPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$BudgetEntriesTableTableManager
@@ -11566,6 +11827,7 @@ class $$BudgetEntriesTableTableManager
             bool profileId,
             bool accountId,
             bool sourcePaycheckId,
+            bool sourceBillPaymentId,
           })
         > {
   $$BudgetEntriesTableTableManager(_$AppDatabase db, $BudgetEntriesTable table)
@@ -11590,6 +11852,7 @@ class $$BudgetEntriesTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<int?> accountId = const Value.absent(),
                 Value<int?> sourcePaycheckId = const Value.absent(),
+                Value<int?> sourceBillPaymentId = const Value.absent(),
               }) => BudgetEntriesCompanion(
                 id: id,
                 profileId: profileId,
@@ -11600,6 +11863,7 @@ class $$BudgetEntriesTableTableManager
                 description: description,
                 accountId: accountId,
                 sourcePaycheckId: sourcePaycheckId,
+                sourceBillPaymentId: sourceBillPaymentId,
               ),
           createCompanionCallback:
               ({
@@ -11612,6 +11876,7 @@ class $$BudgetEntriesTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<int?> accountId = const Value.absent(),
                 Value<int?> sourcePaycheckId = const Value.absent(),
+                Value<int?> sourceBillPaymentId = const Value.absent(),
               }) => BudgetEntriesCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -11622,6 +11887,7 @@ class $$BudgetEntriesTableTableManager
                 description: description,
                 accountId: accountId,
                 sourcePaycheckId: sourcePaycheckId,
+                sourceBillPaymentId: sourceBillPaymentId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -11636,6 +11902,7 @@ class $$BudgetEntriesTableTableManager
                 profileId = false,
                 accountId = false,
                 sourcePaycheckId = false,
+                sourceBillPaymentId = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -11689,6 +11956,17 @@ class $$BudgetEntriesTableTableManager
                                 .id,
                           ) as T;
                         }
+                        if (sourceBillPaymentId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.sourceBillPaymentId,
+                            referencedTable: $$BudgetEntriesTableReferences
+                                ._sourceBillPaymentIdTable(db),
+                            referencedColumn: $$BudgetEntriesTableReferences
+                                ._sourceBillPaymentIdTable(db)
+                                .id,
+                          ) as T;
+                        }
 
                         return state;
                       },
@@ -11717,6 +11995,7 @@ typedef $$BudgetEntriesTableProcessedTableManager =
         bool profileId,
         bool accountId,
         bool sourcePaycheckId,
+        bool sourceBillPaymentId,
       })
     >;
 typedef $$BudgetTargetsTableCreateCompanionBuilder =

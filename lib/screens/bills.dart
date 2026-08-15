@@ -44,6 +44,24 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _materializeAutopay();
+  }
+
+  /// Write real payment rows for autopay bills already past due, so their
+  /// spending reaches the budget instead of only being implied.
+  void _materializeAutopay() {
+    Future.microtask(() {
+      if (!mounted) return;
+      ref.read(repositoryProvider).materializeAutopayPayments(
+            profileId: ref.read(activeProfileProvider)!.id,
+            month: _month,
+          );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
     final profileId = ref.watch(activeProfileProvider)!.id;
@@ -180,16 +198,22 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
             IconButton(
               tooltip: 'Previous month',
               icon: const Icon(Icons.chevron_left),
-              onPressed: () => setState(
-                  () => _month = DateTime(_month.year, _month.month - 1)),
+              onPressed: () {
+                setState(
+                    () => _month = DateTime(_month.year, _month.month - 1));
+                _materializeAutopay();
+              },
             ),
             Text('${_monthNames[_month.month - 1]} ${_month.year}',
                 style: Theme.of(context).textTheme.titleMedium),
             IconButton(
               tooltip: 'Next month',
               icon: const Icon(Icons.chevron_right),
-              onPressed: () => setState(
-                  () => _month = DateTime(_month.year, _month.month + 1)),
+              onPressed: () {
+                setState(
+                    () => _month = DateTime(_month.year, _month.month + 1));
+                _materializeAutopay();
+              },
             ),
             if (!_isCurrentMonth)
               TextButton.icon(

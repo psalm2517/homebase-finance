@@ -576,8 +576,44 @@ class HomebaseRepository {
             ..orderBy([(p) => OrderingTerm.desc(p.date)]))
           .watch();
 
-  Future<int> upsertPaycheck(PaychecksCompanion entry) =>
-      _db.into(_db.paychecks).insertOnConflictUpdate(entry);
+  /// Saves the paycheck, then keeps its linked income entry in sync: a
+  /// received paycheck gets (or updates) an income row in Entries so the
+  /// Budget screen's totals include it without you re-entering the amount;
+  /// un-marking it removes that entry again.
+  Future<int> upsertPaycheck(PaychecksCompanion entry) async {
+    final id = await _db.into(_db.paychecks).insertOnConflictUpdate(entry);
+    final paycheck =
+        await (_db.select(_db.paychecks)..where((p) => p.id.equals(id)))
+            .getSingle();
+    await _syncPaycheckEntry(paycheck);
+    return id;
+  }
+
+  Future<void> _syncPaycheckEntry(Paycheck paycheck) async {
+    final existing = await (_db.select(_db.budgetEntries)
+          ..where((e) => e.sourcePaycheckId.equals(paycheck.id)))
+        .getSingleOrNull();
+    if (paycheck.received) {
+      await _db.into(_db.budgetEntries).insertOnConflictUpdate(
+            BudgetEntriesCompanion(
+              id: existing == null
+                  ? const Value.absent()
+                  : Value(existing.id),
+              profileId: Value(paycheck.profileId),
+              date: Value(paycheck.date),
+              category: const Value('Paycheck'),
+              amountCents:
+                  Value(paycheck.amountCents + paycheck.bonusCents),
+              type: const Value(EntryType.income),
+              description: Value(paycheck.name),
+              sourcePaycheckId: Value(paycheck.id),
+            ),
+          );
+    } else if (existing != null) {
+      await (_db.delete(_db.budgetEntries)..where((e) => e.id.equals(existing.id)))
+          .go();
+    }
+  }
 
   /// Deleting a paycheck cascades to its allocations.
   Future<int> deletePaycheck({required int profileId, required int id}) =>

@@ -1,4 +1,3 @@
-import 'package:async/async.dart' show StreamZip;
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,7 +42,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
 
   Stream<_PlanData> _watchPlan(HomebaseRepository repo, int profileId) {
-    return StreamZip([
+    return combineLatest<dynamic>([
       repo.watchBudgetForMonth(profileId: profileId, month: _month),
       repo.watchBudgetTargets(profileId: profileId),
       repo.watchMonthlyIncomeCents(profileId: profileId),
@@ -278,7 +277,23 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               ),
             ),
           const SizedBox(height: 24),
-          const SectionHeader('Entries', icon: Icons.list_alt_outlined),
+          SectionHeader('Entries',
+              icon: Icons.list_alt_outlined,
+              info: InfoButton(
+                title: 'Entries',
+                body: [
+                  'The month\'s actual income and expenses — this is what '
+                      '"Income", "Expenses" and the category breakdown above '
+                      'are built from.',
+                  'A paycheck marked received on the Paychecks screen drops '
+                      'an income entry here automatically, amount and bonus '
+                      'included, so you do not have to enter it twice. It '
+                      'shows a paycheck icon and cannot be deleted directly '
+                      '— mark the paycheck unreceived instead.',
+                  'Everything else — groceries, a side gig, cash you found '
+                      'in a coat pocket — you add yourself with Add entry.',
+                ],
+              )),
           if (entries.isEmpty)
             const Card(
               child: Padding(
@@ -298,29 +313,38 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   for (final e in entries)
                     ListTile(
                       leading: Icon(
-                          e.type == EntryType.income
-                              ? Icons.arrow_downward
-                              : Icons.arrow_upward,
+                          e.sourcePaycheckId != null
+                              ? Icons.payments_outlined
+                              : e.type == EntryType.income
+                                  ? Icons.arrow_downward
+                                  : Icons.arrow_upward,
                           color: e.type == EntryType.income
                               ? scheme.primary
                               : scheme.error),
                       title: Text(e.description ?? e.category),
                       subtitle: Text(
-                          '${e.category} • ${e.date.year}-${e.date.month.toString().padLeft(2, '0')}-${e.date.day.toString().padLeft(2, '0')}'),
+                          '${e.category} • ${e.date.year}-${e.date.month.toString().padLeft(2, '0')}-${e.date.day.toString().padLeft(2, '0')}'
+                          '${e.sourcePaycheckId != null ? ' • from a paycheck' : ''}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                               '${e.type == EntryType.income ? '+' : '-'}${fmtCents(e.amountCents)}'),
                           IconButton(
+                            tooltip: e.sourcePaycheckId != null
+                                ? 'Managed by its paycheck — mark it '
+                                    'unreceived on Paychecks to remove this'
+                                : 'Delete',
                             icon: const Icon(Icons.delete_outline, size: 18),
-                            onPressed: () => ref
-                                .read(repositoryProvider)
-                                .deleteBudgetEntry(
-                                    profileId: ref
-                                        .read(activeProfileProvider)!
-                                        .id,
-                                    id: e.id),
+                            onPressed: e.sourcePaycheckId != null
+                                ? null
+                                : () => ref
+                                    .read(repositoryProvider)
+                                    .deleteBudgetEntry(
+                                        profileId: ref
+                                            .read(activeProfileProvider)!
+                                            .id,
+                                        id: e.id),
                           ),
                         ],
                       ),

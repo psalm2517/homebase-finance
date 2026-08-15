@@ -3327,1264 +3327,6 @@ class CreditScoreSnapshotsCompanion
   }
 }
 
-class $BudgetEntriesTable extends BudgetEntries
-    with TableInfo<$BudgetEntriesTable, BudgetEntry> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $BudgetEntriesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _profileIdMeta = const VerificationMeta(
-    'profileId',
-  );
-  @override
-  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
-    'profile_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES profiles (id)',
-    ),
-  );
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
-  @override
-  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
-    'date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _categoryMeta = const VerificationMeta(
-    'category',
-  );
-  @override
-  late final GeneratedColumn<String> category = GeneratedColumn<String>(
-    'category',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('Other'),
-  );
-  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
-    'amountCents',
-  );
-  @override
-  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
-    'amount_cents',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<EntryType, String> type =
-      GeneratedColumn<String>(
-        'type',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<EntryType>($BudgetEntriesTable.$convertertype);
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
-  @override
-  late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _accountIdMeta = const VerificationMeta(
-    'accountId',
-  );
-  @override
-  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
-    'account_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES accounts (id)',
-    ),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    profileId,
-    date,
-    category,
-    amountCents,
-    type,
-    description,
-    accountId,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'budget_entries';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<BudgetEntry> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('profile_id')) {
-      context.handle(
-        _profileIdMeta,
-        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_profileIdMeta);
-    }
-    if (data.containsKey('date')) {
-      context.handle(
-        _dateMeta,
-        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_dateMeta);
-    }
-    if (data.containsKey('category')) {
-      context.handle(
-        _categoryMeta,
-        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
-      );
-    }
-    if (data.containsKey('amount_cents')) {
-      context.handle(
-        _amountCentsMeta,
-        amountCents.isAcceptableOrUnknown(
-          data['amount_cents']!,
-          _amountCentsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_amountCentsMeta);
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
-          _descriptionMeta,
-        ),
-      );
-    }
-    if (data.containsKey('account_id')) {
-      context.handle(
-        _accountIdMeta,
-        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  BudgetEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return BudgetEntry(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      profileId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}profile_id'],
-      )!,
-      date: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}date'],
-      )!,
-      category: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}category'],
-      )!,
-      amountCents: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}amount_cents'],
-      )!,
-      type: $BudgetEntriesTable.$convertertype.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}type'],
-        )!,
-      ),
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      ),
-      accountId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}account_id'],
-      ),
-    );
-  }
-
-  @override
-  $BudgetEntriesTable createAlias(String alias) {
-    return $BudgetEntriesTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<EntryType, String, String> $convertertype =
-      const EnumNameConverter<EntryType>(EntryType.values);
-}
-
-class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
-  final int id;
-  final int profileId;
-  final DateTime date;
-  final String category;
-  final int amountCents;
-  final EntryType type;
-  final String? description;
-
-  /// Which account the money moved through, when known.
-  final int? accountId;
-  const BudgetEntry({
-    required this.id,
-    required this.profileId,
-    required this.date,
-    required this.category,
-    required this.amountCents,
-    required this.type,
-    this.description,
-    this.accountId,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['profile_id'] = Variable<int>(profileId);
-    map['date'] = Variable<DateTime>(date);
-    map['category'] = Variable<String>(category);
-    map['amount_cents'] = Variable<int>(amountCents);
-    {
-      map['type'] = Variable<String>(
-        $BudgetEntriesTable.$convertertype.toSql(type),
-      );
-    }
-    if (!nullToAbsent || description != null) {
-      map['description'] = Variable<String>(description);
-    }
-    if (!nullToAbsent || accountId != null) {
-      map['account_id'] = Variable<int>(accountId);
-    }
-    return map;
-  }
-
-  BudgetEntriesCompanion toCompanion(bool nullToAbsent) {
-    return BudgetEntriesCompanion(
-      id: Value(id),
-      profileId: Value(profileId),
-      date: Value(date),
-      category: Value(category),
-      amountCents: Value(amountCents),
-      type: Value(type),
-      description: description == null && nullToAbsent
-          ? const Value.absent()
-          : Value(description),
-      accountId: accountId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(accountId),
-    );
-  }
-
-  factory BudgetEntry.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return BudgetEntry(
-      id: serializer.fromJson<int>(json['id']),
-      profileId: serializer.fromJson<int>(json['profileId']),
-      date: serializer.fromJson<DateTime>(json['date']),
-      category: serializer.fromJson<String>(json['category']),
-      amountCents: serializer.fromJson<int>(json['amountCents']),
-      type: $BudgetEntriesTable.$convertertype.fromJson(
-        serializer.fromJson<String>(json['type']),
-      ),
-      description: serializer.fromJson<String?>(json['description']),
-      accountId: serializer.fromJson<int?>(json['accountId']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'profileId': serializer.toJson<int>(profileId),
-      'date': serializer.toJson<DateTime>(date),
-      'category': serializer.toJson<String>(category),
-      'amountCents': serializer.toJson<int>(amountCents),
-      'type': serializer.toJson<String>(
-        $BudgetEntriesTable.$convertertype.toJson(type),
-      ),
-      'description': serializer.toJson<String?>(description),
-      'accountId': serializer.toJson<int?>(accountId),
-    };
-  }
-
-  BudgetEntry copyWith({
-    int? id,
-    int? profileId,
-    DateTime? date,
-    String? category,
-    int? amountCents,
-    EntryType? type,
-    Value<String?> description = const Value.absent(),
-    Value<int?> accountId = const Value.absent(),
-  }) => BudgetEntry(
-    id: id ?? this.id,
-    profileId: profileId ?? this.profileId,
-    date: date ?? this.date,
-    category: category ?? this.category,
-    amountCents: amountCents ?? this.amountCents,
-    type: type ?? this.type,
-    description: description.present ? description.value : this.description,
-    accountId: accountId.present ? accountId.value : this.accountId,
-  );
-  BudgetEntry copyWithCompanion(BudgetEntriesCompanion data) {
-    return BudgetEntry(
-      id: data.id.present ? data.id.value : this.id,
-      profileId: data.profileId.present ? data.profileId.value : this.profileId,
-      date: data.date.present ? data.date.value : this.date,
-      category: data.category.present ? data.category.value : this.category,
-      amountCents: data.amountCents.present
-          ? data.amountCents.value
-          : this.amountCents,
-      type: data.type.present ? data.type.value : this.type,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
-      accountId: data.accountId.present ? data.accountId.value : this.accountId,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BudgetEntry(')
-          ..write('id: $id, ')
-          ..write('profileId: $profileId, ')
-          ..write('date: $date, ')
-          ..write('category: $category, ')
-          ..write('amountCents: $amountCents, ')
-          ..write('type: $type, ')
-          ..write('description: $description, ')
-          ..write('accountId: $accountId')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    profileId,
-    date,
-    category,
-    amountCents,
-    type,
-    description,
-    accountId,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is BudgetEntry &&
-          other.id == this.id &&
-          other.profileId == this.profileId &&
-          other.date == this.date &&
-          other.category == this.category &&
-          other.amountCents == this.amountCents &&
-          other.type == this.type &&
-          other.description == this.description &&
-          other.accountId == this.accountId);
-}
-
-class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
-  final Value<int> id;
-  final Value<int> profileId;
-  final Value<DateTime> date;
-  final Value<String> category;
-  final Value<int> amountCents;
-  final Value<EntryType> type;
-  final Value<String?> description;
-  final Value<int?> accountId;
-  const BudgetEntriesCompanion({
-    this.id = const Value.absent(),
-    this.profileId = const Value.absent(),
-    this.date = const Value.absent(),
-    this.category = const Value.absent(),
-    this.amountCents = const Value.absent(),
-    this.type = const Value.absent(),
-    this.description = const Value.absent(),
-    this.accountId = const Value.absent(),
-  });
-  BudgetEntriesCompanion.insert({
-    this.id = const Value.absent(),
-    required int profileId,
-    required DateTime date,
-    this.category = const Value.absent(),
-    required int amountCents,
-    required EntryType type,
-    this.description = const Value.absent(),
-    this.accountId = const Value.absent(),
-  }) : profileId = Value(profileId),
-       date = Value(date),
-       amountCents = Value(amountCents),
-       type = Value(type);
-  static Insertable<BudgetEntry> custom({
-    Expression<int>? id,
-    Expression<int>? profileId,
-    Expression<DateTime>? date,
-    Expression<String>? category,
-    Expression<int>? amountCents,
-    Expression<String>? type,
-    Expression<String>? description,
-    Expression<int>? accountId,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (profileId != null) 'profile_id': profileId,
-      if (date != null) 'date': date,
-      if (category != null) 'category': category,
-      if (amountCents != null) 'amount_cents': amountCents,
-      if (type != null) 'type': type,
-      if (description != null) 'description': description,
-      if (accountId != null) 'account_id': accountId,
-    });
-  }
-
-  BudgetEntriesCompanion copyWith({
-    Value<int>? id,
-    Value<int>? profileId,
-    Value<DateTime>? date,
-    Value<String>? category,
-    Value<int>? amountCents,
-    Value<EntryType>? type,
-    Value<String?>? description,
-    Value<int?>? accountId,
-  }) {
-    return BudgetEntriesCompanion(
-      id: id ?? this.id,
-      profileId: profileId ?? this.profileId,
-      date: date ?? this.date,
-      category: category ?? this.category,
-      amountCents: amountCents ?? this.amountCents,
-      type: type ?? this.type,
-      description: description ?? this.description,
-      accountId: accountId ?? this.accountId,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (profileId.present) {
-      map['profile_id'] = Variable<int>(profileId.value);
-    }
-    if (date.present) {
-      map['date'] = Variable<DateTime>(date.value);
-    }
-    if (category.present) {
-      map['category'] = Variable<String>(category.value);
-    }
-    if (amountCents.present) {
-      map['amount_cents'] = Variable<int>(amountCents.value);
-    }
-    if (type.present) {
-      map['type'] = Variable<String>(
-        $BudgetEntriesTable.$convertertype.toSql(type.value),
-      );
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    if (accountId.present) {
-      map['account_id'] = Variable<int>(accountId.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BudgetEntriesCompanion(')
-          ..write('id: $id, ')
-          ..write('profileId: $profileId, ')
-          ..write('date: $date, ')
-          ..write('category: $category, ')
-          ..write('amountCents: $amountCents, ')
-          ..write('type: $type, ')
-          ..write('description: $description, ')
-          ..write('accountId: $accountId')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $BudgetTargetsTable extends BudgetTargets
-    with TableInfo<$BudgetTargetsTable, BudgetTarget> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $BudgetTargetsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _profileIdMeta = const VerificationMeta(
-    'profileId',
-  );
-  @override
-  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
-    'profile_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES profiles (id)',
-    ),
-  );
-  static const VerificationMeta _categoryMeta = const VerificationMeta(
-    'category',
-  );
-  @override
-  late final GeneratedColumn<String> category = GeneratedColumn<String>(
-    'category',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 64,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _monthlyTargetCentsMeta =
-      const VerificationMeta('monthlyTargetCents');
-  @override
-  late final GeneratedColumn<int> monthlyTargetCents = GeneratedColumn<int>(
-    'monthly_target_cents',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    profileId,
-    category,
-    monthlyTargetCents,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'budget_targets';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<BudgetTarget> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('profile_id')) {
-      context.handle(
-        _profileIdMeta,
-        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_profileIdMeta);
-    }
-    if (data.containsKey('category')) {
-      context.handle(
-        _categoryMeta,
-        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_categoryMeta);
-    }
-    if (data.containsKey('monthly_target_cents')) {
-      context.handle(
-        _monthlyTargetCentsMeta,
-        monthlyTargetCents.isAcceptableOrUnknown(
-          data['monthly_target_cents']!,
-          _monthlyTargetCentsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_monthlyTargetCentsMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {profileId, category},
-  ];
-  @override
-  BudgetTarget map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return BudgetTarget(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      profileId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}profile_id'],
-      )!,
-      category: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}category'],
-      )!,
-      monthlyTargetCents: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}monthly_target_cents'],
-      )!,
-    );
-  }
-
-  @override
-  $BudgetTargetsTable createAlias(String alias) {
-    return $BudgetTargetsTable(attachedDatabase, alias);
-  }
-}
-
-class BudgetTarget extends DataClass implements Insertable<BudgetTarget> {
-  final int id;
-  final int profileId;
-  final String category;
-  final int monthlyTargetCents;
-  const BudgetTarget({
-    required this.id,
-    required this.profileId,
-    required this.category,
-    required this.monthlyTargetCents,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['profile_id'] = Variable<int>(profileId);
-    map['category'] = Variable<String>(category);
-    map['monthly_target_cents'] = Variable<int>(monthlyTargetCents);
-    return map;
-  }
-
-  BudgetTargetsCompanion toCompanion(bool nullToAbsent) {
-    return BudgetTargetsCompanion(
-      id: Value(id),
-      profileId: Value(profileId),
-      category: Value(category),
-      monthlyTargetCents: Value(monthlyTargetCents),
-    );
-  }
-
-  factory BudgetTarget.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return BudgetTarget(
-      id: serializer.fromJson<int>(json['id']),
-      profileId: serializer.fromJson<int>(json['profileId']),
-      category: serializer.fromJson<String>(json['category']),
-      monthlyTargetCents: serializer.fromJson<int>(json['monthlyTargetCents']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'profileId': serializer.toJson<int>(profileId),
-      'category': serializer.toJson<String>(category),
-      'monthlyTargetCents': serializer.toJson<int>(monthlyTargetCents),
-    };
-  }
-
-  BudgetTarget copyWith({
-    int? id,
-    int? profileId,
-    String? category,
-    int? monthlyTargetCents,
-  }) => BudgetTarget(
-    id: id ?? this.id,
-    profileId: profileId ?? this.profileId,
-    category: category ?? this.category,
-    monthlyTargetCents: monthlyTargetCents ?? this.monthlyTargetCents,
-  );
-  BudgetTarget copyWithCompanion(BudgetTargetsCompanion data) {
-    return BudgetTarget(
-      id: data.id.present ? data.id.value : this.id,
-      profileId: data.profileId.present ? data.profileId.value : this.profileId,
-      category: data.category.present ? data.category.value : this.category,
-      monthlyTargetCents: data.monthlyTargetCents.present
-          ? data.monthlyTargetCents.value
-          : this.monthlyTargetCents,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BudgetTarget(')
-          ..write('id: $id, ')
-          ..write('profileId: $profileId, ')
-          ..write('category: $category, ')
-          ..write('monthlyTargetCents: $monthlyTargetCents')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, profileId, category, monthlyTargetCents);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is BudgetTarget &&
-          other.id == this.id &&
-          other.profileId == this.profileId &&
-          other.category == this.category &&
-          other.monthlyTargetCents == this.monthlyTargetCents);
-}
-
-class BudgetTargetsCompanion extends UpdateCompanion<BudgetTarget> {
-  final Value<int> id;
-  final Value<int> profileId;
-  final Value<String> category;
-  final Value<int> monthlyTargetCents;
-  const BudgetTargetsCompanion({
-    this.id = const Value.absent(),
-    this.profileId = const Value.absent(),
-    this.category = const Value.absent(),
-    this.monthlyTargetCents = const Value.absent(),
-  });
-  BudgetTargetsCompanion.insert({
-    this.id = const Value.absent(),
-    required int profileId,
-    required String category,
-    required int monthlyTargetCents,
-  }) : profileId = Value(profileId),
-       category = Value(category),
-       monthlyTargetCents = Value(monthlyTargetCents);
-  static Insertable<BudgetTarget> custom({
-    Expression<int>? id,
-    Expression<int>? profileId,
-    Expression<String>? category,
-    Expression<int>? monthlyTargetCents,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (profileId != null) 'profile_id': profileId,
-      if (category != null) 'category': category,
-      if (monthlyTargetCents != null)
-        'monthly_target_cents': monthlyTargetCents,
-    });
-  }
-
-  BudgetTargetsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? profileId,
-    Value<String>? category,
-    Value<int>? monthlyTargetCents,
-  }) {
-    return BudgetTargetsCompanion(
-      id: id ?? this.id,
-      profileId: profileId ?? this.profileId,
-      category: category ?? this.category,
-      monthlyTargetCents: monthlyTargetCents ?? this.monthlyTargetCents,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (profileId.present) {
-      map['profile_id'] = Variable<int>(profileId.value);
-    }
-    if (category.present) {
-      map['category'] = Variable<String>(category.value);
-    }
-    if (monthlyTargetCents.present) {
-      map['monthly_target_cents'] = Variable<int>(monthlyTargetCents.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BudgetTargetsCompanion(')
-          ..write('id: $id, ')
-          ..write('profileId: $profileId, ')
-          ..write('category: $category, ')
-          ..write('monthlyTargetCents: $monthlyTargetCents')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $CategoryRulesTable extends CategoryRules
-    with TableInfo<$CategoryRulesTable, CategoryRule> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $CategoryRulesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _profileIdMeta = const VerificationMeta(
-    'profileId',
-  );
-  @override
-  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
-    'profile_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES profiles (id)',
-    ),
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<RuleField, String> field =
-      GeneratedColumn<String>(
-        'field',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<RuleField>($CategoryRulesTable.$converterfield);
-  static const VerificationMeta _patternMeta = const VerificationMeta(
-    'pattern',
-  );
-  @override
-  late final GeneratedColumn<String> pattern = GeneratedColumn<String>(
-    'pattern',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 128,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _categoryMeta = const VerificationMeta(
-    'category',
-  );
-  @override
-  late final GeneratedColumn<String> category = GeneratedColumn<String>(
-    'category',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 64,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _priorityMeta = const VerificationMeta(
-    'priority',
-  );
-  @override
-  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
-    'priority',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    profileId,
-    field,
-    pattern,
-    category,
-    priority,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'category_rules';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<CategoryRule> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('profile_id')) {
-      context.handle(
-        _profileIdMeta,
-        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_profileIdMeta);
-    }
-    if (data.containsKey('pattern')) {
-      context.handle(
-        _patternMeta,
-        pattern.isAcceptableOrUnknown(data['pattern']!, _patternMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_patternMeta);
-    }
-    if (data.containsKey('category')) {
-      context.handle(
-        _categoryMeta,
-        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_categoryMeta);
-    }
-    if (data.containsKey('priority')) {
-      context.handle(
-        _priorityMeta,
-        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  CategoryRule map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CategoryRule(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      profileId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}profile_id'],
-      )!,
-      field: $CategoryRulesTable.$converterfield.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}field'],
-        )!,
-      ),
-      pattern: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}pattern'],
-      )!,
-      category: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}category'],
-      )!,
-      priority: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}priority'],
-      )!,
-    );
-  }
-
-  @override
-  $CategoryRulesTable createAlias(String alias) {
-    return $CategoryRulesTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<RuleField, String, String> $converterfield =
-      const EnumNameConverter<RuleField>(RuleField.values);
-}
-
-class CategoryRule extends DataClass implements Insertable<CategoryRule> {
-  final int id;
-  final int profileId;
-  final RuleField field;
-  final String pattern;
-  final String category;
-  final int priority;
-  const CategoryRule({
-    required this.id,
-    required this.profileId,
-    required this.field,
-    required this.pattern,
-    required this.category,
-    required this.priority,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['profile_id'] = Variable<int>(profileId);
-    {
-      map['field'] = Variable<String>(
-        $CategoryRulesTable.$converterfield.toSql(field),
-      );
-    }
-    map['pattern'] = Variable<String>(pattern);
-    map['category'] = Variable<String>(category);
-    map['priority'] = Variable<int>(priority);
-    return map;
-  }
-
-  CategoryRulesCompanion toCompanion(bool nullToAbsent) {
-    return CategoryRulesCompanion(
-      id: Value(id),
-      profileId: Value(profileId),
-      field: Value(field),
-      pattern: Value(pattern),
-      category: Value(category),
-      priority: Value(priority),
-    );
-  }
-
-  factory CategoryRule.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CategoryRule(
-      id: serializer.fromJson<int>(json['id']),
-      profileId: serializer.fromJson<int>(json['profileId']),
-      field: $CategoryRulesTable.$converterfield.fromJson(
-        serializer.fromJson<String>(json['field']),
-      ),
-      pattern: serializer.fromJson<String>(json['pattern']),
-      category: serializer.fromJson<String>(json['category']),
-      priority: serializer.fromJson<int>(json['priority']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'profileId': serializer.toJson<int>(profileId),
-      'field': serializer.toJson<String>(
-        $CategoryRulesTable.$converterfield.toJson(field),
-      ),
-      'pattern': serializer.toJson<String>(pattern),
-      'category': serializer.toJson<String>(category),
-      'priority': serializer.toJson<int>(priority),
-    };
-  }
-
-  CategoryRule copyWith({
-    int? id,
-    int? profileId,
-    RuleField? field,
-    String? pattern,
-    String? category,
-    int? priority,
-  }) => CategoryRule(
-    id: id ?? this.id,
-    profileId: profileId ?? this.profileId,
-    field: field ?? this.field,
-    pattern: pattern ?? this.pattern,
-    category: category ?? this.category,
-    priority: priority ?? this.priority,
-  );
-  CategoryRule copyWithCompanion(CategoryRulesCompanion data) {
-    return CategoryRule(
-      id: data.id.present ? data.id.value : this.id,
-      profileId: data.profileId.present ? data.profileId.value : this.profileId,
-      field: data.field.present ? data.field.value : this.field,
-      pattern: data.pattern.present ? data.pattern.value : this.pattern,
-      category: data.category.present ? data.category.value : this.category,
-      priority: data.priority.present ? data.priority.value : this.priority,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('CategoryRule(')
-          ..write('id: $id, ')
-          ..write('profileId: $profileId, ')
-          ..write('field: $field, ')
-          ..write('pattern: $pattern, ')
-          ..write('category: $category, ')
-          ..write('priority: $priority')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(id, profileId, field, pattern, category, priority);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is CategoryRule &&
-          other.id == this.id &&
-          other.profileId == this.profileId &&
-          other.field == this.field &&
-          other.pattern == this.pattern &&
-          other.category == this.category &&
-          other.priority == this.priority);
-}
-
-class CategoryRulesCompanion extends UpdateCompanion<CategoryRule> {
-  final Value<int> id;
-  final Value<int> profileId;
-  final Value<RuleField> field;
-  final Value<String> pattern;
-  final Value<String> category;
-  final Value<int> priority;
-  const CategoryRulesCompanion({
-    this.id = const Value.absent(),
-    this.profileId = const Value.absent(),
-    this.field = const Value.absent(),
-    this.pattern = const Value.absent(),
-    this.category = const Value.absent(),
-    this.priority = const Value.absent(),
-  });
-  CategoryRulesCompanion.insert({
-    this.id = const Value.absent(),
-    required int profileId,
-    required RuleField field,
-    required String pattern,
-    required String category,
-    this.priority = const Value.absent(),
-  }) : profileId = Value(profileId),
-       field = Value(field),
-       pattern = Value(pattern),
-       category = Value(category);
-  static Insertable<CategoryRule> custom({
-    Expression<int>? id,
-    Expression<int>? profileId,
-    Expression<String>? field,
-    Expression<String>? pattern,
-    Expression<String>? category,
-    Expression<int>? priority,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (profileId != null) 'profile_id': profileId,
-      if (field != null) 'field': field,
-      if (pattern != null) 'pattern': pattern,
-      if (category != null) 'category': category,
-      if (priority != null) 'priority': priority,
-    });
-  }
-
-  CategoryRulesCompanion copyWith({
-    Value<int>? id,
-    Value<int>? profileId,
-    Value<RuleField>? field,
-    Value<String>? pattern,
-    Value<String>? category,
-    Value<int>? priority,
-  }) {
-    return CategoryRulesCompanion(
-      id: id ?? this.id,
-      profileId: profileId ?? this.profileId,
-      field: field ?? this.field,
-      pattern: pattern ?? this.pattern,
-      category: category ?? this.category,
-      priority: priority ?? this.priority,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (profileId.present) {
-      map['profile_id'] = Variable<int>(profileId.value);
-    }
-    if (field.present) {
-      map['field'] = Variable<String>(
-        $CategoryRulesTable.$converterfield.toSql(field.value),
-      );
-    }
-    if (pattern.present) {
-      map['pattern'] = Variable<String>(pattern.value);
-    }
-    if (category.present) {
-      map['category'] = Variable<String>(category.value);
-    }
-    if (priority.present) {
-      map['priority'] = Variable<int>(priority.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('CategoryRulesCompanion(')
-          ..write('id: $id, ')
-          ..write('profileId: $profileId, ')
-          ..write('field: $field, ')
-          ..write('pattern: $pattern, ')
-          ..write('category: $category, ')
-          ..write('priority: $priority')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $PaycheckSchedulesTable extends PaycheckSchedules
     with TableInfo<$PaycheckSchedulesTable, PaycheckSchedule> {
   @override
@@ -5577,6 +4319,1326 @@ class PaychecksCompanion extends UpdateCompanion<Paycheck> {
   }
 }
 
+class $BudgetEntriesTable extends BudgetEntries
+    with TableInfo<$BudgetEntriesTable, BudgetEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Other'),
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<EntryType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<EntryType>($BudgetEntriesTable.$convertertype);
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id)',
+    ),
+  );
+  static const VerificationMeta _sourcePaycheckIdMeta = const VerificationMeta(
+    'sourcePaycheckId',
+  );
+  @override
+  late final GeneratedColumn<int> sourcePaycheckId = GeneratedColumn<int>(
+    'source_paycheck_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES paychecks (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    date,
+    category,
+    amountCents,
+    type,
+    description,
+    accountId,
+    sourcePaycheckId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BudgetEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
+    if (data.containsKey('source_paycheck_id')) {
+      context.handle(
+        _sourcePaycheckIdMeta,
+        sourcePaycheckId.isAcceptableOrUnknown(
+          data['source_paycheck_id']!,
+          _sourcePaycheckIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BudgetEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+      type: $BudgetEntriesTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      ),
+      sourcePaycheckId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_paycheck_id'],
+      ),
+    );
+  }
+
+  @override
+  $BudgetEntriesTable createAlias(String alias) {
+    return $BudgetEntriesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<EntryType, String, String> $convertertype =
+      const EnumNameConverter<EntryType>(EntryType.values);
+}
+
+class BudgetEntry extends DataClass implements Insertable<BudgetEntry> {
+  final int id;
+  final int profileId;
+  final DateTime date;
+  final String category;
+  final int amountCents;
+  final EntryType type;
+  final String? description;
+
+  /// Which account the money moved through, when known.
+  final int? accountId;
+
+  /// Set when this entry was generated automatically because a paycheck was
+  /// marked received — keeps the two in sync instead of double-entry.
+  final int? sourcePaycheckId;
+  const BudgetEntry({
+    required this.id,
+    required this.profileId,
+    required this.date,
+    required this.category,
+    required this.amountCents,
+    required this.type,
+    this.description,
+    this.accountId,
+    this.sourcePaycheckId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['date'] = Variable<DateTime>(date);
+    map['category'] = Variable<String>(category);
+    map['amount_cents'] = Variable<int>(amountCents);
+    {
+      map['type'] = Variable<String>(
+        $BudgetEntriesTable.$convertertype.toSql(type),
+      );
+    }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<int>(accountId);
+    }
+    if (!nullToAbsent || sourcePaycheckId != null) {
+      map['source_paycheck_id'] = Variable<int>(sourcePaycheckId);
+    }
+    return map;
+  }
+
+  BudgetEntriesCompanion toCompanion(bool nullToAbsent) {
+    return BudgetEntriesCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      date: Value(date),
+      category: Value(category),
+      amountCents: Value(amountCents),
+      type: Value(type),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
+      sourcePaycheckId: sourcePaycheckId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourcePaycheckId),
+    );
+  }
+
+  factory BudgetEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetEntry(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      category: serializer.fromJson<String>(json['category']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      type: $BudgetEntriesTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      description: serializer.fromJson<String?>(json['description']),
+      accountId: serializer.fromJson<int?>(json['accountId']),
+      sourcePaycheckId: serializer.fromJson<int?>(json['sourcePaycheckId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'date': serializer.toJson<DateTime>(date),
+      'category': serializer.toJson<String>(category),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'type': serializer.toJson<String>(
+        $BudgetEntriesTable.$convertertype.toJson(type),
+      ),
+      'description': serializer.toJson<String?>(description),
+      'accountId': serializer.toJson<int?>(accountId),
+      'sourcePaycheckId': serializer.toJson<int?>(sourcePaycheckId),
+    };
+  }
+
+  BudgetEntry copyWith({
+    int? id,
+    int? profileId,
+    DateTime? date,
+    String? category,
+    int? amountCents,
+    EntryType? type,
+    Value<String?> description = const Value.absent(),
+    Value<int?> accountId = const Value.absent(),
+    Value<int?> sourcePaycheckId = const Value.absent(),
+  }) => BudgetEntry(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    date: date ?? this.date,
+    category: category ?? this.category,
+    amountCents: amountCents ?? this.amountCents,
+    type: type ?? this.type,
+    description: description.present ? description.value : this.description,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    sourcePaycheckId: sourcePaycheckId.present
+        ? sourcePaycheckId.value
+        : this.sourcePaycheckId,
+  );
+  BudgetEntry copyWithCompanion(BudgetEntriesCompanion data) {
+    return BudgetEntry(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      date: data.date.present ? data.date.value : this.date,
+      category: data.category.present ? data.category.value : this.category,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
+      type: data.type.present ? data.type.value : this.type,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      sourcePaycheckId: data.sourcePaycheckId.present
+          ? data.sourcePaycheckId.value
+          : this.sourcePaycheckId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetEntry(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('date: $date, ')
+          ..write('category: $category, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('type: $type, ')
+          ..write('description: $description, ')
+          ..write('accountId: $accountId, ')
+          ..write('sourcePaycheckId: $sourcePaycheckId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    date,
+    category,
+    amountCents,
+    type,
+    description,
+    accountId,
+    sourcePaycheckId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetEntry &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.date == this.date &&
+          other.category == this.category &&
+          other.amountCents == this.amountCents &&
+          other.type == this.type &&
+          other.description == this.description &&
+          other.accountId == this.accountId &&
+          other.sourcePaycheckId == this.sourcePaycheckId);
+}
+
+class BudgetEntriesCompanion extends UpdateCompanion<BudgetEntry> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<DateTime> date;
+  final Value<String> category;
+  final Value<int> amountCents;
+  final Value<EntryType> type;
+  final Value<String?> description;
+  final Value<int?> accountId;
+  final Value<int?> sourcePaycheckId;
+  const BudgetEntriesCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.category = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.type = const Value.absent(),
+    this.description = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.sourcePaycheckId = const Value.absent(),
+  });
+  BudgetEntriesCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required DateTime date,
+    this.category = const Value.absent(),
+    required int amountCents,
+    required EntryType type,
+    this.description = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.sourcePaycheckId = const Value.absent(),
+  }) : profileId = Value(profileId),
+       date = Value(date),
+       amountCents = Value(amountCents),
+       type = Value(type);
+  static Insertable<BudgetEntry> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<DateTime>? date,
+    Expression<String>? category,
+    Expression<int>? amountCents,
+    Expression<String>? type,
+    Expression<String>? description,
+    Expression<int>? accountId,
+    Expression<int>? sourcePaycheckId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (date != null) 'date': date,
+      if (category != null) 'category': category,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (type != null) 'type': type,
+      if (description != null) 'description': description,
+      if (accountId != null) 'account_id': accountId,
+      if (sourcePaycheckId != null) 'source_paycheck_id': sourcePaycheckId,
+    });
+  }
+
+  BudgetEntriesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<DateTime>? date,
+    Value<String>? category,
+    Value<int>? amountCents,
+    Value<EntryType>? type,
+    Value<String?>? description,
+    Value<int?>? accountId,
+    Value<int?>? sourcePaycheckId,
+  }) {
+    return BudgetEntriesCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      date: date ?? this.date,
+      category: category ?? this.category,
+      amountCents: amountCents ?? this.amountCents,
+      type: type ?? this.type,
+      description: description ?? this.description,
+      accountId: accountId ?? this.accountId,
+      sourcePaycheckId: sourcePaycheckId ?? this.sourcePaycheckId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $BudgetEntriesTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (sourcePaycheckId.present) {
+      map['source_paycheck_id'] = Variable<int>(sourcePaycheckId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('date: $date, ')
+          ..write('category: $category, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('type: $type, ')
+          ..write('description: $description, ')
+          ..write('accountId: $accountId, ')
+          ..write('sourcePaycheckId: $sourcePaycheckId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BudgetTargetsTable extends BudgetTargets
+    with TableInfo<$BudgetTargetsTable, BudgetTarget> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetTargetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthlyTargetCentsMeta =
+      const VerificationMeta('monthlyTargetCents');
+  @override
+  late final GeneratedColumn<int> monthlyTargetCents = GeneratedColumn<int>(
+    'monthly_target_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    category,
+    monthlyTargetCents,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_targets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BudgetTarget> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('monthly_target_cents')) {
+      context.handle(
+        _monthlyTargetCentsMeta,
+        monthlyTargetCents.isAcceptableOrUnknown(
+          data['monthly_target_cents']!,
+          _monthlyTargetCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_monthlyTargetCentsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {profileId, category},
+  ];
+  @override
+  BudgetTarget map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetTarget(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      monthlyTargetCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}monthly_target_cents'],
+      )!,
+    );
+  }
+
+  @override
+  $BudgetTargetsTable createAlias(String alias) {
+    return $BudgetTargetsTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetTarget extends DataClass implements Insertable<BudgetTarget> {
+  final int id;
+  final int profileId;
+  final String category;
+  final int monthlyTargetCents;
+  const BudgetTarget({
+    required this.id,
+    required this.profileId,
+    required this.category,
+    required this.monthlyTargetCents,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['category'] = Variable<String>(category);
+    map['monthly_target_cents'] = Variable<int>(monthlyTargetCents);
+    return map;
+  }
+
+  BudgetTargetsCompanion toCompanion(bool nullToAbsent) {
+    return BudgetTargetsCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      category: Value(category),
+      monthlyTargetCents: Value(monthlyTargetCents),
+    );
+  }
+
+  factory BudgetTarget.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetTarget(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      category: serializer.fromJson<String>(json['category']),
+      monthlyTargetCents: serializer.fromJson<int>(json['monthlyTargetCents']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'category': serializer.toJson<String>(category),
+      'monthlyTargetCents': serializer.toJson<int>(monthlyTargetCents),
+    };
+  }
+
+  BudgetTarget copyWith({
+    int? id,
+    int? profileId,
+    String? category,
+    int? monthlyTargetCents,
+  }) => BudgetTarget(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    category: category ?? this.category,
+    monthlyTargetCents: monthlyTargetCents ?? this.monthlyTargetCents,
+  );
+  BudgetTarget copyWithCompanion(BudgetTargetsCompanion data) {
+    return BudgetTarget(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      category: data.category.present ? data.category.value : this.category,
+      monthlyTargetCents: data.monthlyTargetCents.present
+          ? data.monthlyTargetCents.value
+          : this.monthlyTargetCents,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetTarget(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('category: $category, ')
+          ..write('monthlyTargetCents: $monthlyTargetCents')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, profileId, category, monthlyTargetCents);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetTarget &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.category == this.category &&
+          other.monthlyTargetCents == this.monthlyTargetCents);
+}
+
+class BudgetTargetsCompanion extends UpdateCompanion<BudgetTarget> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<String> category;
+  final Value<int> monthlyTargetCents;
+  const BudgetTargetsCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.monthlyTargetCents = const Value.absent(),
+  });
+  BudgetTargetsCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required String category,
+    required int monthlyTargetCents,
+  }) : profileId = Value(profileId),
+       category = Value(category),
+       monthlyTargetCents = Value(monthlyTargetCents);
+  static Insertable<BudgetTarget> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? category,
+    Expression<int>? monthlyTargetCents,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (category != null) 'category': category,
+      if (monthlyTargetCents != null)
+        'monthly_target_cents': monthlyTargetCents,
+    });
+  }
+
+  BudgetTargetsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<String>? category,
+    Value<int>? monthlyTargetCents,
+  }) {
+    return BudgetTargetsCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      category: category ?? this.category,
+      monthlyTargetCents: monthlyTargetCents ?? this.monthlyTargetCents,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (monthlyTargetCents.present) {
+      map['monthly_target_cents'] = Variable<int>(monthlyTargetCents.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetTargetsCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('category: $category, ')
+          ..write('monthlyTargetCents: $monthlyTargetCents')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CategoryRulesTable extends CategoryRules
+    with TableInfo<$CategoryRulesTable, CategoryRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id)',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RuleField, String> field =
+      GeneratedColumn<String>(
+        'field',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<RuleField>($CategoryRulesTable.$converterfield);
+  static const VerificationMeta _patternMeta = const VerificationMeta(
+    'pattern',
+  );
+  @override
+  late final GeneratedColumn<String> pattern = GeneratedColumn<String>(
+    'pattern',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 128,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    field,
+    pattern,
+    category,
+    priority,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('pattern')) {
+      context.handle(
+        _patternMeta,
+        pattern.isAcceptableOrUnknown(data['pattern']!, _patternMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_patternMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CategoryRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryRule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      field: $CategoryRulesTable.$converterfield.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}field'],
+        )!,
+      ),
+      pattern: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pattern'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryRulesTable createAlias(String alias) {
+    return $CategoryRulesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<RuleField, String, String> $converterfield =
+      const EnumNameConverter<RuleField>(RuleField.values);
+}
+
+class CategoryRule extends DataClass implements Insertable<CategoryRule> {
+  final int id;
+  final int profileId;
+  final RuleField field;
+  final String pattern;
+  final String category;
+  final int priority;
+  const CategoryRule({
+    required this.id,
+    required this.profileId,
+    required this.field,
+    required this.pattern,
+    required this.category,
+    required this.priority,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    {
+      map['field'] = Variable<String>(
+        $CategoryRulesTable.$converterfield.toSql(field),
+      );
+    }
+    map['pattern'] = Variable<String>(pattern);
+    map['category'] = Variable<String>(category);
+    map['priority'] = Variable<int>(priority);
+    return map;
+  }
+
+  CategoryRulesCompanion toCompanion(bool nullToAbsent) {
+    return CategoryRulesCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      field: Value(field),
+      pattern: Value(pattern),
+      category: Value(category),
+      priority: Value(priority),
+    );
+  }
+
+  factory CategoryRule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryRule(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      field: $CategoryRulesTable.$converterfield.fromJson(
+        serializer.fromJson<String>(json['field']),
+      ),
+      pattern: serializer.fromJson<String>(json['pattern']),
+      category: serializer.fromJson<String>(json['category']),
+      priority: serializer.fromJson<int>(json['priority']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'field': serializer.toJson<String>(
+        $CategoryRulesTable.$converterfield.toJson(field),
+      ),
+      'pattern': serializer.toJson<String>(pattern),
+      'category': serializer.toJson<String>(category),
+      'priority': serializer.toJson<int>(priority),
+    };
+  }
+
+  CategoryRule copyWith({
+    int? id,
+    int? profileId,
+    RuleField? field,
+    String? pattern,
+    String? category,
+    int? priority,
+  }) => CategoryRule(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    field: field ?? this.field,
+    pattern: pattern ?? this.pattern,
+    category: category ?? this.category,
+    priority: priority ?? this.priority,
+  );
+  CategoryRule copyWithCompanion(CategoryRulesCompanion data) {
+    return CategoryRule(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      field: data.field.present ? data.field.value : this.field,
+      pattern: data.pattern.present ? data.pattern.value : this.pattern,
+      category: data.category.present ? data.category.value : this.category,
+      priority: data.priority.present ? data.priority.value : this.priority,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryRule(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('field: $field, ')
+          ..write('pattern: $pattern, ')
+          ..write('category: $category, ')
+          ..write('priority: $priority')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, profileId, field, pattern, category, priority);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryRule &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.field == this.field &&
+          other.pattern == this.pattern &&
+          other.category == this.category &&
+          other.priority == this.priority);
+}
+
+class CategoryRulesCompanion extends UpdateCompanion<CategoryRule> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<RuleField> field;
+  final Value<String> pattern;
+  final Value<String> category;
+  final Value<int> priority;
+  const CategoryRulesCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.field = const Value.absent(),
+    this.pattern = const Value.absent(),
+    this.category = const Value.absent(),
+    this.priority = const Value.absent(),
+  });
+  CategoryRulesCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required RuleField field,
+    required String pattern,
+    required String category,
+    this.priority = const Value.absent(),
+  }) : profileId = Value(profileId),
+       field = Value(field),
+       pattern = Value(pattern),
+       category = Value(category);
+  static Insertable<CategoryRule> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? field,
+    Expression<String>? pattern,
+    Expression<String>? category,
+    Expression<int>? priority,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (field != null) 'field': field,
+      if (pattern != null) 'pattern': pattern,
+      if (category != null) 'category': category,
+      if (priority != null) 'priority': priority,
+    });
+  }
+
+  CategoryRulesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<RuleField>? field,
+    Value<String>? pattern,
+    Value<String>? category,
+    Value<int>? priority,
+  }) {
+    return CategoryRulesCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      field: field ?? this.field,
+      pattern: pattern ?? this.pattern,
+      category: category ?? this.category,
+      priority: priority ?? this.priority,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (field.present) {
+      map['field'] = Variable<String>(
+        $CategoryRulesTable.$converterfield.toSql(field.value),
+      );
+    }
+    if (pattern.present) {
+      map['pattern'] = Variable<String>(pattern.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryRulesCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('field: $field, ')
+          ..write('pattern: $pattern, ')
+          ..write('category: $category, ')
+          ..write('priority: $priority')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PaycheckAllocationsTable extends PaycheckAllocations
     with TableInfo<$PaycheckAllocationsTable, PaycheckAllocation> {
   @override
@@ -6006,12 +6068,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BillPaymentsTable billPayments = $BillPaymentsTable(this);
   late final $CreditScoreSnapshotsTable creditScoreSnapshots =
       $CreditScoreSnapshotsTable(this);
-  late final $BudgetEntriesTable budgetEntries = $BudgetEntriesTable(this);
-  late final $BudgetTargetsTable budgetTargets = $BudgetTargetsTable(this);
-  late final $CategoryRulesTable categoryRules = $CategoryRulesTable(this);
   late final $PaycheckSchedulesTable paycheckSchedules =
       $PaycheckSchedulesTable(this);
   late final $PaychecksTable paychecks = $PaychecksTable(this);
+  late final $BudgetEntriesTable budgetEntries = $BudgetEntriesTable(this);
+  late final $BudgetTargetsTable budgetTargets = $BudgetTargetsTable(this);
+  late final $CategoryRulesTable categoryRules = $CategoryRulesTable(this);
   late final $PaycheckAllocationsTable paycheckAllocations =
       $PaycheckAllocationsTable(this);
   @override
@@ -6026,11 +6088,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     bills,
     billPayments,
     creditScoreSnapshots,
+    paycheckSchedules,
+    paychecks,
     budgetEntries,
     budgetTargets,
     categoryRules,
-    paycheckSchedules,
-    paychecks,
     paycheckAllocations,
   ];
   @override
@@ -6041,6 +6103,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('bill_payments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'paychecks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('budget_entries', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -6187,6 +6256,45 @@ final class $$ProfilesTableReferences
     );
   }
 
+  static MultiTypedResultKey<$PaycheckSchedulesTable, List<PaycheckSchedule>>
+  _paycheckSchedulesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.paycheckSchedules,
+        aliasName: 'profiles__id__paycheck_schedules__profile_id',
+      );
+
+  $$PaycheckSchedulesTableProcessedTableManager get paycheckSchedulesRefs {
+    final manager = $$PaycheckSchedulesTableTableManager(
+      $_db,
+      $_db.paycheckSchedules,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _paycheckSchedulesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PaychecksTable, List<Paycheck>>
+  _paychecksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.paychecks,
+    aliasName: 'profiles__id__paychecks__profile_id',
+  );
+
+  $$PaychecksTableProcessedTableManager get paychecksRefs {
+    final manager = $$PaychecksTableTableManager(
+      $_db,
+      $_db.paychecks,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_paychecksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$BudgetEntriesTable, List<BudgetEntry>>
   _budgetEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.budgetEntries,
@@ -6236,45 +6344,6 @@ final class $$ProfilesTableReferences
     ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_categoryRulesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$PaycheckSchedulesTable, List<PaycheckSchedule>>
-  _paycheckSchedulesRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.paycheckSchedules,
-        aliasName: 'profiles__id__paycheck_schedules__profile_id',
-      );
-
-  $$PaycheckSchedulesTableProcessedTableManager get paycheckSchedulesRefs {
-    final manager = $$PaycheckSchedulesTableTableManager(
-      $_db,
-      $_db.paycheckSchedules,
-    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _paycheckSchedulesRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$PaychecksTable, List<Paycheck>>
-  _paychecksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.paychecks,
-    aliasName: 'profiles__id__paychecks__profile_id',
-  );
-
-  $$PaychecksTableProcessedTableManager get paychecksRefs {
-    final manager = $$PaychecksTableTableManager(
-      $_db,
-      $_db.paychecks,
-    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_paychecksRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6484,6 +6553,56 @@ class $$ProfilesTableFilterComposer
     return f(composer);
   }
 
+  Expression<bool> paycheckSchedulesRefs(
+    Expression<bool> Function($$PaycheckSchedulesTableFilterComposer f) f,
+  ) {
+    final $$PaycheckSchedulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paycheckSchedules,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaycheckSchedulesTableFilterComposer(
+            $db: $db,
+            $table: $db.paycheckSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> paychecksRefs(
+    Expression<bool> Function($$PaychecksTableFilterComposer f) f,
+  ) {
+    final $$PaychecksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableFilterComposer(
+            $db: $db,
+            $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> budgetEntriesRefs(
     Expression<bool> Function($$BudgetEntriesTableFilterComposer f) f,
   ) {
@@ -6550,56 +6669,6 @@ class $$ProfilesTableFilterComposer
           }) => $$CategoryRulesTableFilterComposer(
             $db: $db,
             $table: $db.categoryRules,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> paycheckSchedulesRefs(
-    Expression<bool> Function($$PaycheckSchedulesTableFilterComposer f) f,
-  ) {
-    final $$PaycheckSchedulesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.paycheckSchedules,
-      getReferencedColumn: (t) => t.profileId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaycheckSchedulesTableFilterComposer(
-            $db: $db,
-            $table: $db.paycheckSchedules,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> paychecksRefs(
-    Expression<bool> Function($$PaychecksTableFilterComposer f) f,
-  ) {
-    final $$PaychecksTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.paychecks,
-      getReferencedColumn: (t) => t.profileId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaychecksTableFilterComposer(
-            $db: $db,
-            $table: $db.paychecks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6837,6 +6906,57 @@ class $$ProfilesTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> paycheckSchedulesRefs<T extends Object>(
+    Expression<T> Function($$PaycheckSchedulesTableAnnotationComposer a) f,
+  ) {
+    final $$PaycheckSchedulesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.paycheckSchedules,
+          getReferencedColumn: (t) => t.profileId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaycheckSchedulesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paycheckSchedules,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> paychecksRefs<T extends Object>(
+    Expression<T> Function($$PaychecksTableAnnotationComposer a) f,
+  ) {
+    final $$PaychecksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> budgetEntriesRefs<T extends Object>(
     Expression<T> Function($$BudgetEntriesTableAnnotationComposer a) f,
   ) {
@@ -6912,57 +7032,6 @@ class $$ProfilesTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> paycheckSchedulesRefs<T extends Object>(
-    Expression<T> Function($$PaycheckSchedulesTableAnnotationComposer a) f,
-  ) {
-    final $$PaycheckSchedulesTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.paycheckSchedules,
-          getReferencedColumn: (t) => t.profileId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$PaycheckSchedulesTableAnnotationComposer(
-                $db: $db,
-                $table: $db.paycheckSchedules,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-
-  Expression<T> paychecksRefs<T extends Object>(
-    Expression<T> Function($$PaychecksTableAnnotationComposer a) f,
-  ) {
-    final $$PaychecksTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.paychecks,
-      getReferencedColumn: (t) => t.profileId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaychecksTableAnnotationComposer(
-            $db: $db,
-            $table: $db.paychecks,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> paycheckAllocationsRefs<T extends Object>(
     Expression<T> Function($$PaycheckAllocationsTableAnnotationComposer a) f,
   ) {
@@ -7010,11 +7079,11 @@ class $$ProfilesTableTableManager
             bool billsRefs,
             bool billPaymentsRefs,
             bool creditScoreSnapshotsRefs,
+            bool paycheckSchedulesRefs,
+            bool paychecksRefs,
             bool budgetEntriesRefs,
             bool budgetTargetsRefs,
             bool categoryRulesRefs,
-            bool paycheckSchedulesRefs,
-            bool paychecksRefs,
             bool paycheckAllocationsRefs,
           })
         > {
@@ -7069,11 +7138,11 @@ class $$ProfilesTableTableManager
                 billsRefs = false,
                 billPaymentsRefs = false,
                 creditScoreSnapshotsRefs = false,
+                paycheckSchedulesRefs = false,
+                paychecksRefs = false,
                 budgetEntriesRefs = false,
                 budgetTargetsRefs = false,
                 categoryRulesRefs = false,
-                paycheckSchedulesRefs = false,
-                paychecksRefs = false,
                 paycheckAllocationsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -7085,11 +7154,11 @@ class $$ProfilesTableTableManager
                     if (billsRefs) db.bills,
                     if (billPaymentsRefs) db.billPayments,
                     if (creditScoreSnapshotsRefs) db.creditScoreSnapshots,
+                    if (paycheckSchedulesRefs) db.paycheckSchedules,
+                    if (paychecksRefs) db.paychecks,
                     if (budgetEntriesRefs) db.budgetEntries,
                     if (budgetTargetsRefs) db.budgetTargets,
                     if (categoryRulesRefs) db.categoryRules,
-                    if (paycheckSchedulesRefs) db.paycheckSchedules,
-                    if (paychecksRefs) db.paychecks,
                     if (paycheckAllocationsRefs) db.paycheckAllocations,
                   ],
                   addJoins: null,
@@ -7221,6 +7290,48 @@ class $$ProfilesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (paycheckSchedulesRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          PaycheckSchedule
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._paycheckSchedulesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paycheckSchedulesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (paychecksRefs)
+                        await $_getPrefetchedData<
+                          Profile,
+                          $ProfilesTable,
+                          Paycheck
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._paychecksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paychecksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (budgetEntriesRefs)
                         await $_getPrefetchedData<
                           Profile,
@@ -7284,48 +7395,6 @@ class $$ProfilesTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (paycheckSchedulesRefs)
-                        await $_getPrefetchedData<
-                          Profile,
-                          $ProfilesTable,
-                          PaycheckSchedule
-                        >(
-                          currentTable: table,
-                          referencedTable: $$ProfilesTableReferences
-                              ._paycheckSchedulesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$ProfilesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).paycheckSchedulesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.profileId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (paychecksRefs)
-                        await $_getPrefetchedData<
-                          Profile,
-                          $ProfilesTable,
-                          Paycheck
-                        >(
-                          currentTable: table,
-                          referencedTable: $$ProfilesTableReferences
-                              ._paychecksRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$ProfilesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).paychecksRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.profileId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                       if (paycheckAllocationsRefs)
                         await $_getPrefetchedData<
                           Profile,
@@ -7374,11 +7443,11 @@ typedef $$ProfilesTableProcessedTableManager =
         bool billsRefs,
         bool billPaymentsRefs,
         bool creditScoreSnapshotsRefs,
+        bool paycheckSchedulesRefs,
+        bool paychecksRefs,
         bool budgetEntriesRefs,
         bool budgetTargetsRefs,
         bool categoryRulesRefs,
-        bool paycheckSchedulesRefs,
-        bool paychecksRefs,
         bool paycheckAllocationsRefs,
       })
     >;
@@ -9961,6 +10030,1119 @@ typedef $$CreditScoreSnapshotsTableProcessedTableManager =
       CreditScoreSnapshot,
       PrefetchHooks Function({bool profileId})
     >;
+typedef $$PaycheckSchedulesTableCreateCompanionBuilder =
+    PaycheckSchedulesCompanion Function({
+      Value<int> id,
+      required int profileId,
+      required String name,
+      required PayFrequency frequency,
+      required DateTime anchorDate,
+      required int amountCents,
+      Value<bool> active,
+    });
+typedef $$PaycheckSchedulesTableUpdateCompanionBuilder =
+    PaycheckSchedulesCompanion Function({
+      Value<int> id,
+      Value<int> profileId,
+      Value<String> name,
+      Value<PayFrequency> frequency,
+      Value<DateTime> anchorDate,
+      Value<int> amountCents,
+      Value<bool> active,
+    });
+
+final class $$PaycheckSchedulesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PaycheckSchedulesTable,
+          PaycheckSchedule
+        > {
+  $$PaycheckSchedulesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('paycheck_schedules__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$PaychecksTable, List<Paycheck>>
+  _paychecksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.paychecks,
+    aliasName: 'paycheck_schedules__id__paychecks__schedule_id',
+  );
+
+  $$PaychecksTableProcessedTableManager get paychecksRefs {
+    final manager = $$PaychecksTableTableManager(
+      $_db,
+      $_db.paychecks,
+    ).filter((f) => f.scheduleId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_paychecksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PaycheckSchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $PaycheckSchedulesTable> {
+  $$PaycheckSchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<PayFrequency, PayFrequency, String>
+  get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<DateTime> get anchorDate => $composableBuilder(
+    column: $table.anchorDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get active => $composableBuilder(
+    column: $table.active,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> paychecksRefs(
+    Expression<bool> Function($$PaychecksTableFilterComposer f) f,
+  ) {
+    final $$PaychecksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.scheduleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableFilterComposer(
+            $db: $db,
+            $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PaycheckSchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaycheckSchedulesTable> {
+  $$PaycheckSchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get anchorDate => $composableBuilder(
+    column: $table.anchorDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get active => $composableBuilder(
+    column: $table.active,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaycheckSchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaycheckSchedulesTable> {
+  $$PaycheckSchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PayFrequency, String> get frequency =>
+      $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get anchorDate => $composableBuilder(
+    column: $table.anchorDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> paychecksRefs<T extends Object>(
+    Expression<T> Function($$PaychecksTableAnnotationComposer a) f,
+  ) {
+    final $$PaychecksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.scheduleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PaycheckSchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaycheckSchedulesTable,
+          PaycheckSchedule,
+          $$PaycheckSchedulesTableFilterComposer,
+          $$PaycheckSchedulesTableOrderingComposer,
+          $$PaycheckSchedulesTableAnnotationComposer,
+          $$PaycheckSchedulesTableCreateCompanionBuilder,
+          $$PaycheckSchedulesTableUpdateCompanionBuilder,
+          (PaycheckSchedule, $$PaycheckSchedulesTableReferences),
+          PaycheckSchedule,
+          PrefetchHooks Function({bool profileId, bool paychecksRefs})
+        > {
+  $$PaycheckSchedulesTableTableManager(
+    _$AppDatabase db,
+    $PaycheckSchedulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaycheckSchedulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaycheckSchedulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaycheckSchedulesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<PayFrequency> frequency = const Value.absent(),
+                Value<DateTime> anchorDate = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+              }) => PaycheckSchedulesCompanion(
+                id: id,
+                profileId: profileId,
+                name: name,
+                frequency: frequency,
+                anchorDate: anchorDate,
+                amountCents: amountCents,
+                active: active,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required String name,
+                required PayFrequency frequency,
+                required DateTime anchorDate,
+                required int amountCents,
+                Value<bool> active = const Value.absent(),
+              }) => PaycheckSchedulesCompanion.insert(
+                id: id,
+                profileId: profileId,
+                name: name,
+                frequency: frequency,
+                anchorDate: anchorDate,
+                amountCents: amountCents,
+                active: active,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PaycheckSchedulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false, paychecksRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (paychecksRefs) db.paychecks],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$PaycheckSchedulesTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$PaycheckSchedulesTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (paychecksRefs)
+                    await $_getPrefetchedData<
+                      PaycheckSchedule,
+                      $PaycheckSchedulesTable,
+                      Paycheck
+                    >(
+                      currentTable: table,
+                      referencedTable: $$PaycheckSchedulesTableReferences
+                          ._paychecksRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$PaycheckSchedulesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).paychecksRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.scheduleId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PaycheckSchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaycheckSchedulesTable,
+      PaycheckSchedule,
+      $$PaycheckSchedulesTableFilterComposer,
+      $$PaycheckSchedulesTableOrderingComposer,
+      $$PaycheckSchedulesTableAnnotationComposer,
+      $$PaycheckSchedulesTableCreateCompanionBuilder,
+      $$PaycheckSchedulesTableUpdateCompanionBuilder,
+      (PaycheckSchedule, $$PaycheckSchedulesTableReferences),
+      PaycheckSchedule,
+      PrefetchHooks Function({bool profileId, bool paychecksRefs})
+    >;
+typedef $$PaychecksTableCreateCompanionBuilder = PaychecksCompanion Function({
+  Value<int> id,
+  required int profileId,
+  required String name,
+  required DateTime date,
+  required int amountCents,
+  Value<int> bonusCents,
+  Value<bool> received,
+  Value<int?> scheduleId,
+});
+typedef $$PaychecksTableUpdateCompanionBuilder = PaychecksCompanion Function({
+  Value<int> id,
+  Value<int> profileId,
+  Value<String> name,
+  Value<DateTime> date,
+  Value<int> amountCents,
+  Value<int> bonusCents,
+  Value<bool> received,
+  Value<int?> scheduleId,
+});
+
+final class $$PaychecksTableReferences
+    extends BaseReferences<_$AppDatabase, $PaychecksTable, Paycheck> {
+  $$PaychecksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
+      db.profiles.createAlias('paychecks__profile_id__profiles__id');
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PaycheckSchedulesTable _scheduleIdTable(_$AppDatabase db) => db
+      .paycheckSchedules
+      .createAlias('paychecks__schedule_id__paycheck_schedules__id');
+
+  $$PaycheckSchedulesTableProcessedTableManager? get scheduleId {
+    final $_column = $_itemColumn<int>('schedule_id');
+    if ($_column == null) return null;
+    final manager = $$PaycheckSchedulesTableTableManager(
+      $_db,
+      $_db.paycheckSchedules,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_scheduleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$BudgetEntriesTable, List<BudgetEntry>>
+  _budgetEntriesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.budgetEntries,
+    aliasName: 'paychecks__id__budget_entries__source_paycheck_id',
+  );
+
+  $$BudgetEntriesTableProcessedTableManager get budgetEntriesRefs {
+    final manager = $$BudgetEntriesTableTableManager(
+      $_db,
+      $_db.budgetEntries,
+    ).filter((f) => f.sourcePaycheckId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_budgetEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PaycheckAllocationsTable,
+    List<PaycheckAllocation>
+  >
+  _paycheckAllocationsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.paycheckAllocations,
+        aliasName: 'paychecks__id__paycheck_allocations__paycheck_id',
+      );
+
+  $$PaycheckAllocationsTableProcessedTableManager get paycheckAllocationsRefs {
+    final manager = $$PaycheckAllocationsTableTableManager(
+      $_db,
+      $_db.paycheckAllocations,
+    ).filter((f) => f.paycheckId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _paycheckAllocationsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PaychecksTableFilterComposer
+    extends Composer<_$AppDatabase, $PaychecksTable> {
+  $$PaychecksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bonusCents => $composableBuilder(
+    column: $table.bonusCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get received => $composableBuilder(
+    column: $table.received,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaycheckSchedulesTableFilterComposer get scheduleId {
+    final $$PaycheckSchedulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.scheduleId,
+      referencedTable: $db.paycheckSchedules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaycheckSchedulesTableFilterComposer(
+            $db: $db,
+            $table: $db.paycheckSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> budgetEntriesRefs(
+    Expression<bool> Function($$BudgetEntriesTableFilterComposer f) f,
+  ) {
+    final $$BudgetEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetEntries,
+      getReferencedColumn: (t) => t.sourcePaycheckId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> paycheckAllocationsRefs(
+    Expression<bool> Function($$PaycheckAllocationsTableFilterComposer f) f,
+  ) {
+    final $$PaycheckAllocationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paycheckAllocations,
+      getReferencedColumn: (t) => t.paycheckId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaycheckAllocationsTableFilterComposer(
+            $db: $db,
+            $table: $db.paycheckAllocations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PaychecksTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaychecksTable> {
+  $$PaychecksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bonusCents => $composableBuilder(
+    column: $table.bonusCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get received => $composableBuilder(
+    column: $table.received,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaycheckSchedulesTableOrderingComposer get scheduleId {
+    final $$PaycheckSchedulesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.scheduleId,
+      referencedTable: $db.paycheckSchedules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaycheckSchedulesTableOrderingComposer(
+            $db: $db,
+            $table: $db.paycheckSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaychecksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaychecksTable> {
+  $$PaychecksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get bonusCents => $composableBuilder(
+    column: $table.bonusCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get received =>
+      $composableBuilder(column: $table.received, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaycheckSchedulesTableAnnotationComposer get scheduleId {
+    final $$PaycheckSchedulesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.scheduleId,
+          referencedTable: $db.paycheckSchedules,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaycheckSchedulesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paycheckSchedules,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  Expression<T> budgetEntriesRefs<T extends Object>(
+    Expression<T> Function($$BudgetEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$BudgetEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.budgetEntries,
+      getReferencedColumn: (t) => t.sourcePaycheckId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BudgetEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.budgetEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> paycheckAllocationsRefs<T extends Object>(
+    Expression<T> Function($$PaycheckAllocationsTableAnnotationComposer a) f,
+  ) {
+    final $$PaycheckAllocationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.paycheckAllocations,
+          getReferencedColumn: (t) => t.paycheckId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaycheckAllocationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paycheckAllocations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$PaychecksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaychecksTable,
+          Paycheck,
+          $$PaychecksTableFilterComposer,
+          $$PaychecksTableOrderingComposer,
+          $$PaychecksTableAnnotationComposer,
+          $$PaychecksTableCreateCompanionBuilder,
+          $$PaychecksTableUpdateCompanionBuilder,
+          (Paycheck, $$PaychecksTableReferences),
+          Paycheck,
+          PrefetchHooks Function({
+            bool profileId,
+            bool scheduleId,
+            bool budgetEntriesRefs,
+            bool paycheckAllocationsRefs,
+          })
+        > {
+  $$PaychecksTableTableManager(_$AppDatabase db, $PaychecksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaychecksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaychecksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaychecksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<int> bonusCents = const Value.absent(),
+                Value<bool> received = const Value.absent(),
+                Value<int?> scheduleId = const Value.absent(),
+              }) => PaychecksCompanion(
+                id: id,
+                profileId: profileId,
+                name: name,
+                date: date,
+                amountCents: amountCents,
+                bonusCents: bonusCents,
+                received: received,
+                scheduleId: scheduleId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required String name,
+                required DateTime date,
+                required int amountCents,
+                Value<int> bonusCents = const Value.absent(),
+                Value<bool> received = const Value.absent(),
+                Value<int?> scheduleId = const Value.absent(),
+              }) => PaychecksCompanion.insert(
+                id: id,
+                profileId: profileId,
+                name: name,
+                date: date,
+                amountCents: amountCents,
+                bonusCents: bonusCents,
+                received: received,
+                scheduleId: scheduleId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PaychecksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                profileId = false,
+                scheduleId = false,
+                budgetEntriesRefs = false,
+                paycheckAllocationsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (budgetEntriesRefs) db.budgetEntries,
+                    if (paycheckAllocationsRefs) db.paycheckAllocations,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (profileId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.profileId,
+                            referencedTable: $$PaychecksTableReferences
+                                ._profileIdTable(db),
+                            referencedColumn: $$PaychecksTableReferences
+                                ._profileIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (scheduleId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.scheduleId,
+                            referencedTable: $$PaychecksTableReferences
+                                ._scheduleIdTable(db),
+                            referencedColumn: $$PaychecksTableReferences
+                                ._scheduleIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (budgetEntriesRefs)
+                        await $_getPrefetchedData<
+                          Paycheck,
+                          $PaychecksTable,
+                          BudgetEntry
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PaychecksTableReferences
+                              ._budgetEntriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PaychecksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).budgetEntriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sourcePaycheckId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (paycheckAllocationsRefs)
+                        await $_getPrefetchedData<
+                          Paycheck,
+                          $PaychecksTable,
+                          PaycheckAllocation
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PaychecksTableReferences
+                              ._paycheckAllocationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PaychecksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paycheckAllocationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.paycheckId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PaychecksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaychecksTable,
+      Paycheck,
+      $$PaychecksTableFilterComposer,
+      $$PaychecksTableOrderingComposer,
+      $$PaychecksTableAnnotationComposer,
+      $$PaychecksTableCreateCompanionBuilder,
+      $$PaychecksTableUpdateCompanionBuilder,
+      (Paycheck, $$PaychecksTableReferences),
+      Paycheck,
+      PrefetchHooks Function({
+        bool profileId,
+        bool scheduleId,
+        bool budgetEntriesRefs,
+        bool paycheckAllocationsRefs,
+      })
+    >;
 typedef $$BudgetEntriesTableCreateCompanionBuilder =
     BudgetEntriesCompanion Function({
       Value<int> id,
@@ -9971,6 +11153,7 @@ typedef $$BudgetEntriesTableCreateCompanionBuilder =
       required EntryType type,
       Value<String?> description,
       Value<int?> accountId,
+      Value<int?> sourcePaycheckId,
     });
 typedef $$BudgetEntriesTableUpdateCompanionBuilder =
     BudgetEntriesCompanion Function({
@@ -9982,6 +11165,7 @@ typedef $$BudgetEntriesTableUpdateCompanionBuilder =
       Value<EntryType> type,
       Value<String?> description,
       Value<int?> accountId,
+      Value<int?> sourcePaycheckId,
     });
 
 final class $$BudgetEntriesTableReferences
@@ -10020,6 +11204,24 @@ final class $$BudgetEntriesTableReferences
       $_db.accounts,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PaychecksTable _sourcePaycheckIdTable(_$AppDatabase db) => db
+      .paychecks
+      .createAlias('budget_entries__source_paycheck_id__paychecks__id');
+
+  $$PaychecksTableProcessedTableManager? get sourcePaycheckId {
+    final $_column = $_itemColumn<int>('source_paycheck_id');
+    if ($_column == null) return null;
+    final manager = $$PaychecksTableTableManager(
+      $_db,
+      $_db.paychecks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sourcePaycheckIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -10104,6 +11306,29 @@ class $$BudgetEntriesTableFilterComposer
           }) => $$AccountsTableFilterComposer(
             $db: $db,
             $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaychecksTableFilterComposer get sourcePaycheckId {
+    final $$PaychecksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourcePaycheckId,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableFilterComposer(
+            $db: $db,
+            $table: $db.paychecks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -10198,6 +11423,29 @@ class $$BudgetEntriesTableOrderingComposer
     );
     return composer;
   }
+
+  $$PaychecksTableOrderingComposer get sourcePaycheckId {
+    final $$PaychecksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourcePaycheckId,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableOrderingComposer(
+            $db: $db,
+            $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$BudgetEntriesTableAnnotationComposer
@@ -10276,6 +11524,29 @@ class $$BudgetEntriesTableAnnotationComposer
     );
     return composer;
   }
+
+  $$PaychecksTableAnnotationComposer get sourcePaycheckId {
+    final $$PaychecksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourcePaycheckId,
+      referencedTable: $db.paychecks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaychecksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.paychecks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$BudgetEntriesTableTableManager
@@ -10291,7 +11562,11 @@ class $$BudgetEntriesTableTableManager
           $$BudgetEntriesTableUpdateCompanionBuilder,
           (BudgetEntry, $$BudgetEntriesTableReferences),
           BudgetEntry,
-          PrefetchHooks Function({bool profileId, bool accountId})
+          PrefetchHooks Function({
+            bool profileId,
+            bool accountId,
+            bool sourcePaycheckId,
+          })
         > {
   $$BudgetEntriesTableTableManager(_$AppDatabase db, $BudgetEntriesTable table)
     : super(
@@ -10314,6 +11589,7 @@ class $$BudgetEntriesTableTableManager
                 Value<EntryType> type = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<int?> accountId = const Value.absent(),
+                Value<int?> sourcePaycheckId = const Value.absent(),
               }) => BudgetEntriesCompanion(
                 id: id,
                 profileId: profileId,
@@ -10323,6 +11599,7 @@ class $$BudgetEntriesTableTableManager
                 type: type,
                 description: description,
                 accountId: accountId,
+                sourcePaycheckId: sourcePaycheckId,
               ),
           createCompanionCallback:
               ({
@@ -10334,6 +11611,7 @@ class $$BudgetEntriesTableTableManager
                 required EntryType type,
                 Value<String?> description = const Value.absent(),
                 Value<int?> accountId = const Value.absent(),
+                Value<int?> sourcePaycheckId = const Value.absent(),
               }) => BudgetEntriesCompanion.insert(
                 id: id,
                 profileId: profileId,
@@ -10343,6 +11621,7 @@ class $$BudgetEntriesTableTableManager
                 type: type,
                 description: description,
                 accountId: accountId,
+                sourcePaycheckId: sourcePaycheckId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -10352,56 +11631,72 @@ class $$BudgetEntriesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({profileId = false, accountId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (profileId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.profileId,
-                        referencedTable: $$BudgetEntriesTableReferences
-                            ._profileIdTable(db),
-                        referencedColumn: $$BudgetEntriesTableReferences
-                            ._profileIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-                    if (accountId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.accountId,
-                        referencedTable: $$BudgetEntriesTableReferences
-                            ._accountIdTable(db),
-                        referencedColumn: $$BudgetEntriesTableReferences
-                            ._accountIdTable(db)
-                            .id,
-                      ) as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                profileId = false,
+                accountId = false,
+                sourcePaycheckId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (profileId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.profileId,
+                            referencedTable: $$BudgetEntriesTableReferences
+                                ._profileIdTable(db),
+                            referencedColumn: $$BudgetEntriesTableReferences
+                                ._profileIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (accountId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.accountId,
+                            referencedTable: $$BudgetEntriesTableReferences
+                                ._accountIdTable(db),
+                            referencedColumn: $$BudgetEntriesTableReferences
+                                ._accountIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (sourcePaycheckId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.sourcePaycheckId,
+                            referencedTable: $$BudgetEntriesTableReferences
+                                ._sourcePaycheckIdTable(db),
+                            referencedColumn: $$BudgetEntriesTableReferences
+                                ._sourcePaycheckIdTable(db)
+                                .id,
+                          ) as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -10418,7 +11713,11 @@ typedef $$BudgetEntriesTableProcessedTableManager =
       $$BudgetEntriesTableUpdateCompanionBuilder,
       (BudgetEntry, $$BudgetEntriesTableReferences),
       BudgetEntry,
-      PrefetchHooks Function({bool profileId, bool accountId})
+      PrefetchHooks Function({
+        bool profileId,
+        bool accountId,
+        bool sourcePaycheckId,
+      })
     >;
 typedef $$BudgetTargetsTableCreateCompanionBuilder =
     BudgetTargetsCompanion Function({
@@ -11049,1026 +12348,6 @@ typedef $$CategoryRulesTableProcessedTableManager =
       CategoryRule,
       PrefetchHooks Function({bool profileId})
     >;
-typedef $$PaycheckSchedulesTableCreateCompanionBuilder =
-    PaycheckSchedulesCompanion Function({
-      Value<int> id,
-      required int profileId,
-      required String name,
-      required PayFrequency frequency,
-      required DateTime anchorDate,
-      required int amountCents,
-      Value<bool> active,
-    });
-typedef $$PaycheckSchedulesTableUpdateCompanionBuilder =
-    PaycheckSchedulesCompanion Function({
-      Value<int> id,
-      Value<int> profileId,
-      Value<String> name,
-      Value<PayFrequency> frequency,
-      Value<DateTime> anchorDate,
-      Value<int> amountCents,
-      Value<bool> active,
-    });
-
-final class $$PaycheckSchedulesTableReferences
-    extends
-        BaseReferences<
-          _$AppDatabase,
-          $PaycheckSchedulesTable,
-          PaycheckSchedule
-        > {
-  $$PaycheckSchedulesTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
-      db.profiles.createAlias('paycheck_schedules__profile_id__profiles__id');
-
-  $$ProfilesTableProcessedTableManager get profileId {
-    final $_column = $_itemColumn<int>('profile_id')!;
-
-    final manager = $$ProfilesTableTableManager(
-      $_db,
-      $_db.profiles,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$PaychecksTable, List<Paycheck>>
-  _paychecksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.paychecks,
-    aliasName: 'paycheck_schedules__id__paychecks__schedule_id',
-  );
-
-  $$PaychecksTableProcessedTableManager get paychecksRefs {
-    final manager = $$PaychecksTableTableManager(
-      $_db,
-      $_db.paychecks,
-    ).filter((f) => f.scheduleId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_paychecksRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$PaycheckSchedulesTableFilterComposer
-    extends Composer<_$AppDatabase, $PaycheckSchedulesTable> {
-  $$PaycheckSchedulesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<PayFrequency, PayFrequency, String>
-  get frequency => $composableBuilder(
-    column: $table.frequency,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<DateTime> get anchorDate => $composableBuilder(
-    column: $table.anchorDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get amountCents => $composableBuilder(
-    column: $table.amountCents,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get active => $composableBuilder(
-    column: $table.active,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$ProfilesTableFilterComposer get profileId {
-    final $$ProfilesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.profileId,
-      referencedTable: $db.profiles,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProfilesTableFilterComposer(
-            $db: $db,
-            $table: $db.profiles,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> paychecksRefs(
-    Expression<bool> Function($$PaychecksTableFilterComposer f) f,
-  ) {
-    final $$PaychecksTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.paychecks,
-      getReferencedColumn: (t) => t.scheduleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaychecksTableFilterComposer(
-            $db: $db,
-            $table: $db.paychecks,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$PaycheckSchedulesTableOrderingComposer
-    extends Composer<_$AppDatabase, $PaycheckSchedulesTable> {
-  $$PaycheckSchedulesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get frequency => $composableBuilder(
-    column: $table.frequency,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get anchorDate => $composableBuilder(
-    column: $table.anchorDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get amountCents => $composableBuilder(
-    column: $table.amountCents,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get active => $composableBuilder(
-    column: $table.active,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$ProfilesTableOrderingComposer get profileId {
-    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.profileId,
-      referencedTable: $db.profiles,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProfilesTableOrderingComposer(
-            $db: $db,
-            $table: $db.profiles,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$PaycheckSchedulesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PaycheckSchedulesTable> {
-  $$PaycheckSchedulesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<PayFrequency, String> get frequency =>
-      $composableBuilder(column: $table.frequency, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get anchorDate => $composableBuilder(
-    column: $table.anchorDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get amountCents => $composableBuilder(
-    column: $table.amountCents,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get active =>
-      $composableBuilder(column: $table.active, builder: (column) => column);
-
-  $$ProfilesTableAnnotationComposer get profileId {
-    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.profileId,
-      referencedTable: $db.profiles,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProfilesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.profiles,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<T> paychecksRefs<T extends Object>(
-    Expression<T> Function($$PaychecksTableAnnotationComposer a) f,
-  ) {
-    final $$PaychecksTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.paychecks,
-      getReferencedColumn: (t) => t.scheduleId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaychecksTableAnnotationComposer(
-            $db: $db,
-            $table: $db.paychecks,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$PaycheckSchedulesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $PaycheckSchedulesTable,
-          PaycheckSchedule,
-          $$PaycheckSchedulesTableFilterComposer,
-          $$PaycheckSchedulesTableOrderingComposer,
-          $$PaycheckSchedulesTableAnnotationComposer,
-          $$PaycheckSchedulesTableCreateCompanionBuilder,
-          $$PaycheckSchedulesTableUpdateCompanionBuilder,
-          (PaycheckSchedule, $$PaycheckSchedulesTableReferences),
-          PaycheckSchedule,
-          PrefetchHooks Function({bool profileId, bool paychecksRefs})
-        > {
-  $$PaycheckSchedulesTableTableManager(
-    _$AppDatabase db,
-    $PaycheckSchedulesTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$PaycheckSchedulesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$PaycheckSchedulesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$PaycheckSchedulesTableAnnotationComposer(
-                $db: db,
-                $table: table,
-              ),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> profileId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<PayFrequency> frequency = const Value.absent(),
-                Value<DateTime> anchorDate = const Value.absent(),
-                Value<int> amountCents = const Value.absent(),
-                Value<bool> active = const Value.absent(),
-              }) => PaycheckSchedulesCompanion(
-                id: id,
-                profileId: profileId,
-                name: name,
-                frequency: frequency,
-                anchorDate: anchorDate,
-                amountCents: amountCents,
-                active: active,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int profileId,
-                required String name,
-                required PayFrequency frequency,
-                required DateTime anchorDate,
-                required int amountCents,
-                Value<bool> active = const Value.absent(),
-              }) => PaycheckSchedulesCompanion.insert(
-                id: id,
-                profileId: profileId,
-                name: name,
-                frequency: frequency,
-                anchorDate: anchorDate,
-                amountCents: amountCents,
-                active: active,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$PaycheckSchedulesTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({profileId = false, paychecksRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (paychecksRefs) db.paychecks],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (profileId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.profileId,
-                        referencedTable: $$PaycheckSchedulesTableReferences
-                            ._profileIdTable(db),
-                        referencedColumn: $$PaycheckSchedulesTableReferences
-                            ._profileIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (paychecksRefs)
-                    await $_getPrefetchedData<
-                      PaycheckSchedule,
-                      $PaycheckSchedulesTable,
-                      Paycheck
-                    >(
-                      currentTable: table,
-                      referencedTable: $$PaycheckSchedulesTableReferences
-                          ._paychecksRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$PaycheckSchedulesTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).paychecksRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.scheduleId == item.id),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$PaycheckSchedulesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $PaycheckSchedulesTable,
-      PaycheckSchedule,
-      $$PaycheckSchedulesTableFilterComposer,
-      $$PaycheckSchedulesTableOrderingComposer,
-      $$PaycheckSchedulesTableAnnotationComposer,
-      $$PaycheckSchedulesTableCreateCompanionBuilder,
-      $$PaycheckSchedulesTableUpdateCompanionBuilder,
-      (PaycheckSchedule, $$PaycheckSchedulesTableReferences),
-      PaycheckSchedule,
-      PrefetchHooks Function({bool profileId, bool paychecksRefs})
-    >;
-typedef $$PaychecksTableCreateCompanionBuilder = PaychecksCompanion Function({
-  Value<int> id,
-  required int profileId,
-  required String name,
-  required DateTime date,
-  required int amountCents,
-  Value<int> bonusCents,
-  Value<bool> received,
-  Value<int?> scheduleId,
-});
-typedef $$PaychecksTableUpdateCompanionBuilder = PaychecksCompanion Function({
-  Value<int> id,
-  Value<int> profileId,
-  Value<String> name,
-  Value<DateTime> date,
-  Value<int> amountCents,
-  Value<int> bonusCents,
-  Value<bool> received,
-  Value<int?> scheduleId,
-});
-
-final class $$PaychecksTableReferences
-    extends BaseReferences<_$AppDatabase, $PaychecksTable, Paycheck> {
-  $$PaychecksTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $ProfilesTable _profileIdTable(_$AppDatabase db) =>
-      db.profiles.createAlias('paychecks__profile_id__profiles__id');
-
-  $$ProfilesTableProcessedTableManager get profileId {
-    final $_column = $_itemColumn<int>('profile_id')!;
-
-    final manager = $$ProfilesTableTableManager(
-      $_db,
-      $_db.profiles,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $PaycheckSchedulesTable _scheduleIdTable(_$AppDatabase db) => db
-      .paycheckSchedules
-      .createAlias('paychecks__schedule_id__paycheck_schedules__id');
-
-  $$PaycheckSchedulesTableProcessedTableManager? get scheduleId {
-    final $_column = $_itemColumn<int>('schedule_id');
-    if ($_column == null) return null;
-    final manager = $$PaycheckSchedulesTableTableManager(
-      $_db,
-      $_db.paycheckSchedules,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_scheduleIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<
-    $PaycheckAllocationsTable,
-    List<PaycheckAllocation>
-  >
-  _paycheckAllocationsRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.paycheckAllocations,
-        aliasName: 'paychecks__id__paycheck_allocations__paycheck_id',
-      );
-
-  $$PaycheckAllocationsTableProcessedTableManager get paycheckAllocationsRefs {
-    final manager = $$PaycheckAllocationsTableTableManager(
-      $_db,
-      $_db.paycheckAllocations,
-    ).filter((f) => f.paycheckId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _paycheckAllocationsRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$PaychecksTableFilterComposer
-    extends Composer<_$AppDatabase, $PaychecksTable> {
-  $$PaychecksTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get date => $composableBuilder(
-    column: $table.date,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get amountCents => $composableBuilder(
-    column: $table.amountCents,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get bonusCents => $composableBuilder(
-    column: $table.bonusCents,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get received => $composableBuilder(
-    column: $table.received,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$ProfilesTableFilterComposer get profileId {
-    final $$ProfilesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.profileId,
-      referencedTable: $db.profiles,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProfilesTableFilterComposer(
-            $db: $db,
-            $table: $db.profiles,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$PaycheckSchedulesTableFilterComposer get scheduleId {
-    final $$PaycheckSchedulesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.scheduleId,
-      referencedTable: $db.paycheckSchedules,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaycheckSchedulesTableFilterComposer(
-            $db: $db,
-            $table: $db.paycheckSchedules,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> paycheckAllocationsRefs(
-    Expression<bool> Function($$PaycheckAllocationsTableFilterComposer f) f,
-  ) {
-    final $$PaycheckAllocationsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.paycheckAllocations,
-      getReferencedColumn: (t) => t.paycheckId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaycheckAllocationsTableFilterComposer(
-            $db: $db,
-            $table: $db.paycheckAllocations,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$PaychecksTableOrderingComposer
-    extends Composer<_$AppDatabase, $PaychecksTable> {
-  $$PaychecksTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get date => $composableBuilder(
-    column: $table.date,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get amountCents => $composableBuilder(
-    column: $table.amountCents,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get bonusCents => $composableBuilder(
-    column: $table.bonusCents,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get received => $composableBuilder(
-    column: $table.received,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$ProfilesTableOrderingComposer get profileId {
-    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.profileId,
-      referencedTable: $db.profiles,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProfilesTableOrderingComposer(
-            $db: $db,
-            $table: $db.profiles,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$PaycheckSchedulesTableOrderingComposer get scheduleId {
-    final $$PaycheckSchedulesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.scheduleId,
-      referencedTable: $db.paycheckSchedules,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PaycheckSchedulesTableOrderingComposer(
-            $db: $db,
-            $table: $db.paycheckSchedules,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$PaychecksTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PaychecksTable> {
-  $$PaychecksTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get date =>
-      $composableBuilder(column: $table.date, builder: (column) => column);
-
-  GeneratedColumn<int> get amountCents => $composableBuilder(
-    column: $table.amountCents,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get bonusCents => $composableBuilder(
-    column: $table.bonusCents,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get received =>
-      $composableBuilder(column: $table.received, builder: (column) => column);
-
-  $$ProfilesTableAnnotationComposer get profileId {
-    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.profileId,
-      referencedTable: $db.profiles,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProfilesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.profiles,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$PaycheckSchedulesTableAnnotationComposer get scheduleId {
-    final $$PaycheckSchedulesTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.scheduleId,
-          referencedTable: $db.paycheckSchedules,
-          getReferencedColumn: (t) => t.id,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$PaycheckSchedulesTableAnnotationComposer(
-                $db: $db,
-                $table: $db.paycheckSchedules,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return composer;
-  }
-
-  Expression<T> paycheckAllocationsRefs<T extends Object>(
-    Expression<T> Function($$PaycheckAllocationsTableAnnotationComposer a) f,
-  ) {
-    final $$PaycheckAllocationsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.paycheckAllocations,
-          getReferencedColumn: (t) => t.paycheckId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$PaycheckAllocationsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.paycheckAllocations,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-}
-
-class $$PaychecksTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $PaychecksTable,
-          Paycheck,
-          $$PaychecksTableFilterComposer,
-          $$PaychecksTableOrderingComposer,
-          $$PaychecksTableAnnotationComposer,
-          $$PaychecksTableCreateCompanionBuilder,
-          $$PaychecksTableUpdateCompanionBuilder,
-          (Paycheck, $$PaychecksTableReferences),
-          Paycheck,
-          PrefetchHooks Function({
-            bool profileId,
-            bool scheduleId,
-            bool paycheckAllocationsRefs,
-          })
-        > {
-  $$PaychecksTableTableManager(_$AppDatabase db, $PaychecksTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$PaychecksTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$PaychecksTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$PaychecksTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> profileId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<DateTime> date = const Value.absent(),
-                Value<int> amountCents = const Value.absent(),
-                Value<int> bonusCents = const Value.absent(),
-                Value<bool> received = const Value.absent(),
-                Value<int?> scheduleId = const Value.absent(),
-              }) => PaychecksCompanion(
-                id: id,
-                profileId: profileId,
-                name: name,
-                date: date,
-                amountCents: amountCents,
-                bonusCents: bonusCents,
-                received: received,
-                scheduleId: scheduleId,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int profileId,
-                required String name,
-                required DateTime date,
-                required int amountCents,
-                Value<int> bonusCents = const Value.absent(),
-                Value<bool> received = const Value.absent(),
-                Value<int?> scheduleId = const Value.absent(),
-              }) => PaychecksCompanion.insert(
-                id: id,
-                profileId: profileId,
-                name: name,
-                date: date,
-                amountCents: amountCents,
-                bonusCents: bonusCents,
-                received: received,
-                scheduleId: scheduleId,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$PaychecksTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({
-                profileId = false,
-                scheduleId = false,
-                paycheckAllocationsRefs = false,
-              }) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (paycheckAllocationsRefs) db.paycheckAllocations,
-                  ],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (profileId) {
-                          state = state.withJoin(
-                            currentTable: table,
-                            currentColumn: table.profileId,
-                            referencedTable: $$PaychecksTableReferences
-                                ._profileIdTable(db),
-                            referencedColumn: $$PaychecksTableReferences
-                                ._profileIdTable(db)
-                                .id,
-                          ) as T;
-                        }
-                        if (scheduleId) {
-                          state = state.withJoin(
-                            currentTable: table,
-                            currentColumn: table.scheduleId,
-                            referencedTable: $$PaychecksTableReferences
-                                ._scheduleIdTable(db),
-                            referencedColumn: $$PaychecksTableReferences
-                                ._scheduleIdTable(db)
-                                .id,
-                          ) as T;
-                        }
-
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (paycheckAllocationsRefs)
-                        await $_getPrefetchedData<
-                          Paycheck,
-                          $PaychecksTable,
-                          PaycheckAllocation
-                        >(
-                          currentTable: table,
-                          referencedTable: $$PaychecksTableReferences
-                              ._paycheckAllocationsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$PaychecksTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).paycheckAllocationsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.paycheckId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$PaychecksTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $PaychecksTable,
-      Paycheck,
-      $$PaychecksTableFilterComposer,
-      $$PaychecksTableOrderingComposer,
-      $$PaychecksTableAnnotationComposer,
-      $$PaychecksTableCreateCompanionBuilder,
-      $$PaychecksTableUpdateCompanionBuilder,
-      (Paycheck, $$PaychecksTableReferences),
-      Paycheck,
-      PrefetchHooks Function({
-        bool profileId,
-        bool scheduleId,
-        bool paycheckAllocationsRefs,
-      })
-    >;
 typedef $$PaycheckAllocationsTableCreateCompanionBuilder =
     PaycheckAllocationsCompanion Function({
       Value<int> id,
@@ -12609,16 +12888,16 @@ class $AppDatabaseManager {
       $$BillPaymentsTableTableManager(_db, _db.billPayments);
   $$CreditScoreSnapshotsTableTableManager get creditScoreSnapshots =>
       $$CreditScoreSnapshotsTableTableManager(_db, _db.creditScoreSnapshots);
+  $$PaycheckSchedulesTableTableManager get paycheckSchedules =>
+      $$PaycheckSchedulesTableTableManager(_db, _db.paycheckSchedules);
+  $$PaychecksTableTableManager get paychecks =>
+      $$PaychecksTableTableManager(_db, _db.paychecks);
   $$BudgetEntriesTableTableManager get budgetEntries =>
       $$BudgetEntriesTableTableManager(_db, _db.budgetEntries);
   $$BudgetTargetsTableTableManager get budgetTargets =>
       $$BudgetTargetsTableTableManager(_db, _db.budgetTargets);
   $$CategoryRulesTableTableManager get categoryRules =>
       $$CategoryRulesTableTableManager(_db, _db.categoryRules);
-  $$PaycheckSchedulesTableTableManager get paycheckSchedules =>
-      $$PaycheckSchedulesTableTableManager(_db, _db.paycheckSchedules);
-  $$PaychecksTableTableManager get paychecks =>
-      $$PaychecksTableTableManager(_db, _db.paychecks);
   $$PaycheckAllocationsTableTableManager get paycheckAllocations =>
       $$PaycheckAllocationsTableTableManager(_db, _db.paycheckAllocations);
 }

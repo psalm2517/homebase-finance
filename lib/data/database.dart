@@ -126,6 +126,11 @@ class BudgetEntries extends Table {
   TextColumn get description => text().nullable()(); // matched by CategoryRules
   /// Which account the money moved through, when known.
   IntColumn get accountId => integer().nullable().references(Accounts, #id)();
+
+  /// Set when this entry was generated automatically because a paycheck was
+  /// marked received — keeps the two in sync instead of double-entry.
+  IntColumn get sourcePaycheckId =>
+      integer().nullable().references(Paychecks, #id, onDelete: KeyAction.cascade)();
 }
 
 /// Per-category monthly spending target for the budget screen.
@@ -218,7 +223,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -267,6 +272,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.addColumn(bills, bills.autopay);
+          }
+          if (from < 6) {
+            await m.addColumn(budgetEntries, budgetEntries.sourcePaycheckId);
           }
           if (from < 4) {
             // Rebuild bills once, after every column addition (including

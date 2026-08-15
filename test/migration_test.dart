@@ -47,6 +47,28 @@ void main() {
         annual_fee_cents INTEGER NOT NULL DEFAULT 0,
         monthly_fee_cents INTEGER NOT NULL DEFAULT 0);
     ''');
+    raw.execute('''
+      CREATE TABLE paychecks (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        bonus_cents INTEGER NOT NULL DEFAULT 0,
+        received INTEGER NOT NULL DEFAULT 0,
+        schedule_id INTEGER NULL);
+    ''');
+    raw.execute('''
+      CREATE TABLE budget_entries (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        date INTEGER NOT NULL,
+        category TEXT NOT NULL DEFAULT 'Other',
+        amount_cents INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NULL,
+        account_id INTEGER NULL);
+    ''');
     raw.execute(
         "INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
     raw.execute('INSERT INTO bills '
@@ -153,6 +175,28 @@ void main() {
         statement_day INTEGER NULL,
         payment_due_day INTEGER NULL);
     ''');
+    raw.execute('''
+      CREATE TABLE paychecks (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        bonus_cents INTEGER NOT NULL DEFAULT 0,
+        received INTEGER NOT NULL DEFAULT 0,
+        schedule_id INTEGER NULL);
+    ''');
+    raw.execute('''
+      CREATE TABLE budget_entries (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        date INTEGER NOT NULL,
+        category TEXT NOT NULL DEFAULT 'Other',
+        amount_cents INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NULL,
+        account_id INTEGER NULL);
+    ''');
     raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
     raw.execute('INSERT INTO bills '
         '(profile_id, name, amount_cents, due_day, recurring) '
@@ -201,6 +245,28 @@ void main() {
         due_month INTEGER NULL,
         due_year INTEGER NULL,
         category TEXT NOT NULL DEFAULT 'Other');
+    ''');
+    raw.execute('''
+      CREATE TABLE paychecks (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        name TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        bonus_cents INTEGER NOT NULL DEFAULT 0,
+        received INTEGER NOT NULL DEFAULT 0,
+        schedule_id INTEGER NULL);
+    ''');
+    raw.execute('''
+      CREATE TABLE budget_entries (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles (id),
+        date INTEGER NOT NULL,
+        category TEXT NOT NULL DEFAULT 'Other',
+        amount_cents INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NULL,
+        account_id INTEGER NULL);
     ''');
     raw.execute("INSERT INTO profiles (name, is_admin) VALUES ('Owner', 1);");
     raw.execute('INSERT INTO bills '

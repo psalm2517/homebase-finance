@@ -407,8 +407,18 @@ class HomebaseRepository {
             ..where((t) => t.profileId.equals(profileId)))
           .watch();
 
+  /// Conflict target is the profile+category pair, not the row id, so
+  /// changing an existing target updates it instead of failing on the
+  /// unique constraint.
   Future<int> upsertBudgetTarget(BudgetTargetsCompanion entry) =>
-      _db.into(_db.budgetTargets).insertOnConflictUpdate(entry);
+      _db.into(_db.budgetTargets).insert(
+            entry,
+            onConflict: DoUpdate(
+              (_) => entry,
+              target: [_db.budgetTargets.profileId,
+                  _db.budgetTargets.category],
+            ),
+          );
 
   Future<int> deleteBudgetTarget({required int profileId, required int id}) =>
       (_db.delete(_db.budgetTargets)

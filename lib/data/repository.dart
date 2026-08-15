@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'database.dart';
+import 'reminder.dart';
 
 /// All data access goes through this layer. Every query scoped to user data
 /// takes a required [profileId] — widgets never touch Drift directly, and
@@ -450,6 +451,182 @@ class HomebaseRepository {
       return thisMonth;
     }
     return dayInMonth(from.year, from.month + 1, day);
+  }
+
+  // ---- Payments ----
+
+  Stream<List<Payment>> watchPayments({required int profileId, int? limit}) {
+    final query = _db.select(_db.payments)
+      ..where((p) => p.profileId.equals(profileId))
+      ..orderBy([(p) => OrderingTerm.desc(p.date)]);
+    if (limit != null) query.limit(limit);
+    return query.watch();
+  }
+
+  Stream<List<Payment>> watchPaymentsFor({
+    required int profileId,
+    required PaymentAccountType accountType,
+    required int accountId,
+  }) =>
+      (_db.select(_db.payments)
+            ..where((p) =>
+                p.profileId.equals(profileId) &
+                p.accountType.equalsValue(accountType) &
+                p.accountId.equals(accountId))
+            ..orderBy([(p) => OrderingTerm.desc(p.date)]))
+          .watch();
+
+  /// Logs a payment and reduces the balance it was made against in one go,
+  /// so the card or loan, its utilization, and the net worth trend all move
+  /// together. Balances are floored at zero rather than going negative.
+  Future<void> addPayment({
+    required int profileId,
+    required PaymentAccountType accountType,
+    required int accountId,
+    required int amountCents,
+    DateTime? date,
+    String? note,
+  }) async {
+    if (amountCents <= 0) {
+      throw ArgumentError.value(
+          amountCents, 'amountCents', 'A payment must be positive');
+    }
+    await _db.transaction(() async {
+      await _db.into(_db.payments).insert(PaymentsCompanion.insert(
+            profileId: profileId,
+            accountType: accountType,
+            accountId: accountId,
+            amountCents: amountCents,
+            date: date ?? DateTime.now(),
+            note: Value(note),
+          ));
+
+      switch (accountType) {
+        case PaymentAccountType.card:
+          final card = await (_db.select(_db.creditCards)
+                ..where((c) =>
+                    c.profileId.equals(profileId) & c.id.equals(accountId)))
+              .getSingleOrNull();
+          if (card == null) return;
+          final next = (card.balanceCents - amountCents).clamp(0, 1 << 62);
+          await (_db.update(_db.creditCards)
+                ..where((c) => c.id.equals(accountId)))
+              .write(CreditCardsCompanion(balanceCents: Value(next)));
+        case PaymentAccountType.loan:
+          final loan = await (_db.select(_db.loans)
+                ..where((l) =>
+                    l.profileId.equals(profileId) & l.id.equals(accountId)))
+              .getSingleOrNull();
+          if (loan == null) return;
+          final next = (loan.balanceCents - amountCents).clamp(0, 1 << 62);
+          await (_db.update(_db.loans)..where((l) => l.id.equals(accountId)))
+              .write(LoansCompanion(balanceCents: Value(next)));
+      }
+    });
+    // Outside the transaction so the snapshot sees the committed balance.
+    await recordNetWorthSnapshot(profileId: profileId);
+  }
+
+  /// Removes a payment and puts the amount back on the balance, so a
+  /// mistyped payment can be undone without editing the balance by hand.
+  Future<void> deletePayment(
+      {required int profileId, required int id}) async {
+    final payment = await (_db.select(_db.payments)
+          ..where((p) => p.profileId.equals(profileId) & p.id.equals(id)))
+        .getSingleOrNull();
+    if (payment == null) return;
+    await _db.transaction(() async {
+      await (_db.delete(_db.payments)..where((p) => p.id.equals(id))).go();
+      switch (payment.accountType) {
+        case PaymentAccountType.card:
+          final card = await (_db.select(_db.creditCards)
+                ..where((c) => c.id.equals(payment.accountId)))
+              .getSingleOrNull();
+          if (card == null) return;
+          await (_db.update(_db.creditCards)
+                ..where((c) => c.id.equals(payment.accountId)))
+              .write(CreditCardsCompanion(
+                  balanceCents:
+                      Value(card.balanceCents + payment.amountCents)));
+        case PaymentAccountType.loan:
+          final loan = await (_db.select(_db.loans)
+                ..where((l) => l.id.equals(payment.accountId)))
+              .getSingleOrNull();
+          if (loan == null) return;
+          await (_db.update(_db.loans)
+                ..where((l) => l.id.equals(payment.accountId)))
+              .write(LoansCompanion(
+                  balanceCents:
+                      Value(loan.balanceCents + payment.amountCents)));
+      }
+    });
+    await recordNetWorthSnapshot(profileId: profileId);
+  }
+
+  // ---- Reminders ----
+
+  /// Everything worth nudging about in the next [withinDays] days: unpaid
+  /// bills coming due, and card or loan payments coming due. Autopay bills
+  /// are skipped — there is nothing for you to do about them.
+  Future<List<Reminder>> upcomingReminders({
+    required int profileId,
+    int withinDays = 3,
+    DateTime? now,
+  }) async {
+    final today = () {
+      final n = now ?? DateTime.now();
+      return DateTime(n.year, n.month, n.day);
+    }();
+    final horizon = today.add(Duration(days: withinDays));
+    final reminders = <Reminder>[];
+
+    final billRows = await watchBillsForMonth(
+            profileId: profileId, month: DateTime(today.year, today.month))
+        .first;
+    for (final row in billRows) {
+      if (row.paid || row.bill.autopay) continue;
+      final due = dayInMonth(today.year, today.month, row.bill.dueDay);
+      if (due.isBefore(today) || due.isAfter(horizon)) continue;
+      reminders.add(Reminder(
+        kind: ReminderKind.bill,
+        title: row.bill.name,
+        amountCents: row.bill.amountCents,
+        date: due,
+        sourceId: row.bill.id,
+      ));
+    }
+
+    final cards = await watchCards(profileId: profileId).first;
+    for (final card in cards) {
+      if (card.paymentDueDay == null || card.balanceCents <= 0) continue;
+      final due = nextOccurrence(card.paymentDueDay!, today);
+      if (due.isAfter(horizon)) continue;
+      reminders.add(Reminder(
+        kind: ReminderKind.cardPayment,
+        title: card.name,
+        amountCents: card.balanceCents,
+        date: due,
+        sourceId: card.id,
+      ));
+    }
+
+    final loans = await watchLoans(profileId: profileId).first;
+    for (final loan in loans) {
+      if (loan.balanceCents <= 0 || loan.monthlyPaymentCents <= 0) continue;
+      // Loans have no explicit due day, so treat the 1st as the usual date.
+      final due = nextOccurrence(1, today);
+      if (due.isAfter(horizon)) continue;
+      reminders.add(Reminder(
+        kind: ReminderKind.loanPayment,
+        title: loan.name,
+        amountCents: loan.monthlyPaymentCents,
+        date: due,
+        sourceId: loan.id,
+      ));
+    }
+
+    reminders.sort((a, b) => a.date.compareTo(b.date));
+    return reminders;
   }
 
   // ---- Credit score snapshots ----

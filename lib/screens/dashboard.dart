@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
+import '../data/reminder.dart';
 import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
@@ -18,6 +19,68 @@ class DashboardScreen extends ConsumerWidget {
     return ListView(
       padding: kPagePadding,
       children: [
+        FutureBuilder<List<Reminder>>(
+          future: repo.upcomingReminders(profileId: profileId),
+          builder: (context, snap) {
+            final reminders = snap.data ?? [];
+            if (reminders.isEmpty) return const SizedBox.shrink();
+            final now = DateTime.now();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader('Coming up',
+                    icon: Icons.notifications_active_outlined,
+                    info: const InfoButton(
+                      title: 'Coming up',
+                      body: [
+                        'Anything needing attention in the next few days: '
+                            'unpaid bills coming due, and card or loan '
+                            'payments approaching.',
+                        'Autopay bills are left out — there is nothing for '
+                            'you to do about them, and they mark themselves '
+                            'paid once their date passes.',
+                        'A desktop notification is also shown when Homebase '
+                            'opens and finds something due. Notifications '
+                            'cannot fire while the app is closed, so treat '
+                            'this panel as the reliable version.',
+                      ],
+                    )),
+                Card(
+                  color: scheme.errorContainer.withValues(alpha: 0.25),
+                  child: Column(
+                    children: [
+                      for (final r in reminders)
+                        ListTile(
+                          leading: Icon(
+                              switch (r.kind) {
+                                ReminderKind.bill =>
+                                  Icons.receipt_long_outlined,
+                                ReminderKind.cardPayment => Icons.credit_card,
+                                ReminderKind.loanPayment =>
+                                  Icons.request_quote_outlined,
+                                ReminderKind.annualFee =>
+                                  Icons.event_repeat,
+                              },
+                              color: scheme.error),
+                          title: Text(r.title),
+                          subtitle: Text(switch (r.daysUntil(now)) {
+                            <= 0 => 'Due today',
+                            1 => 'Due tomorrow',
+                            final d => 'Due in $d days — the '
+                                '${ordinalDay(r.date.day)}',
+                          }),
+                          trailing: Text(fmtCents(r.amountCents),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                    ],
+                  ),
+                ),
+                kSectionGap,
+              ],
+            );
+          },
+        ),
         StreamBuilder<({int assetsCents, int debtsCents, int netCents})>(
           stream: repo.watchNetWorth(profileId: profileId),
           builder: (context, snap) {

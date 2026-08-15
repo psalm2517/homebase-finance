@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database.dart';
+import '../data/notifications.dart';
 import '../data/repository.dart';
 import '../main.dart';
 import 'accounts.dart';
@@ -44,6 +45,13 @@ class _AppShellState extends ConsumerState<AppShell> {
           profileId: profileId, month: now);
       // A point for today even on a day with no edits.
       await repo.recordNetWorthSnapshot(profileId: profileId);
+
+      // Nudge about anything due soon. The dashboard panel is the reliable
+      // surface; this is the extra desktop/phone notification on top.
+      final reminders = await repo.upcomingReminders(profileId: profileId);
+      for (final reminder in reminders) {
+        await NotificationService.instance.showReminder(reminder);
+      }
     });
   }
 

@@ -6,6 +6,7 @@ import '../data/database.dart';
 import '../main.dart';
 import '../util/money.dart';
 import '../widgets/common.dart';
+import '../widgets/payment_dialog.dart';
 
 class LoansScreen extends ConsumerWidget {
   const LoansScreen({super.key});
@@ -15,10 +16,32 @@ class LoansScreen extends ConsumerWidget {
     final repo = ref.watch(repositoryProvider);
     final profileId = ref.watch(activeProfileProvider)!.id;
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _edit(context, ref, null),
-        icon: const Icon(Icons.add),
-        label: const Text('Add loan'),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          StreamBuilder<List<Loan>>(
+            stream: repo.watchLoans(profileId: profileId),
+            builder: (context, snap) {
+              final loans = snap.data ?? [];
+              if (loans.isEmpty) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: FloatingActionButton.extended(
+                  heroTag: 'loanPayment',
+                  onPressed: () => _logPayment(context, ref, loans, null),
+                  icon: const Icon(Icons.payments_outlined),
+                  label: const Text('Log payment'),
+                ),
+              );
+            },
+          ),
+          FloatingActionButton.extended(
+            heroTag: 'addLoan',
+            onPressed: () => _edit(context, ref, null),
+            icon: const Icon(Icons.add),
+            label: const Text('Add loan'),
+          ),
+        ],
       ),
       body: StreamBuilder<List<Loan>>(
         stream: repo.watchLoans(profileId: profileId),
@@ -61,6 +84,11 @@ class LoansScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Row(children: [
                           TextButton.icon(
+                              onPressed: () =>
+                                  _logPayment(context, ref, [l], l),
+                              icon: const Icon(Icons.payments_outlined),
+                              label: const Text('Pay')),
+                          TextButton.icon(
                               onPressed: () => _edit(context, ref, l),
                               icon: const Icon(Icons.edit_outlined),
                               label: const Text('Edit')),
@@ -78,6 +106,33 @@ class LoansScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _logPayment(BuildContext context, WidgetRef ref,
+      List<Loan> loans, Loan? preselect) async {
+    final accounts = [
+      for (final l in loans)
+        PayableAccount(
+            type: PaymentAccountType.loan,
+            id: l.id,
+            name: l.name,
+            balanceCents: l.balanceCents,
+            suggestedCents: l.monthlyPaymentCents > 0
+                ? l.monthlyPaymentCents
+                : null),
+    ];
+    final logged = await showQuickPaymentDialog(
+      context,
+      ref,
+      accounts: accounts,
+      preselected: preselect == null
+          ? null
+          : accounts.firstWhere((a) => a.id == preselect.id),
+    );
+    if (logged && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Payment logged and balance updated')));
+    }
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref, Loan l) async {

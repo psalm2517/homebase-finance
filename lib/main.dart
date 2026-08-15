@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/database.dart';
+import 'data/notifications.dart';
 import 'data/repository.dart';
 import 'screens/profile_picker.dart';
 import 'screens/shell.dart';
@@ -28,7 +29,9 @@ final activeProfileProvider = StateProvider<Profile?>((ref) {
   return ref.watch(loggedInProfileProvider);
 });
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.init();
   runApp(const ProviderScope(child: HomebaseApp()));
 }
 

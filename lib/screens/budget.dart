@@ -84,6 +84,12 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         .where((e) => e.type == EntryType.expense)
         .fold(0, (s, e) => s + e.amountCents);
 
+    // Targets are money you have already committed to a category, so they
+    // count as allocated even before you spend it.
+    final targetsTotal =
+        targets.fold(0, (sum, t) => sum + t.monthlyTargetCents);
+    final unallocated = expectedIncomeCents - billsDueCents - targetsTotal;
+
     final spentByCategory = <String, int>{};
     for (final e in entries.where((e) => e.type == EntryType.expense)) {
       spentByCategory[e.category] =
@@ -140,24 +146,29 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 ),
                 StatCard(
                   label: 'Free to spend',
-                  value: fmtCents(expectedIncomeCents - billsDueCents),
+                  value: fmtCents(unallocated),
                   icon: Icons.savings_outlined,
-                  color: expectedIncomeCents - billsDueCents >= 0
-                      ? scheme.secondary
-                      : scheme.error,
-                  note: 'income minus this month\'s bills',
+                  color:
+                      unallocated >= 0 ? scheme.secondary : scheme.error,
+                  note: targetsTotal > 0
+                      ? (unallocated >= 0
+                          ? 'after bills and targets'
+                          : 'over-allocated')
+                      : 'income minus this month\'s bills',
                   info: const InfoButton(
                     title: 'Free to spend',
                     body: [
-                      'This month\'s paycheck total minus the bills that '
-                          'actually charge this month — the amount genuinely '
-                          'yours to spend or save.',
+                      'This month\'s paycheck total minus everything already '
+                          'spoken for: the bills that actually charge this '
+                          'month, and any category targets you have set.',
+                      'A target is a commitment, so it counts as allocated '
+                          'even before you spend it — setting a \$400 '
+                          'grocery target lowers this by \$400 immediately.',
                       'It is steady from the 1st, because it counts paychecks '
                           'you are due as well as ones already received.',
-                      'Only bills landing in this month are subtracted, so a '
-                          'quarterly or annual bill pulls it down only in the '
-                          'month it hits. What to set aside for those is on '
-                          'the Dashboard.',
+                      'If it goes red you have allocated more than you earn '
+                          'this month — lower a target or trim a bill.',
+                      'The breakdown is in the plan below.',
                     ],
                   ),
                 ),
@@ -170,7 +181,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                     body: [
                       'The arithmetic behind "free to spend": this month\'s '
                           'paycheck total, minus the bills that actually '
-                          'charge this month.',
+                          'charge this month, minus any category targets you '
+                          'have committed to.',
                       '"Set aside" is a recommendation, not a bill. Annual '
                           'and quarterly costs are divided across their term '
                           '— a \$325 card fee is \$27.08 a month — so the '
@@ -191,10 +203,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                           fmtCents(expectedIncomeCents)),
                       _planRow(context, 'Bills due this month',
                           '-${fmtCents(billsDueCents)}'),
+                      if (targetsTotal > 0)
+                        _planRow(context, 'Category targets you have set',
+                            '-${fmtCents(targetsTotal)}'),
                       const Divider(),
                       _planRow(context, 'Left to budget',
-                          fmtCents(expectedIncomeCents - billsDueCents),
-                          bold: true),
+                          fmtCents(unallocated),
+                          bold: true,
+                          color: unallocated >= 0 ? null : scheme.error),
                       if (setAsideCents > 0) ...[
                         const SizedBox(height: 12),
                         Row(children: [
@@ -216,9 +232,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                         _planRow(
                             context,
                             'Left after setting that aside',
-                            fmtCents(expectedIncomeCents -
-                                billsDueCents -
-                                setAsideCents),
+                            fmtCents(unallocated - setAsideCents),
                             color: scheme.secondary),
                       ],
                     ],

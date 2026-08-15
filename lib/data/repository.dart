@@ -568,9 +568,27 @@ class HomebaseRepository {
   /// Everything worth nudging about in the next [withinDays] days: unpaid
   /// bills coming due, and card or loan payments coming due. Autopay bills
   /// are skipped — there is nothing for you to do about them.
+  /// The next time a card's annual fee lands. The stored date is a specific
+  /// day, but the fee recurs yearly, so a date that has passed rolls forward
+  /// rather than sitting in the past forever.
+  static DateTime? nextAnnualFeeDate(CreditCard card, {DateTime? now}) {
+    final fee = card.annualFeeDate;
+    if (fee == null) return null;
+    final n = now ?? DateTime.now();
+    final today = DateTime(n.year, n.month, n.day);
+    var next = dayInMonth(today.year, fee.month, fee.day);
+    if (next.isBefore(today)) {
+      next = dayInMonth(today.year + 1, fee.month, fee.day);
+    }
+    return next;
+  }
+
   Future<List<Reminder>> upcomingReminders({
     required int profileId,
     int withinDays = 3,
+    /// Annual fees get a longer runway: they are large, once a year, and
+    /// worth deciding about (keep the card or cancel) before they hit.
+    int annualFeeWithinDays = 14,
     DateTime? now,
   }) async {
     final today = () {
@@ -596,18 +614,34 @@ class HomebaseRepository {
       ));
     }
 
+    final feeHorizon = today.add(Duration(days: annualFeeWithinDays));
     final cards = await watchCards(profileId: profileId).first;
     for (final card in cards) {
-      if (card.paymentDueDay == null || card.balanceCents <= 0) continue;
-      final due = nextOccurrence(card.paymentDueDay!, today);
-      if (due.isAfter(horizon)) continue;
-      reminders.add(Reminder(
-        kind: ReminderKind.cardPayment,
-        title: card.name,
-        amountCents: card.balanceCents,
-        date: due,
-        sourceId: card.id,
-      ));
+      if (card.paymentDueDay != null && card.balanceCents > 0) {
+        final due = nextOccurrence(card.paymentDueDay!, today);
+        if (!due.isAfter(horizon)) {
+          reminders.add(Reminder(
+            kind: ReminderKind.cardPayment,
+            title: card.name,
+            amountCents: card.balanceCents,
+            date: due,
+            sourceId: card.id,
+          ));
+        }
+      }
+
+      final feeDate = nextAnnualFeeDate(card, now: today);
+      if (feeDate != null &&
+          card.annualFeeCents > 0 &&
+          !feeDate.isAfter(feeHorizon)) {
+        reminders.add(Reminder(
+          kind: ReminderKind.annualFee,
+          title: card.name,
+          amountCents: card.annualFeeCents,
+          date: feeDate,
+          sourceId: card.id,
+        ));
+      }
     }
 
     final loans = await watchLoans(profileId: profileId).first;

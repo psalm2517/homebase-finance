@@ -107,7 +107,13 @@ class CardsScreen extends ConsumerWidget {
                         DetailRow('Minimum due',
                             fmtCents(c.minimumPaymentDueCents!)),
                       DetailRow('APR', '${c.apr.toStringAsFixed(2)}%'),
-                      DetailRow('Annual fee', fmtCents(c.annualFeeCents)),
+                      DetailRow(
+                          'Annual fee',
+                          c.annualFeeCents == 0
+                              ? 'none'
+                              : '${fmtCents(c.annualFeeCents)}'
+                                  '${c.annualFeeDate == null ? '' : ' — next '
+                                      '${_fmtDate(HomebaseRepository.nextAnnualFeeDate(c)!)}'}'),
                       DetailRow('Monthly fee', fmtCents(c.monthlyFeeCents)),
                       DetailRow(
                           'Statement closes',
@@ -279,12 +285,14 @@ class CardsScreen extends ConsumerWidget {
         text: existing?.minimumPaymentDueCents == null
             ? ''
             : (existing!.minimumPaymentDueCents! / 100).toString());
+    DateTime? annualFeeDate = existing?.annualFeeDate;
     final paymentDueDay =
         TextEditingController(text: existing?.paymentDueDay?.toString() ?? '');
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => SubmitOnEnter(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => SubmitOnEnter(
         onSubmit: () => Navigator.pop(context, true),
         child: AlertDialog(
         title: Text(existing == null ? 'Add card' : 'Edit card'),
@@ -302,6 +310,41 @@ class CardsScreen extends ConsumerWidget {
               DialogField(limit, 'Credit limit (\$)'),
               DialogField(apr, 'APR (%)'),
               DialogField(annualFee, 'Annual fee (\$)'),
+              // Paired with the amount above so the reminder knows when.
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.event_repeat, size: 16),
+                    label: Text(annualFeeDate == null
+                        ? 'Annual fee date (optional)'
+                        : 'Annual fee charged '
+                            '${_fmtDate(annualFeeDate!)}'),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: annualFeeDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2040),
+                        helpText: 'When does the annual fee hit?',
+                      );
+                      if (picked != null) {
+                        setLocal(() => annualFeeDate = picked);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (annualFeeDate != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.clear, size: 14),
+                    label: const Text('Clear fee date'),
+                    onPressed: () => setLocal(() => annualFeeDate = null),
+                  ),
+                ),
               DialogField(monthlyFee, 'Monthly fee (\$)'),
               DialogField(statementDay, 'Statement closing day (optional)',
                   helper: 'Day of the month your statement closes'),
@@ -323,6 +366,7 @@ class CardsScreen extends ConsumerWidget {
         ],
       ),
       ),
+      ),
     );
     if (saved != true || name.text.trim().isEmpty) return;
     await ref.read(repositoryProvider).upsertCard(CreditCardsCompanion(
@@ -339,6 +383,7 @@ class CardsScreen extends ConsumerWidget {
               Value(parseDollarsToCents(statementBalance.text) ?? 0),
           minimumPaymentDueCents:
               Value(parseDollarsToCents(minimumDue.text)),
+          annualFeeDate: Value(annualFeeDate),
           paymentDueDay: Value(_parseDay(paymentDueDay.text)),
         ));
   }

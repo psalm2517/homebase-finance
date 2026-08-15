@@ -40,6 +40,11 @@ class DashboardScreen extends ConsumerWidget {
                         'Autopay bills are left out — there is nothing for '
                             'you to do about them, and they mark themselves '
                             'paid once their date passes.',
+                        'Credit card annual fees appear 14 days ahead rather '
+                            'than three. They are large, come once a year, '
+                            'and are worth deciding about — keep the card or '
+                            'cancel before it charges — while there is still '
+                            'time to act.',
                         'A desktop notification is also shown when Homebase '
                             'opens and finds something due. Notifications '
                             'cannot fire while the app is closed, so treat '
@@ -63,13 +68,37 @@ class DashboardScreen extends ConsumerWidget {
                                   Icons.event_repeat,
                               },
                               color: scheme.error),
-                          title: Text(r.title),
-                          subtitle: Text(switch (r.daysUntil(now)) {
-                            <= 0 => 'Due today',
-                            1 => 'Due tomorrow',
-                            final d => 'Due in $d days — the '
-                                '${ordinalDay(r.date.day)}',
-                          }),
+                          title: Row(children: [
+                            Flexible(child: Text(r.title)),
+                            if (r.kind == ReminderKind.annualFee) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: scheme.error.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text('Annual fee',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: scheme.error)),
+                              ),
+                            ],
+                          ]),
+                          subtitle: Text(
+                            switch (r.daysUntil(now)) {
+                                  <= 0 => 'Due today',
+                                  1 => 'Due tomorrow',
+                                  final d => 'Due in $d days — the '
+                                      '${ordinalDay(r.date.day)}',
+                                } +
+                                (r.kind == ReminderKind.annualFee
+                                    ? ' • worth deciding whether to keep the '
+                                        'card'
+                                    : ''),
+                          ),
                           trailing: Text(fmtCents(r.amountCents),
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600)),

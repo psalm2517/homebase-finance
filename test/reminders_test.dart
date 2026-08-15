@@ -129,4 +129,110 @@ void main() {
         sourceId: 1);
     expect(a.dedupeKey, b.dedupeKey);
   });
+
+  group('annual fee reminders', () {
+    Future<int> addCardWithFee(DateTime feeDate,
+            {int feeCents = 32500}) =>
+        repo.upsertCard(CreditCardsCompanion.insert(
+          profileId: profileId,
+          name: 'Gold',
+          creditLimitCents: 900000,
+          annualFeeCents: Value(feeCents),
+          annualFeeDate: Value(feeDate),
+        ));
+
+    test('appears 14 days ahead, not 3 like other reminders', () async {
+      await addCardWithFee(DateTime(2026, 8, 25)); // 10 days out
+
+      final reminders =
+          await repo.upcomingReminders(profileId: profileId, now: today);
+
+      expect(reminders.single.kind, ReminderKind.annualFee);
+      expect(reminders.single.amountCents, 32500);
+      expect(reminders.single.daysUntil(today), 10);
+    });
+
+    test('is not shown more than 14 days out', () async {
+      await addCardWithFee(DateTime(2026, 9, 20));
+
+      expect(await repo.upcomingReminders(profileId: profileId, now: today),
+          isEmpty);
+    });
+
+    test('a past fee date rolls forward to next year', () {
+      final card = CreditCard(
+        id: 1,
+        profileId: 1,
+        name: 'Gold',
+        balanceCents: 0,
+        creditLimitCents: 900000,
+        apr: 0,
+        annualFeeCents: 32500,
+        monthlyFeeCents: 0,
+        statementBalanceCents: 0,
+        annualFeeDate: DateTime(2024, 3, 10),
+      );
+
+      expect(HomebaseRepository.nextAnnualFeeDate(card, now: today),
+          DateTime(2027, 3, 10),
+          reason: 'March has already passed in 2026, so the fee is next year');
+    });
+
+    test('a fee date later this year stays this year', () {
+      final card = CreditCard(
+        id: 1,
+        profileId: 1,
+        name: 'Gold',
+        balanceCents: 0,
+        creditLimitCents: 900000,
+        apr: 0,
+        annualFeeCents: 32500,
+        monthlyFeeCents: 0,
+        statementBalanceCents: 0,
+        annualFeeDate: DateTime(2020, 11, 4),
+      );
+
+      expect(HomebaseRepository.nextAnnualFeeDate(card, now: today),
+          DateTime(2026, 11, 4));
+    });
+
+    test('a card with no fee amount is not reminded', () async {
+      await addCardWithFee(DateTime(2026, 8, 20), feeCents: 0);
+
+      expect(await repo.upcomingReminders(profileId: profileId, now: today),
+          isEmpty);
+    });
+
+    test('a card with no fee date is not reminded', () async {
+      await repo.upsertCard(CreditCardsCompanion.insert(
+        profileId: profileId,
+        name: 'No fee date',
+        creditLimitCents: 900000,
+        annualFeeCents: const Value(32500),
+      ));
+
+      expect(await repo.upcomingReminders(profileId: profileId, now: today),
+          isEmpty);
+    });
+
+    test('a fee and a payment on the same card both appear', () async {
+      await repo.upsertCard(CreditCardsCompanion.insert(
+        profileId: profileId,
+        name: 'Gold',
+        creditLimitCents: 900000,
+        balanceCents: const Value(50000),
+        paymentDueDay: const Value(17),
+        annualFeeCents: const Value(32500),
+        annualFeeDate: Value(DateTime(2026, 8, 22)),
+      ));
+
+      final reminders =
+          await repo.upcomingReminders(profileId: profileId, now: today);
+
+      expect(reminders.map((r) => r.kind).toSet(),
+          {ReminderKind.cardPayment, ReminderKind.annualFee});
+      expect(reminders.first.kind, ReminderKind.cardPayment,
+          reason: 'sorted soonest first');
+    });
+  });
 }

@@ -52,6 +52,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           repo.watchBillsDueThisMonthCents(
               profileId: profileId, month: _month),
           repo.watchCardFeesDueThisMonthCents(profileId: profileId),
+          repo.watchReserveForIrregularBillsCents(profileId: profileId),
+          repo.watchReserveForCardFeesCents(profileId: profileId),
         ]),
         builder: (context, snap) {
           if (!snap.hasData) return const SizedBox.shrink();
@@ -59,8 +61,9 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           final targets = snap.data![1] as List<BudgetTarget>;
           final expectedIncome = snap.data![2] as int;
           final billsDue = (snap.data![3] as int) + (snap.data![4] as int);
+          final setAside = (snap.data![5] as int) + (snap.data![6] as int);
           return _body(context, entries, targets, expectedIncome, billsDue,
-              scheme);
+              setAside, scheme);
         },
       ),
     );
@@ -72,6 +75,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       List<BudgetTarget> targets,
       int expectedIncomeCents,
       int billsDueCents,
+      int setAsideCents,
       ColorScheme scheme) {
     final moneyIn = entries
         .where((e) => e.type == EntryType.income)
@@ -158,6 +162,69 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   ),
                 ),
               ]),
+              kSectionGap,
+              SectionHeader('Plan for this month',
+                  icon: Icons.calculate_outlined,
+                  info: const InfoButton(
+                    title: 'Plan for this month',
+                    body: [
+                      'The arithmetic behind "free to spend": this month\'s '
+                          'paycheck total, minus the bills that actually '
+                          'charge this month.',
+                      '"Set aside" is a recommendation, not a bill. Annual '
+                          'and quarterly costs are divided across their term '
+                          '— a \$325 card fee is \$27.08 a month — so the '
+                          'charge does not blindside you when it lands. That '
+                          'money has not left your account, which is why it '
+                          'is listed separately rather than subtracted above.',
+                      'The last line is what is genuinely yours to spend once '
+                          'you have put that reserve away.',
+                    ],
+                  )),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _planRow(context, 'Income this month',
+                          fmtCents(expectedIncomeCents)),
+                      _planRow(context, 'Bills due this month',
+                          '-${fmtCents(billsDueCents)}'),
+                      const Divider(),
+                      _planRow(context, 'Left to budget',
+                          fmtCents(expectedIncomeCents - billsDueCents),
+                          bold: true),
+                      if (setAsideCents > 0) ...[
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          Icon(Icons.savings_outlined,
+                              size: 14, color: scheme.secondary),
+                          const SizedBox(width: 6),
+                          Text('Recommended',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(color: scheme.secondary)),
+                        ]),
+                        const SizedBox(height: 4),
+                        _planRow(
+                            context,
+                            'Put away for annual and quarterly costs',
+                            fmtCents(setAsideCents),
+                            color: scheme.secondary),
+                        _planRow(
+                            context,
+                            'Left after setting that aside',
+                            fmtCents(expectedIncomeCents -
+                                billsDueCents -
+                                setAsideCents),
+                            color: scheme.secondary),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
               kSectionGap,
               SectionHeader('Where it went',
                   icon: Icons.donut_small_outlined,
@@ -316,6 +383,22 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 : () => ref.read(repositoryProvider).deleteBudgetEntry(
                     profileId: ref.read(activeProfileProvider)!.id, id: e.id),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _planRow(BuildContext context, String label, String value,
+      {bool bold = false, Color? color}) {
+    final style = TextStyle(
+        fontWeight: bold ? FontWeight.bold : null, color: color);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(child: Text(label, style: style)),
+          Text(value, style: style),
         ],
       ),
     );

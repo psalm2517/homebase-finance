@@ -250,7 +250,8 @@ class DashboardScreen extends ConsumerWidget {
                                     : scheme.error),
                             title: Text(r.bill.name),
                             subtitle: Text(
-                                'Due day ${r.bill.dueDay} • ${r.bill.category}'
+                                'Due the ${ordinalDay(r.bill.dueDay)} • '
+                                '${r.bill.category}'
                                 '${overdue.contains(r) ? ' • overdue' : ''}'),
                             trailing: Text(fmtCents(r.bill.amountCents),
                                 style: const TextStyle(

@@ -281,8 +281,8 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 color: overdue ? scheme.error : null),
             const SizedBox(width: 4),
             Text(
-              'Due ${_monthNames[dueDate.month - 1].substring(0, 3)} '
-              '${dueDate.day}'
+              'Due the ${ordinalDay(dueDate.day)} of '
+              '${_monthNames[dueDate.month - 1]}'
               '${overdue ? ' • overdue' : ''} • ${b.category}'
               ' • ${freqLabel(b.frequency)}',
               style: TextStyle(color: overdue ? scheme.error : null),
@@ -432,7 +432,7 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                     ],
                   ]),
                 if (needsMonth) const SizedBox(height: 12),
-                DialogField(dueDay, 'Due day (1-31)',
+                DialogField(dueDay, 'Day of the month it is due (1-31)',
                     helper: 'Days past the end of a short month move to its '
                         'last day'),
                 DialogField(category, 'Category'),

@@ -246,7 +246,11 @@ class AccountsScreen extends ConsumerWidget {
         ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
+    if (saved != true) return;
+    if (name.text.trim().isEmpty) {
+      if (context.mounted) warnNotSaved(context, 'the account needs a name');
+      return;
+    }
     await ref.read(repositoryProvider).upsertAccount(AccountsCompanion(
           id: existing == null ? const Value.absent() : Value(existing.id),
           profileId: Value(profileId),

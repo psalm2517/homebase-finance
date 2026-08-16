@@ -631,7 +631,10 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     );
     if (saved != true) return;
     final cents = parseDollarsToCents(amount.text);
-    if (cents == null) return;
+    if (cents == null) {
+      if (context.mounted) warnNotSaved(context, 'enter an amount');
+      return;
+    }
     await repo.addBudgetEntry(BudgetEntriesCompanion.insert(
       profileId: profileId,
       date: DateTime.now(),

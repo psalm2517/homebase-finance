@@ -236,9 +236,16 @@ class _PaychecksScreenState extends ConsumerState<PaychecksScreen> {
         ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
+    if (saved != true) return;
+    if (name.text.trim().isEmpty) {
+      if (context.mounted) warnNotSaved(context, 'the schedule needs a name');
+      return;
+    }
     final cents = parseDollarsToCents(amount.text);
-    if (cents == null) return;
+    if (cents == null) {
+      if (context.mounted) warnNotSaved(context, 'enter the take-home amount');
+      return;
+    }
     await repo.upsertSchedule(PaycheckSchedulesCompanion(
       id: existing == null ? const Value.absent() : Value(existing.id),
       profileId: Value(profileId),
@@ -381,7 +388,10 @@ class _PaycheckCard extends ConsumerWidget {
     );
     if (saved != true) return;
     final cents = parseDollarsToCents(amount.text);
-    if (cents == null || target.text.trim().isEmpty) return;
+    if (cents == null || target.text.trim().isEmpty) {
+      if (context.mounted) warnNotSaved(context, 'enter where the money goes and how much');
+      return;
+    }
     await repo.upsertAllocation(PaycheckAllocationsCompanion.insert(
       profileId: profileId,
       paycheckId: paycheck.id,

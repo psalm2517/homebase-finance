@@ -316,6 +316,8 @@ class GoalsScreen extends ConsumerWidget {
             : (existing.currentAmountCents / 100).toString());
     var type = existing?.type ?? GoalType.savings;
     DateTime? targetDate = existing?.targetDate;
+    String? nameError;
+    String? targetError;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -328,7 +330,21 @@ class GoalsScreen extends ConsumerWidget {
               width: 400,
               child: SingleChildScrollView(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  DialogField(name, 'What is it for', autofocus: true),
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'What is it for',
+                      errorText: nameError,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (_) {
+                      if (nameError != null) {
+                        setLocal(() => nameError = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<GoalType>(
                     initialValue: type,
                     decoration: const InputDecoration(
@@ -347,7 +363,21 @@ class GoalsScreen extends ConsumerWidget {
                     onChanged: (v) => setLocal(() => type = v!),
                   ),
                   const SizedBox(height: 12),
-                  DialogField(target, 'Target amount (\$)'),
+                  TextField(
+                    controller: target,
+                    decoration: InputDecoration(
+                      labelText: 'Target amount (\$)',
+                      helperText: 'How much you are aiming for',
+                      errorText: targetError,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (_) {
+                      if (targetError != null) {
+                        setLocal(() => targetError = null);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   DialogField(current, 'Already put aside (\$)',
                       helper: 'Leave blank to start from zero'),
                   Align(
@@ -389,16 +419,36 @@ class GoalsScreen extends ConsumerWidget {
                   onPressed: () => Navigator.pop(context, false),
                   child: const Text('Cancel')),
               FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
+                  onPressed: () {
+                    // Validate here rather than after the dialog closes —
+                    // returning silently made a filled-in goal look like it
+                    // simply failed to save.
+                    final missingName = name.text.trim().isEmpty;
+                    final cents = parseDollarsToCents(target.text);
+                    final badTarget = cents == null || cents <= 0;
+                    if (missingName || badTarget) {
+                      setLocal(() {
+                        nameError = missingName ? 'Give the goal a name' : null;
+                        targetError = badTarget
+                            ? 'Enter an amount greater than zero'
+                            : null;
+                      });
+                      return;
+                    }
+                    Navigator.pop(context, true);
+                  },
                   child: const Text('Save')),
             ],
           ),
         ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
+    if (saved != true) return;
+    // Already validated in the dialog; this is belt and braces.
     final targetCents = parseDollarsToCents(target.text);
-    if (targetCents == null || targetCents <= 0) return;
+    if (name.text.trim().isEmpty || targetCents == null || targetCents <= 0) {
+      return;
+    }
 
     await ref.read(repositoryProvider).upsertGoal(GoalsCompanion(
           id: existing == null ? const Value.absent() : Value(existing.id),

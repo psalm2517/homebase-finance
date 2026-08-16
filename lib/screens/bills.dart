@@ -462,7 +462,11 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
         },
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
+    if (saved != true) return;
+    if (name.text.trim().isEmpty) {
+      if (mounted) warnNotSaved(context, 'the bill needs a name');
+      return;
+    }
     await ref.read(repositoryProvider).upsertBill(BillsCompanion(
           id: existing == null ? const Value.absent() : Value(existing.id),
           profileId: Value(profileId),

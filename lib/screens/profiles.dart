@@ -191,7 +191,11 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
         ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
+    if (saved != true) return;
+    if (name.text.trim().isEmpty) {
+      if (mounted) warnNotSaved(context, 'the profile needs a name');
+      return;
+    }
     final repo = ref.read(repositoryProvider);
     if (existing == null) {
       await repo.createProfile(ProfilesCompanion.insert(

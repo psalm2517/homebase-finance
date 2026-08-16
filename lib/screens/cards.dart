@@ -368,7 +368,11 @@ class CardsScreen extends ConsumerWidget {
       ),
       ),
     );
-    if (saved != true || name.text.trim().isEmpty) return;
+    if (saved != true) return;
+    if (name.text.trim().isEmpty) {
+      if (context.mounted) warnNotSaved(context, 'the card needs a name');
+      return;
+    }
     await ref.read(repositoryProvider).upsertCard(CreditCardsCompanion(
           id: existing == null ? const Value.absent() : Value(existing.id),
           profileId: Value(profileId),

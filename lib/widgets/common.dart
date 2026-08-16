@@ -316,3 +316,14 @@ class SubmitOnEnter extends StatelessWidget {
     );
   }
 }
+
+/// Tells the user why a dialog's contents were not saved. Dialogs used to
+/// close and silently discard when a required field was missing, which is
+/// indistinguishable from the save being broken.
+void warnNotSaved(BuildContext context, String reason) {
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text('Not saved — $reason'),
+    backgroundColor: Theme.of(context).colorScheme.error,
+  ));
+}

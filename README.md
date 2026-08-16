@@ -5,7 +5,7 @@ stays on your own machine — there is no account to make, no server, and
 nothing is uploaded anywhere.
 
 Built with Flutter and Drift (SQLite). Linux desktop is the primary target;
-Android is supported as a secondary one.
+Android is planned as a secondary one.
 
 ## What it does
 

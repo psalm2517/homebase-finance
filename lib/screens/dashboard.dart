@@ -177,11 +177,14 @@ class DashboardScreen extends ConsumerWidget {
                       body: [
                         'Your net worth recorded over time, so you can see '
                             'the direction rather than just today\'s number.',
-                        'A point is written whenever you change an account, '
-                            'card or loan balance, and once when you open '
-                            'Homebase Finance on a new day. Only one point is kept '
-                            'per day — later edits update that day rather '
-                            'than adding another.',
+                        'One point is kept per day. It is written when you '
+                            'open Homebase Finance on a new day, and updated '
+                            'whenever a balance changes — so editing a '
+                            'balance corrects today\'s figure rather than '
+                            'adding a second point.',
+                        'That means a line needs two separate days: the '
+                            'trend builds as you use the app, not all at '
+                            'once.',
                         'The dashed line is zero. Below it you owe more than '
                             'you own, which is common with a car loan or '
                             'student debt; what matters is the slope.',
@@ -204,15 +207,52 @@ class DashboardScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: history.length < 2
-                        ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: EmptyState(
-                              icon: Icons.timeline,
-                              title: 'Not enough history yet',
-                              message:
-                                  'Come back tomorrow, or change a balance, '
-                                  'and the trend will start to build.',
-                            ),
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: history.isEmpty
+                                ? const EmptyState(
+                                    icon: Icons.timeline,
+                                    title: 'No history yet',
+                                    message:
+                                        'Add an account, card or loan and '
+                                        'Homebase Finance starts recording '
+                                        'your net worth.',
+                                  )
+                                : Column(
+                                    children: [
+                                      Text(fmtCents(last!.netWorthCents),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineMedium
+                                              ?.copyWith(
+                                                  color: last.netWorthCents >=
+                                                          0
+                                                      ? scheme.primary
+                                                      : scheme.error)),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          'recorded '
+                                          '${_fmtScoreDate(last.date)}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                          'One day recorded so far. A line '
+                                          'appears once there is a second '
+                                          'day — Homebase Finance keeps one '
+                                          'point per day, so editing a '
+                                          'balance today updates this figure '
+                                          'rather than adding a point.',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                  color: scheme
+                                                      .onSurfaceVariant)),
+                                    ],
+                                  ),
                           )
                         : SizedBox(
                             height: 220,

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homebase/util/money.dart';
+import 'package:homebase_finance/util/money.dart';
 
 void main() {
   test('regular suffixes', () {

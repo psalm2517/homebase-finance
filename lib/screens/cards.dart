@@ -76,7 +76,7 @@ class CardsScreen extends ConsumerWidget {
                       'Paying down the balance before the statement closes '
                           'therefore lowers your reported utilization. Paying '
                           'in full by the due date is what avoids interest.',
-                      'Set both days when you edit a card and Homebase works '
+                      'Set both days when you edit a card and Homebase Finance works '
                           'out the next occurrence of each automatically, '
                           'including short months.',
                     ],

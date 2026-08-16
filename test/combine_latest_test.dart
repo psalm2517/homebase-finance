@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homebase/widgets/common.dart';
+import 'package:homebase_finance/widgets/common.dart';
 
 void main() {
   test('emits after every stream has produced one value', () async {

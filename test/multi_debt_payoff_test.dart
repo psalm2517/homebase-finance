@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homebase/util/payoff.dart';
+import 'package:homebase_finance/util/payoff.dart';
 
 void main() {
   // Two debts where the strategies genuinely disagree: the smaller balance

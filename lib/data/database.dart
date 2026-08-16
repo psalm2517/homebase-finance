@@ -427,7 +427,29 @@ class AppDatabase extends _$AppDatabase {
     return LazyDatabase(() async {
       final dir = await getApplicationSupportDirectory();
       final file = File(p.join(dir.path, 'homebase.sqlite'));
+      await _migrateFromRename(file);
       return NativeDatabase.createInBackground(file);
     });
+  }
+
+  /// The app's application id changed when the project was renamed from
+  /// homebase to homebase-finance, which moves where getApplicationSupportDirectory
+  /// points (it is keyed off the application id on Linux/Android). Anyone
+  /// with a database under the old id gets it carried forward automatically,
+  /// once, rather than opening to what looks like an empty app.
+  static Future<void> _migrateFromRename(File newFile) async {
+    if (newFile.existsSync()) return;
+    try {
+      final support = await getApplicationSupportDirectory();
+      final oldDir = Directory(
+          p.join(support.parent.path, 'dev.homebase.homebase'));
+      final oldFile = File(p.join(oldDir.path, 'homebase.sqlite'));
+      if (!oldFile.existsSync()) return;
+      await newFile.parent.create(recursive: true);
+      await oldFile.copy(newFile.path);
+    } catch (_) {
+      // Best-effort: if this fails, _openConnection just creates a fresh
+      // database, same as any other first run.
+    }
   }
 }

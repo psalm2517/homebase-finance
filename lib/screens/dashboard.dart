@@ -45,7 +45,7 @@ class DashboardScreen extends ConsumerWidget {
                             'and are worth deciding about — keep the card or '
                             'cancel before it charges — while there is still '
                             'time to act.',
-                        'A desktop notification is also shown when Homebase '
+                        'A desktop notification is also shown when Homebase Finance '
                             'opens and finds something due. Notifications '
                             'cannot fire while the app is closed, so treat '
                             'this panel as the reliable version.',
@@ -178,7 +178,7 @@ class DashboardScreen extends ConsumerWidget {
                             'the direction rather than just today\'s number.',
                         'A point is written whenever you change an account, '
                             'card or loan balance, and once when you open '
-                            'Homebase on a new day. Only one point is kept '
+                            'Homebase Finance on a new day. Only one point is kept '
                             'per day — later edits update that day rather '
                             'than adding another.',
                         'The dashed line is zero. Below it you owe more than '
@@ -255,14 +255,14 @@ class DashboardScreen extends ConsumerWidget {
                             'credit score. Under 10% is better still.',
                         'It is measured both per card and across all cards, so '
                             'one maxed-out card can hurt even if your overall '
-                            'number looks fine. Homebase flags anything above '
+                            'number looks fine. Homebase Finance flags anything above '
                             '30% in red.',
                         'This is calculated from each card\'s statement '
                             'balance — what the issuer actually reported — '
                             'not what you owe right now. Paying a card down '
                             'today does not change it until the next '
                             'statement closes.',
-                        'Everything else in Homebase (net worth, total debt, '
+                        'Everything else in Homebase Finance (net worth, total debt, '
                             'the budget, the payoff simulator) uses your '
                             'current balance instead, because that is the '
                             'money you actually owe.',

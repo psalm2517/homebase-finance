@@ -42,7 +42,7 @@ class HomebaseApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
     return MaterialApp(
-      title: 'Homebase',
+      title: 'Homebase Finance',
       theme: latteTheme(),
       darkTheme: mochaTheme(),
       themeMode: mode,

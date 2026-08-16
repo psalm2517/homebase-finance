@@ -120,13 +120,13 @@ class BackupService {
     final data = decoded['data'];
     if (header is! Map || data is! Map) {
       throw BackupException(
-          'That does not look like a Homebase backup file.');
+          'That does not look like a Homebase Finance backup file.');
     }
     final format = header['formatVersion'];
     if (format is! int || format > formatVersion) {
       throw BackupException(
-          'This backup was written by a newer version of Homebase '
-          '(format $format). Update Homebase and try again.');
+          'This backup was written by a newer version of Homebase Finance '
+          '(format $format). Update Homebase Finance and try again.');
     }
 
     final profiles = (header['profiles'] as List? ?? [])
@@ -164,7 +164,7 @@ class BackupService {
     if (summary.schemaVersion > _db.schemaVersion) {
       throw BackupException(
           'This backup came from a newer database (v${summary.schemaVersion}) '
-          'than this copy of Homebase understands (v${_db.schemaVersion}).');
+          'than this copy of Homebase Finance understands (v${_db.schemaVersion}).');
     }
 
     final decoded = jsonDecode(json) as Map<String, dynamic>;

@@ -314,7 +314,7 @@ class _PayoffCalculatorState extends State<_PayoffCalculator> {
                         'spare money, and more than one debt left to aim it '
                         'at. With a single debt, or with two debts and no '
                         'extra payment, both plans do exactly the same thing '
-                        '— so Homebase says they match rather than inventing '
+                        '— so Homebase Finance says they match rather than inventing '
                         'a difference.',
                     'As each debt clears, its minimum rolls onto the next '
                         'one, which is why both plans speed up over time.',

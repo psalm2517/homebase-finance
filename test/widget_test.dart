@@ -2,8 +2,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:homebase/data/database.dart';
-import 'package:homebase/main.dart';
+import 'package:homebase_finance/data/database.dart';
+import 'package:homebase_finance/main.dart';
 
 void main() {
   testWidgets('first run shows profile setup', (tester) async {
@@ -14,6 +14,6 @@ void main() {
       child: const HomebaseApp(),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Welcome to Homebase'), findsOneWidget);
+    expect(find.text('Welcome to Homebase Finance'), findsOneWidget);
   });
 }

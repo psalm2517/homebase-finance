@@ -100,7 +100,7 @@ class AccountsScreen extends ConsumerWidget {
                         'brokerage account is Investment. The difference is '
                         'the tax wrapper, not what you hold inside it — you '
                         'can own the same index fund in either one.',
-                    'These types only group and label accounts in Homebase. '
+                    'These types only group and label accounts in Homebase Finance. '
                         'All of them count as assets toward net worth.',
                   ],
                 ),

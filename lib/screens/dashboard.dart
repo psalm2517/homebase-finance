@@ -46,7 +46,7 @@ class DashboardScreen extends ConsumerWidget {
                             'and are worth deciding about — keep the card or '
                             'cancel before it charges — while there is still '
                             'time to act.',
-                        'A desktop notification is also shown when Homebase Finance '
+                        'A desktop notification is also shown when Homebase '
                             'opens and finds something due. Notifications '
                             'cannot fire while the app is closed, so treat '
                             'this panel as the reliable version.',
@@ -178,7 +178,7 @@ class DashboardScreen extends ConsumerWidget {
                         'Your net worth recorded over time, so you can see '
                             'the direction rather than just today\'s number.',
                         'One point is kept per day. It is written when you '
-                            'open Homebase Finance on a new day, and updated '
+                            'open Homebase on a new day, and updated '
                             'whenever a balance changes — so editing a '
                             'balance corrects today\'s figure rather than '
                             'adding a second point.',
@@ -215,7 +215,7 @@ class DashboardScreen extends ConsumerWidget {
                                     title: 'No history yet',
                                     message:
                                         'Add an account, card or loan and '
-                                        'Homebase Finance starts recording '
+                                        'Homebase starts recording '
                                         'your net worth.',
                                   )
                                 : Column(
@@ -240,7 +240,7 @@ class DashboardScreen extends ConsumerWidget {
                                       Text(
                                           'One day recorded so far. A line '
                                           'appears once there is a second '
-                                          'day — Homebase Finance keeps one '
+                                          'day — Homebase keeps one '
                                           'point per day, so editing a '
                                           'balance today updates this figure '
                                           'rather than adding a point.',
@@ -296,14 +296,14 @@ class DashboardScreen extends ConsumerWidget {
                             'credit score. Under 10% is better still.',
                         'It is measured both per card and across all cards, so '
                             'one maxed-out card can hurt even if your overall '
-                            'number looks fine. Homebase Finance flags anything above '
+                            'number looks fine. Homebase flags anything above '
                             '30% in red.',
                         'This is calculated from each card\'s statement '
                             'balance — what the issuer actually reported — '
                             'not what you owe right now. Paying a card down '
                             'today does not change it until the next '
                             'statement closes.',
-                        'Everything else in Homebase Finance (net worth, total debt, '
+                        'Everything else in Homebase (net worth, total debt, '
                             'the budget, the payoff simulator) uses your '
                             'current balance instead, because that is the '
                             'money you actually owe.',

@@ -49,19 +49,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             info: InfoButton(
               title: 'How backups work',
               body: [
-                'Homebase Finance keeps everything on this computer — there is no '
+                'Homebase keeps everything on this computer — there is no '
                     'cloud and nothing is uploaded. A backup writes a file '
                     'wherever you choose, and looking after that file is up '
                     'to you: another drive, or a folder you sync yourself.',
                 'The file is JSON, so it is readable and can be checked or '
                     'repaired by hand if it ever comes to that. It records '
                     'the schema version it came from, so an older backup can '
-                    'still be understood after Homebase Finance changes.',
+                    'still be understood after Homebase changes.',
                 loggedIn.isAdmin
                     ? 'As an admin, your backup covers every profile in the '
                         'household.'
                     : 'Your backup covers your own data only.',
-                'Restoring replaces what is there. Homebase Finance copies the '
+                'Restoring replaces what is there. Homebase copies the '
                     'current database next to itself first, so a mistaken '
                     'restore can still be undone by hand.',
               ],

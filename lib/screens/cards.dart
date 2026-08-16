@@ -9,6 +9,7 @@ import '../util/money.dart';
 import '../widgets/common.dart';
 import '../widgets/payment_dialog.dart';
 import '../widgets/payoff_simulator.dart';
+import '../widgets/payment_history.dart';
 import '../util/payoff.dart';
 
 class CardsScreen extends ConsumerWidget {
@@ -127,6 +128,9 @@ class CardsScreen extends ConsumerWidget {
                               ? 'not set'
                               : _fmtDate(
                                   HomebaseRepository.cycleFor(c).paymentDue!)),
+                      PaymentHistory(
+                          accountType: PaymentAccountType.card,
+                          accountId: c.id),
                       const SizedBox(height: 8),
                       Row(
                         children: [

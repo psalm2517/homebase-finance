@@ -8,6 +8,7 @@ import '../util/money.dart';
 import '../widgets/common.dart';
 import '../widgets/payment_dialog.dart';
 import '../widgets/payoff_simulator.dart';
+import '../widgets/payment_history.dart';
 import '../util/payoff.dart';
 
 class LoansScreen extends ConsumerWidget {
@@ -83,6 +84,9 @@ class LoansScreen extends ConsumerWidget {
                         DetailRow('APR', '${l.apr.toStringAsFixed(2)}%'),
                         DetailRow('Monthly payment',
                             fmtCents(l.monthlyPaymentCents)),
+                        PaymentHistory(
+                            accountType: PaymentAccountType.loan,
+                            accountId: l.id),
                         const SizedBox(height: 8),
                         Row(children: [
                           TextButton.icon(

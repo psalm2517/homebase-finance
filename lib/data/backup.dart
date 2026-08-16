@@ -195,9 +195,16 @@ class BackupService {
         final rows =
             (data[entry.name] as List? ?? []).cast<Map<String, dynamic>>();
         final idColumn = entry.name == 'profiles' ? 'id' : 'profile_id';
+        // Only write columns this version of the table actually has. A
+        // backup from an older schema can carry columns since renamed or
+        // dropped (statement_day became statement_close_day), and inserting
+        // those verbatim would fail — losing the whole restore over a
+        // column that no longer matters.
+        final known = {for (final c in entry.table.$columns) c.name};
         for (final row in rows) {
           if (!targetIds.contains(row[idColumn])) continue;
-          final columns = row.keys.toList();
+          final columns =
+              row.keys.where(known.contains).toList();
           final placeholders = List.filled(columns.length, '?').join(', ');
           await _db.customInsert(
             'INSERT INTO ${entry.table.actualTableName} '

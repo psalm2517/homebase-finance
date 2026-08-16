@@ -93,6 +93,12 @@ class HomebaseRepository {
 
   Future<int> deleteAccount(
       {required int profileId, required int id}) async {
+    // Budget entries point at this account, so clear the link first — the
+    // spending itself still happened and should survive. Without this the
+    // delete fails on a foreign key.
+    await (_db.update(_db.budgetEntries)
+          ..where((e) => e.profileId.equals(profileId) & e.accountId.equals(id)))
+        .write(const BudgetEntriesCompanion(accountId: Value(null)));
     final rows = await (_db.delete(_db.accounts)
           ..where((a) => a.profileId.equals(profileId) & a.id.equals(id)))
         .go();
@@ -855,10 +861,28 @@ class HomebaseRepository {
   Future<int> upsertSchedule(PaycheckSchedulesCompanion entry) =>
       _db.into(_db.paycheckSchedules).insertOnConflictUpdate(entry);
 
-  Future<int> deleteSchedule({required int profileId, required int id}) =>
-      (_db.delete(_db.paycheckSchedules)
-            ..where((s) => s.profileId.equals(profileId) & s.id.equals(id)))
-          .go();
+  /// Removes a schedule. Paychecks it already produced are kept — money you
+  /// were actually paid is history, not a detail of the schedule — but they
+  /// are cut loose from it, both so the delete does not fail on a foreign
+  /// key and so a dismissed payday is not resurrected by a future schedule.
+  Future<int> deleteSchedule(
+      {required int profileId, required int id}) async {
+    await (_db.update(_db.paychecks)
+          ..where((p) =>
+              p.profileId.equals(profileId) & p.scheduleId.equals(id)))
+        .write(const PaychecksCompanion(scheduleId: Value(null)));
+    // A dismissed paycheck only existed to block regeneration; with no
+    // schedule left to regenerate it, it is just clutter.
+    await (_db.delete(_db.paychecks)
+          ..where((p) =>
+              p.profileId.equals(profileId) &
+              p.dismissed.equals(true) &
+              p.scheduleId.isNull()))
+        .go();
+    return (_db.delete(_db.paycheckSchedules)
+          ..where((s) => s.profileId.equals(profileId) & s.id.equals(id)))
+        .go();
+  }
 
   /// Paydays for [schedule] from its anchor date through [until].
   static List<DateTime> paydatesFor(PaycheckSchedule schedule, DateTime until) {

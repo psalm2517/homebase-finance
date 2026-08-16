@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -446,44 +447,117 @@ class DashboardScreen extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionHeader('Credit score trend',
+                SectionHeader('Credit score trend',
                     icon: Icons.show_chart,
-                    info: InfoButton(
+                    info: const InfoButton(
                       title: 'Credit score trend',
                       body: [
                         'Your score over time, from snapshots you log '
-                            'manually. Nothing is fetched from a bureau.',
+                            'yourself. Homebase has no connection to a credit '
+                            'bureau, so nothing appears here until you enter '
+                            'it — check your card issuer or a free service '
+                            'and log what it says.',
                         'The main drivers: payment history (never miss a due '
                             'date), utilization (keep it low), age of '
                             'accounts (older is better, so avoid closing old '
                             'cards), credit mix, and hard inquiries (each new '
                             'application dings you briefly).',
-                        'Two snapshots are needed before a line appears.',
+                        'Utilization is prefilled from what your cards are '
+                            'currently reporting, so the snapshot matches the '
+                            'number above.',
+                        'One score makes a point; two make a line.',
                       ],
+                    ),
+                    action: FilledButton.tonalIcon(
+                      onPressed: () => _logScore(context, ref),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Log score'),
                     )),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: scores.length < 2
+                    child: scores.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.all(16),
                             child: EmptyState(
                               icon: Icons.show_chart,
-                              title: 'Not enough history',
+                              title: 'No scores logged yet',
                               message:
-                                  'Log at least two credit score snapshots to '
-                                  'see a trend line.',
+                                  'Use "Log score" to record what your card '
+                                  'issuer or credit app currently reports.',
                             ),
                           )
-                        : SizedBox(
-                            height: 200,
-                            child: CustomPaint(
-                              size: Size.infinite,
-                              painter: _ScoreChartPainter(
-                                  scores: scores,
-                                  lineColor: scheme.primary,
-                                  labelColor: scheme.onSurface),
-                            ),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (scores.length < 2)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Row(children: [
+                                    Icon(Icons.info_outline,
+                                        size: 16,
+                                        color: scheme.onSurfaceVariant),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                          'One score so far — log another '
+                                          'next month and a trend line '
+                                          'appears.',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                  color: scheme
+                                                      .onSurfaceVariant)),
+                                    ),
+                                  ]),
+                                )
+                              else
+                                SizedBox(
+                                  height: 200,
+                                  child: CustomPaint(
+                                    size: Size.infinite,
+                                    painter: _ScoreChartPainter(
+                                        scores: scores,
+                                        lineColor: scheme.primary,
+                                        labelColor: scheme.onSurface),
+                                  ),
+                                ),
+                              const SizedBox(height: 8),
+                              const Divider(),
+                              for (final s in scores.reversed.take(6))
+                                ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor:
+                                        scheme.primary.withValues(alpha: 0.18),
+                                    child: Text('${s.score}',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: scheme.primary)),
+                                  ),
+                                  title: Text(_fmtScoreDate(s.date)),
+                                  subtitle: Text(
+                                      '${(s.utilization * 100).toStringAsFixed(1)}% '
+                                      'utilization'
+                                      '${s.hardInquiries > 0 ? ' • ${s.hardInquiries} '
+                                          'inquir${s.hardInquiries == 1 ? 'y' : 'ies'}' : ''}'
+                                      '${s.derogatoryMarks > 0 ? ' • ${s.derogatoryMarks} '
+                                          'derogatory' : ''}'),
+                                  trailing: IconButton(
+                                    tooltip: 'Delete this entry',
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 18),
+                                    onPressed: () => ref
+                                        .read(repositoryProvider)
+                                        .deleteScoreSnapshot(
+                                            profileId: profileId, id: s.id),
+                                  ),
+                                ),
+                            ],
                           ),
                   ),
                 ),
@@ -493,6 +567,142 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  static String _fmtScoreDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[d.month - 1]} ${ordinalDay(d.day)}, ${d.year}';
+  }
+
+  /// Records what a bureau or card issuer currently reports. Utilization is
+  /// prefilled from the cards already in Homebase so the snapshot agrees
+  /// with the utilization shown above, but stays editable — the figure a
+  /// bureau used may differ from what the cards say today.
+  Future<void> _logScore(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(repositoryProvider);
+    final profileId = ref.read(activeProfileProvider)!.id;
+
+    final suggested =
+        await repo.currentReportedUtilization(profileId: profileId);
+    if (!context.mounted) return;
+
+    final score = TextEditingController();
+    final utilization = TextEditingController(
+        text: (suggested * 100).toStringAsFixed(1));
+    final inquiries = TextEditingController();
+    final derogatory = TextEditingController();
+    final accountAge = TextEditingController();
+    var date = DateTime.now();
+    String? error;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => SubmitOnEnter(
+          onSubmit: () => Navigator.pop(context, true),
+          child: AlertDialog(
+            icon: const Icon(Icons.show_chart),
+            title: const Text('Log a credit score'),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                        'From your card issuer, bank or a free credit app — '
+                        'Homebase cannot fetch this for you.',
+                        style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: score,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Score',
+                      helperText: 'Usually 300-850',
+                      errorText: error,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (_) {
+                      if (error != null) setLocal(() => error = null);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DialogField(utilization, 'Utilization (%)',
+                      helper: 'Prefilled from your cards\' reported balances'),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: Text('Recorded ${_fmtScoreDate(date)}'),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: date,
+                          firstDate: DateTime(2015),
+                          lastDate: DateTime.now(),
+                          helpText: 'When was this score reported?',
+                        );
+                        if (picked != null) setLocal(() => date = picked);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Optional detail',
+                        style: Theme.of(context).textTheme.labelMedium),
+                  ),
+                  const SizedBox(height: 8),
+                  DialogField(inquiries, 'Hard inquiries'),
+                  DialogField(derogatory, 'Derogatory marks'),
+                  DialogField(accountAge, 'Average account age (months)'),
+                ]),
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () {
+                  final value = int.tryParse(score.text.trim());
+                  if (value == null || value < 300 || value > 850) {
+                    setLocal(() => error = 'Enter a score between 300 and 850');
+                    return;
+                  }
+                  Navigator.pop(context, true);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    final value = int.tryParse(score.text.trim());
+    if (value == null || value < 300 || value > 850) return;
+
+    final percent = double.tryParse(
+            utilization.text.replaceAll('%', '').trim()) ??
+        (suggested * 100);
+
+    await repo.addScoreSnapshot(CreditScoreSnapshotsCompanion.insert(
+      profileId: profileId,
+      date: DateTime(date.year, date.month, date.day),
+      score: value,
+      utilization: (percent / 100).clamp(0.0, 1.0),
+      hardInquiries: Value(int.tryParse(inquiries.text.trim()) ?? 0),
+      derogatoryMarks: Value(int.tryParse(derogatory.text.trim()) ?? 0),
+      accountAgeMonths: Value(int.tryParse(accountAge.text.trim()) ?? 0),
+    ));
   }
 
   Widget _utilizationTile(

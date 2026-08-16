@@ -722,6 +722,20 @@ class HomebaseRepository {
   Future<int> addScoreSnapshot(CreditScoreSnapshotsCompanion entry) =>
       _db.into(_db.creditScoreSnapshots).insert(entry);
 
+  Future<int> deleteScoreSnapshot(
+          {required int profileId, required int id}) =>
+      (_db.delete(_db.creditScoreSnapshots)
+            ..where((s) => s.profileId.equals(profileId) & s.id.equals(id)))
+          .go();
+
+  /// The utilization to suggest when logging a score: what your cards are
+  /// currently reporting. Saves retyping a figure Homebase already knows,
+  /// and keeps the logged snapshot consistent with the dashboard.
+  Future<double> currentReportedUtilization({required int profileId}) async {
+    final cards = await watchCards(profileId: profileId).first;
+    return overallUtilization(cards);
+  }
+
   // ---- Budget entries ----
 
   Stream<List<BudgetEntry>> watchBudgetForMonth(

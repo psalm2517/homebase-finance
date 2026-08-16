@@ -176,9 +176,9 @@ class AccountsScreen extends ConsumerWidget {
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete')),
+          DangerButton(
+              label: 'Delete',
+              onPressed: () => Navigator.pop(context, true)),
         ],
       ),
     );

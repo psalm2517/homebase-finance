@@ -327,3 +327,26 @@ void warnNotSaved(BuildContext context, String reason) {
     backgroundColor: Theme.of(context).colorScheme.error,
   ));
 }
+
+/// Confirm button for something destructive. Red so it reads differently
+/// from an ordinary Save at the moment it matters — the point of no return
+/// in a delete dialog.
+class DangerButton extends StatelessWidget {
+  const DangerButton({super.key, required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return FilledButton(
+      style: FilledButton.styleFrom(
+        backgroundColor: scheme.error,
+        foregroundColor: scheme.onError,
+      ),
+      onPressed: onPressed,
+      child: Text(label),
+    );
+  }
+}

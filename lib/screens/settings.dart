@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/backup.dart';
+import '../widgets/backup_actions.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../widgets/common.dart';
@@ -109,28 +108,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _backup() async {
     final repo = ref.read(repositoryProvider);
-    final service = ref.read(backupServiceProvider);
     final loggedIn = ref.read(loggedInProfileProvider)!;
     final ids = _visibleProfileIds(loggedIn, await repo.allProfiles());
-
-    final stamp = DateTime.now().toIso8601String().split('T').first;
-    final location = await getSaveLocation(
-      suggestedName: 'homebase-backup-$stamp.json',
-      acceptedTypeGroups: const [
-        XTypeGroup(label: 'Homebase Finance backup', extensions: ['json']),
-      ],
-    );
-    if (location == null) return;
+    if (!mounted) return;
 
     setState(() => _busy = true);
     try {
-      final json = await service.exportJson(profileIds: ids);
-      await File(location.path).writeAsString(json);
-      if (!mounted) return;
-      _say('Backed up to ${location.path}');
-    } catch (e) {
-      if (!mounted) return;
-      _say('Backup failed: $e', error: true);
+      await runBackupFlow(context, ref, profileIds: ids);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

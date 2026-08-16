@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../main.dart';
 import '../util/pin.dart';
+import '../widgets/backup_actions.dart';
 import '../widgets/common.dart';
 
 /// Admin-only: add, rename, re-PIN, or remove profiles. Non-admins never
@@ -102,25 +103,83 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
   }
 
   Future<void> _delete(Profile p) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete ${p.name}?'),
-        content: const Text(
-            'This permanently removes the profile and all of its cards, '
-            'loans, bills, budget entries and paychecks. This cannot be '
-            'undone.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete everything')),
-        ],
-      ),
-    );
-    if (ok != true) return;
+    // Deleting a profile destroys every card, loan, bill, budget entry,
+    // paycheck and goal it owns, so offer a way out before it happens
+    // rather than only mentioning that it cannot be undone.
+    var backedUp = false;
+    while (true) {
+      if (!mounted) return;
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: Icon(Icons.warning_amber_outlined,
+              color: Theme.of(context).colorScheme.error),
+          title: Text('Delete ${p.name}?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'This permanently removes the profile and all of its '
+                  'accounts, cards, loans, bills, budget entries, paychecks '
+                  'and goals. This cannot be undone.'),
+              const SizedBox(height: 12),
+              if (backedUp)
+                Row(children: [
+                  Icon(Icons.check_circle,
+                      size: 16, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text('Backed up — safe to delete.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary)),
+                  ),
+                ])
+              else
+                Text(
+                    'Saving a backup first means this data can be restored '
+                    'later if you change your mind.',
+                    style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, 'cancel'),
+                child: const Text('Cancel')),
+            if (!backedUp)
+              TextButton.icon(
+                  onPressed: () => Navigator.pop(context, 'backup'),
+                  icon: const Icon(Icons.download_outlined, size: 18),
+                  label: const Text('Back up first')),
+            DangerButton(
+                label: 'Delete everything',
+                onPressed: () => Navigator.pop(context, 'delete')),
+          ],
+        ),
+      );
+
+      if (choice == null || choice == 'cancel') return;
+
+      if (choice == 'backup') {
+        if (!mounted) return;
+        // Back up just this profile — it is the data about to be lost.
+        backedUp = await runBackupFlow(
+          context,
+          ref,
+          profileIds: [p.id],
+          suggestedName:
+              'homebase-backup-${p.name.toLowerCase().replaceAll(' ', '-')}'
+              '-${DateTime.now().toIso8601String().split('T').first}.json',
+        );
+        continue; // Re-ask, now showing that a backup exists.
+      }
+
+      break;
+    }
+
     try {
       await ref.read(repositoryProvider).deleteProfile(id: p.id);
     } on StateError catch (e) {
@@ -131,6 +190,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     if (!mounted) return;
     setState(_reload);
   }
+
 
   Future<void> _edit(Profile? existing) async {
     final name = TextEditingController(text: existing?.name);

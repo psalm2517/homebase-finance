@@ -46,3 +46,14 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Never commit personal financial data. The app keeps its database in
+# ~/.local/share, but a backup or a copied database landing in the project
+# folder must not be swept up by `git add -A`.
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.bak
+homebase-backup-*.json

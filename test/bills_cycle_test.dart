@@ -100,7 +100,7 @@ void main() {
         ));
 
     test('an annual bill appears only in its month', () async {
-      await addBill('Aura', BillFrequency.annual, month: 3, cents: 12000);
+      await addBill('Yearly subscription', BillFrequency.annual, month: 3, cents: 12000);
 
       final march = await repo
           .watchBillsForMonth(profileId: profileId, month: DateTime(2026, 3))
@@ -109,7 +109,7 @@ void main() {
           .watchBillsForMonth(profileId: profileId, month: DateTime(2026, 4))
           .first;
 
-      expect(march.single.bill.name, 'Aura');
+      expect(march.single.bill.name, 'Yearly subscription');
       expect(april, isEmpty);
     });
 
@@ -204,7 +204,7 @@ void main() {
         () async {
       final annual = repo.upsertBill(BillsCompanion.insert(
           profileId: profileId,
-          name: 'Aura',
+          name: 'Yearly subscription',
           amountCents: 12000,
           dueDay: 1,
           frequency: const Value(BillFrequency.annual),
@@ -244,7 +244,7 @@ void main() {
         () async {
       await repo.upsertBill(BillsCompanion.insert(
           profileId: profileId,
-          name: 'Aura',
+          name: 'Yearly subscription',
           amountCents: 12000,
           dueDay: 1,
           frequency: const Value(BillFrequency.annual),

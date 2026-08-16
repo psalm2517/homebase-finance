@@ -32,13 +32,13 @@ void main() {
       ));
 
   test('a bill due within three days is reminded', () async {
-    await addBill('MetroPCS', 18); // 3 days out
+    await addBill('Phone plan', 18); // 3 days out
 
     final reminders =
         await repo.upcomingReminders(profileId: profileId, now: today);
 
     expect(reminders.length, 1);
-    expect(reminders.single.title, 'MetroPCS');
+    expect(reminders.single.title, 'Phone plan');
     expect(reminders.single.kind, ReminderKind.bill);
     expect(reminders.single.daysUntil(today), 3);
   });
@@ -51,14 +51,14 @@ void main() {
   });
 
   test('autopay bills are skipped — nothing for you to do', () async {
-    await addBill('Spotify', 17, autopay: true);
+    await addBill('Music streaming', 17, autopay: true);
 
     expect(await repo.upcomingReminders(profileId: profileId, now: today),
         isEmpty);
   });
 
   test('a bill already paid is not reminded', () async {
-    final id = await addBill('MetroPCS', 18);
+    final id = await addBill('Phone plan', 18);
     await repo.setBillPaid(
         profileId: profileId,
         billId: id,

@@ -6,6 +6,8 @@ import '../data/backup.dart';
 import '../widgets/backup_actions.dart';
 import '../data/database.dart';
 import '../main.dart';
+import '../theme/catppuccin.dart';
+import '../theme/flavor_provider.dart';
 import '../widgets/common.dart';
 
 final backupServiceProvider = Provider<BackupService>(
@@ -24,23 +26,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final loggedIn = ref.watch(loggedInProfileProvider)!;
-    final mode = ref.watch(themeModeProvider);
+    final flavor = ref.watch(flavorProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return ListView(
       padding: kPagePadding,
       children: [
-        const SectionHeader('Appearance', icon: Icons.palette_outlined),
+        SectionHeader('Appearance',
+            icon: Icons.palette_outlined,
+            info: const InfoButton(
+              title: 'Catppuccin flavors',
+              body: [
+                'Homebase uses the Catppuccin palette, which comes in four '
+                    'flavors: Latte is the light one, and Frappé, Macchiato '
+                    'and Mocha get progressively darker and higher contrast.',
+                'Colours come from the official Catppuccin package rather '
+                    'than being copied into this app, so they stay correct '
+                    'if the palette is ever revised.',
+                'Your choice is remembered on this computer. It is not part '
+                    'of your financial data, so restoring a backup will not '
+                    'change it.',
+              ],
+            )),
         Card(
-          child: SwitchListTile(
-            secondary: Icon(mode == ThemeMode.dark
-                ? Icons.dark_mode_outlined
-                : Icons.light_mode_outlined),
-            title: const Text('Dark mode'),
-            subtitle: const Text('Catppuccin Mocha, or Latte when off'),
-            value: mode == ThemeMode.dark,
-            onChanged: (on) => ref.read(themeModeProvider.notifier).state =
-                on ? ThemeMode.dark : ThemeMode.light,
+          child: RadioGroup<CatppuccinFlavor>(
+            groupValue: flavor,
+            onChanged: (chosen) {
+              if (chosen != null) {
+                ref.read(flavorProvider.notifier).select(chosen);
+              }
+            },
+            child: Column(
+            children: [
+              for (final f in CatppuccinFlavor.values)
+                RadioListTile<CatppuccinFlavor>(
+                  value: f,
+                  title: Row(
+                    children: [
+                      Text(f.label),
+                      const SizedBox(width: 10),
+                      // Swatch preview: a few of this flavor's accents, so
+                      // the difference is visible before committing to it.
+                      for (final color in f.swatch)
+                        Container(
+                          width: 12,
+                          height: 12,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: f.palette.surface1, width: 0.5),
+                          ),
+                        ),
+                    ],
+                  ),
+                  subtitle: Text(f.description),
+                  secondary: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      // The flavor's own page and card colours, so the
+                      // chip previews the actual background too.
+                      color: f.isDark ? f.palette.base : f.palette.mantle,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: f.palette.surface1),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: f.isDark
+                              ? f.palette.surface0
+                              : f.palette.base,
+                          borderRadius: BorderRadius.circular(4),
+                          border:
+                              Border.all(color: f.palette.overlay0, width: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           ),
         ),
         kSectionGap,

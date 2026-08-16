@@ -43,6 +43,8 @@ dependencies:
   async: ^2.13.1
   flutter_local_notifications: ^22.3.0
   file_selector: ^1.1.0
+  catppuccin_flutter: ^1.0.0
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

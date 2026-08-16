@@ -7,6 +7,7 @@ import 'data/repository.dart';
 import 'screens/profile_picker.dart';
 import 'screens/shell.dart';
 import 'theme/catppuccin.dart';
+import 'theme/flavor_provider.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -16,9 +17,6 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 final repositoryProvider = Provider<HomebaseRepository>(
     (ref) => HomebaseRepository(ref.watch(databaseProvider)));
-
-/// Mocha (dark) by default; toggled to Latte from the UI.
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 
 /// Who authenticated at the profile picker. Determines admin powers.
 final loggedInProfileProvider = StateProvider<Profile?>((ref) => null);
@@ -40,12 +38,12 @@ class HomebaseApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
+    final flavor = ref.watch(flavorProvider);
     return MaterialApp(
       title: 'Homebase Finance',
-      theme: latteTheme(),
-      darkTheme: mochaTheme(),
-      themeMode: mode,
+      // One theme, built from the chosen flavor — the platform's own
+      // light/dark setting does not override an explicit choice.
+      theme: themeFor(flavor),
       home: const _Root(),
     );
   }

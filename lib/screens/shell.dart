@@ -5,6 +5,8 @@ import '../data/database.dart';
 import '../data/notifications.dart';
 import '../data/repository.dart';
 import '../main.dart';
+import '../theme/catppuccin.dart';
+import '../theme/flavor_provider.dart';
 import 'accounts.dart';
 import 'bills.dart';
 import 'budget.dart';
@@ -62,7 +64,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final loggedIn = ref.watch(loggedInProfileProvider)!;
     final active = ref.watch(activeProfileProvider) ?? loggedIn;
     _catchUp(active.id);
-    final mode = ref.watch(themeModeProvider);
+    final flavor = ref.watch(flavorProvider);
 
     final titles = [
       'Dashboard',
@@ -97,14 +99,14 @@ class _AppShellState extends ConsumerState<AppShell> {
         actions: [
           if (loggedIn.isAdmin) _ProfileSwitcher(active: active),
           IconButton(
-            tooltip: mode == ThemeMode.dark
+            tooltip: flavor.isDark
                 ? 'Switch to light mode'
                 : 'Switch to dark mode',
-            icon: Icon(mode == ThemeMode.dark
+            icon: Icon(flavor.isDark
                 ? Icons.light_mode_outlined
                 : Icons.dark_mode_outlined),
-            onPressed: () => ref.read(themeModeProvider.notifier).state =
-                mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
+            onPressed: () =>
+                ref.read(flavorProvider.notifier).toggleLightDark(),
           ),
           IconButton(
             tooltip: 'Log out',

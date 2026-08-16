@@ -1,116 +1,98 @@
+import 'package:catppuccin_flutter/catppuccin_flutter.dart';
 import 'package:flutter/material.dart';
 
-/// Catppuccin palettes — Mocha (dark, default) and Latte (light toggle).
-/// Colors from https://catppuccin.com/palette
-class Mocha {
-  static const base = Color(0xFF1E1E2E);
-  static const mantle = Color(0xFF181825);
-  static const crust = Color(0xFF11111B);
-  static const surface0 = Color(0xFF313244);
-  static const surface1 = Color(0xFF45475A);
-  static const text = Color(0xFFCDD6F4);
-  static const subtext0 = Color(0xFFA6ADC8);
-  static const mauve = Color(0xFFCBA6F7);
-  static const blue = Color(0xFF89B4FA);
-  static const green = Color(0xFFA6E3A1);
-  static const red = Color(0xFFF38BA8);
-  static const peach = Color(0xFFFAB387);
-  static const yellow = Color(0xFFF9E2AF);
-  static const teal = Color(0xFF94E2D5);
-  static const lavender = Color(0xFFB4BEFE);
+/// The four Catppuccin flavors, in the order the project lists them:
+/// lightest to darkest.
+enum CatppuccinFlavor { latte, frappe, macchiato, mocha }
+
+extension CatppuccinFlavorInfo on CatppuccinFlavor {
+  /// Palette from the official package, so a palette update is a version
+  /// bump rather than a hunt for hex codes.
+  Flavor get palette => switch (this) {
+        CatppuccinFlavor.latte => catppuccin.latte,
+        CatppuccinFlavor.frappe => catppuccin.frappe,
+        CatppuccinFlavor.macchiato => catppuccin.macchiato,
+        CatppuccinFlavor.mocha => catppuccin.mocha,
+      };
+
+  String get label => switch (this) {
+        CatppuccinFlavor.latte => 'Latte',
+        CatppuccinFlavor.frappe => 'Frappé',
+        CatppuccinFlavor.macchiato => 'Macchiato',
+        CatppuccinFlavor.mocha => 'Mocha',
+      };
+
+  String get description => switch (this) {
+        CatppuccinFlavor.latte => 'Light',
+        CatppuccinFlavor.frappe => 'Dark, warm and muted',
+        CatppuccinFlavor.macchiato => 'Dark, medium contrast',
+        CatppuccinFlavor.mocha => 'Dark, highest contrast',
+      };
+
+  /// Latte is the only light flavor; the rest are dark. This decides text
+  /// and icon contrast throughout Material.
+  bool get isDark => this != CatppuccinFlavor.latte;
+
+  /// A few accent colours for the swatch preview in Settings.
+  List<Color> get swatch => [
+        palette.mauve,
+        palette.blue,
+        palette.green,
+        palette.peach,
+        palette.red,
+      ];
+
+  /// Stable key for persistence — the enum name, so reordering the enum
+  /// cannot silently change what a saved preference means.
+  String get storageKey => name;
+
+  static CatppuccinFlavor fromStorage(String? key) =>
+      CatppuccinFlavor.values.firstWhere(
+        (f) => f.name == key,
+        orElse: () => CatppuccinFlavor.mocha, // default for new installs
+      );
 }
 
-class Latte {
-  static const base = Color(0xFFEFF1F5);
-  static const mantle = Color(0xFFE6E9EF);
-  static const crust = Color(0xFFDCE0E8);
-  static const surface0 = Color(0xFFCCD0DA);
-  static const surface1 = Color(0xFFBCC0CC);
-  static const text = Color(0xFF4C4F69);
-  static const subtext0 = Color(0xFF6C6F85);
-  static const mauve = Color(0xFF8839EF);
-  static const blue = Color(0xFF1E66F5);
-  static const green = Color(0xFF40A02B);
-  static const red = Color(0xFFD20F39);
-  static const peach = Color(0xFFFE640B);
-  static const yellow = Color(0xFFDF8E1D);
-  static const teal = Color(0xFF179299);
-  static const lavender = Color(0xFF7287FD);
-}
+/// Builds the app theme for a flavor. Every colour comes from the palette,
+/// so screens never need to know which flavor is active.
+ThemeData themeFor(CatppuccinFlavor flavor) {
+  final c = flavor.palette;
+  final dark = flavor.isDark;
 
-ThemeData mochaTheme() => _theme(
-      brightness: Brightness.dark,
-      base: Mocha.base,
-      mantle: Mocha.mantle,
-      surface0: Mocha.surface0,
-      surface1: Mocha.surface1,
-      text: Mocha.text,
-      subtext: Mocha.subtext0,
-      primary: Mocha.mauve,
-      secondary: Mocha.blue,
-      error: Mocha.red,
-    );
-
-ThemeData latteTheme() => _theme(
-      brightness: Brightness.light,
-      base: Latte.base,
-      mantle: Latte.mantle,
-      surface0: Latte.surface0,
-      surface1: Latte.surface1,
-      text: Latte.text,
-      subtext: Latte.subtext0,
-      primary: Latte.mauve,
-      secondary: Latte.blue,
-      error: Latte.red,
-    );
-
-ThemeData _theme({
-  required Brightness brightness,
-  required Color base,
-  required Color mantle,
-  required Color surface0,
-  required Color surface1,
-  required Color text,
-  required Color subtext,
-  required Color primary,
-  required Color secondary,
-  required Color error,
-}) {
-  final dark = brightness == Brightness.dark;
-  final onPrimary = dark ? mantle : Colors.white;
-
-  // Cards need to read as raised. In Catppuccin the palette runs from crust
-  // (darkest) up through surface1, so "raised" means a lighter colour in
-  // Mocha and a lighter one in Latte too — which lands on opposite sides of
-  // `base`. Using base as the page in dark mode and mantle in light mode
-  // keeps a real step between the page and the things sitting on it,
-  // without inventing any colours outside the palette.
-  final pageColor = dark ? base : mantle;
-  final cardColor = dark ? surface0 : base;
-  final borderColor = dark ? surface1 : surface0;
+  // Cards must read as raised. In Catppuccin the ramp runs crust -> mantle
+  // -> base -> surface0 -> surface1, so "raised" is a lighter step in a dark
+  // flavor and the reverse in Latte. Using base as the page in dark flavors
+  // and mantle in Latte keeps a real step between the page and what sits on
+  // it, without going outside the palette.
+  final pageColor = dark ? c.base : c.mantle;
+  final cardColor = dark ? c.surface0 : c.base;
+  final borderColor = dark ? c.surface1 : c.surface0;
+  final onAccent = dark ? c.mantle : c.base;
 
   final scheme = ColorScheme(
-    brightness: brightness,
-    primary: primary,
-    onPrimary: onPrimary,
-    primaryContainer: dark ? surface1 : surface0,
-    onPrimaryContainer: text,
-    secondary: secondary,
-    onSecondary: onPrimary,
-    secondaryContainer: dark ? surface1 : surface0,
-    onSecondaryContainer: text,
-    error: error,
-    onError: onPrimary,
-    errorContainer: error.withValues(alpha: dark ? 0.22 : 0.16),
-    onErrorContainer: error,
+    brightness: dark ? Brightness.dark : Brightness.light,
+    primary: c.mauve,
+    onPrimary: onAccent,
+    primaryContainer: dark ? c.surface1 : c.surface0,
+    onPrimaryContainer: c.text,
+    secondary: c.blue,
+    onSecondary: onAccent,
+    secondaryContainer: dark ? c.surface1 : c.surface0,
+    onSecondaryContainer: c.text,
+    tertiary: c.teal,
+    onTertiary: onAccent,
+    error: c.red,
+    onError: onAccent,
+    errorContainer: c.red.withValues(alpha: dark ? 0.22 : 0.16),
+    onErrorContainer: c.red,
     surface: pageColor,
-    onSurface: text,
-    surfaceContainerLowest: dark ? mantle : mantle,
-    surfaceContainerLow: dark ? base : base,
+    onSurface: c.text,
+    surfaceContainerLowest: c.crust,
+    surfaceContainerLow: c.mantle,
     surfaceContainer: cardColor,
-    surfaceContainerHigh: dark ? surface0 : base,
-    surfaceContainerHighest: surface1,
-    onSurfaceVariant: subtext,
+    surfaceContainerHigh: dark ? c.surface0 : c.base,
+    surfaceContainerHighest: c.surface1,
+    onSurfaceVariant: c.subtext0,
     outline: borderColor,
     outlineVariant: borderColor.withValues(alpha: 0.5),
   );
@@ -119,8 +101,6 @@ ThemeData _theme({
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: pageColor,
-    // A hairline border does most of the work of separating a card from the
-    // page, and reads clearly in both themes without a drop shadow.
     cardTheme: CardThemeData(
       color: cardColor,
       elevation: 0,
@@ -131,27 +111,27 @@ ThemeData _theme({
       ),
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: dark ? mantle : base,
-      foregroundColor: text,
+      backgroundColor: dark ? c.mantle : c.base,
+      foregroundColor: c.text,
       elevation: 0,
       scrolledUnderElevation: 0,
       shape: Border(bottom: BorderSide(color: borderColor)),
     ),
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: dark ? mantle : base,
-      indicatorColor: primary.withValues(alpha: 0.22),
-      selectedIconTheme: IconThemeData(color: primary),
-      unselectedIconTheme: IconThemeData(color: subtext),
+      backgroundColor: dark ? c.mantle : c.base,
+      indicatorColor: c.mauve.withValues(alpha: 0.22),
+      selectedIconTheme: IconThemeData(color: c.mauve),
+      unselectedIconTheme: IconThemeData(color: c.subtext0),
       selectedLabelTextStyle:
-          TextStyle(color: primary, fontWeight: FontWeight.w600),
-      unselectedLabelTextStyle: TextStyle(color: subtext),
+          TextStyle(color: c.mauve, fontWeight: FontWeight.w600),
+      unselectedLabelTextStyle: TextStyle(color: c.subtext0),
     ),
     dividerTheme: DividerThemeData(color: borderColor, thickness: 1),
     dividerColor: borderColor,
-    listTileTheme: ListTileThemeData(iconColor: subtext),
+    listTileTheme: ListTileThemeData(iconColor: c.subtext0),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: dark ? base : mantle,
+      fillColor: dark ? c.base : c.mantle,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: borderColor),
@@ -162,13 +142,13 @@ ThemeData _theme({
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: primary, width: 2),
+        borderSide: BorderSide(color: c.mauve, width: 2),
       ),
       helperMaxLines: 3,
     ),
-    // Progress bars were washing out against the card behind them.
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      linearTrackColor: dark ? mantle : surface0.withValues(alpha: 0.5),
+      linearTrackColor:
+          dark ? c.mantle : c.surface0.withValues(alpha: 0.5),
       linearMinHeight: 6,
     ),
     dialogTheme: DialogThemeData(
@@ -179,22 +159,22 @@ ThemeData _theme({
       ),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: dark ? surface1 : surface0,
-      contentTextStyle: TextStyle(color: text),
+      backgroundColor: dark ? c.surface1 : c.surface0,
+      contentTextStyle: TextStyle(color: c.text),
       behavior: SnackBarBehavior.floating,
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: dark ? surface1 : surface0,
+        color: dark ? c.surface1 : c.surface0,
         borderRadius: BorderRadius.circular(6),
       ),
-      textStyle: TextStyle(color: text, fontSize: 12),
+      textStyle: TextStyle(color: c.text, fontSize: 12),
     ),
     expansionTileTheme: ExpansionTileThemeData(
-      iconColor: primary,
-      collapsedIconColor: subtext,
-      textColor: text,
-      collapsedTextColor: text,
+      iconColor: c.mauve,
+      collapsedIconColor: c.subtext0,
+      textColor: c.text,
+      collapsedTextColor: c.text,
     ),
   );
 }

@@ -109,6 +109,10 @@ per-profile visibility rule, every schema migration, backup round-trips, and
 the automatic behaviour (paychecks receiving themselves, bills recording
 autopay, net worth snapshots).
 
-## Licence
+## AI disclosure
 
-Public domain — see [LICENSE](LICENSE).
+This project was built with AI assistance, directed by me.
+
+## License
+
+Unlicense. See [LICENSE](./LICENSE).

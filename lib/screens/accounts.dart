@@ -108,7 +108,15 @@ class AccountsScreen extends ConsumerWidget {
               kSectionGap,
               for (final type in AccountType.values)
                 if (byType[type] != null) ...[
-                  SectionHeader(accountLabel(type), icon: accountIcon(type)),
+                  SectionHeader(accountLabel(type),
+                      icon: accountIcon(type),
+                      action: Text(
+                        fmtCents(byType[type]!
+                            .fold(0, (s, a) => s + a.balanceCents)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant),
+                      )),
                   Card(
                     child: Column(
                       children: [

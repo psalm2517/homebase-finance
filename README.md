@@ -116,14 +116,10 @@ update.
 
 Money is stored as integer cents throughout, never floating point.
 
-## Tests
+## Planned
 
-    flutter test
-
-Around 180 tests across 24 files, covering the payoff and date maths, the
-per-profile visibility rule, every schema migration, backup round-trips, and
-the automatic behaviour (paychecks receiving themselves, bills recording
-autopay, net worth snapshots).
+Android build
+Flatpak packaging
 
 ## AI disclosure
 

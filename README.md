@@ -119,6 +119,7 @@ Money is stored as integer cents throughout, never floating point.
 ## Planned
 
 Android build
+
 Flatpak packaging
 
 ## AI disclosure

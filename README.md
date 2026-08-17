@@ -4,7 +4,7 @@ A personal finance tracker for a household, built for the desktop. Everything
 stays on your own machine: there is no account to make, no server, and
 nothing is uploaded anywhere.
 
-Built with Flutter and Drift (SQLite). Linux desktop is the primary target;
+Built with Flutter and Drift (SQLite). Linux is the primary target;
 Android is planned as a secondary one.
 
 ![Homebase dashboard](docs/screenshots/dashboard1.png)

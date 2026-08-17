@@ -1,4 +1,4 @@
-# Homebase Finance
+# Homebase Money
 
 A personal finance tracker for a household, built for the desktop. Everything
 stays on your own machine: there is no account to make, no server, and
@@ -73,7 +73,7 @@ anyone with access to the file can read it.
 
 The database lives at:
 
-    ~/.local/share/dev.homebase.homebase_finance/homebase.sqlite
+    ~/.local/share/dev.homebase.homebase_money/homebase.sqlite
 
 Settings has a backup action that writes a JSON file wherever you choose, and
 a restore that replaces the current data. Restore inspects the file and

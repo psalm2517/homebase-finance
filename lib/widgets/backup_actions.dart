@@ -22,7 +22,7 @@ Future<bool> runBackupFlow(
   final location = await getSaveLocation(
     suggestedName: suggestedName ?? 'homebase-backup-$stamp.json',
     acceptedTypeGroups: const [
-      XTypeGroup(label: 'Homebase Finance backup', extensions: ['json']),
+      XTypeGroup(label: 'Homebase Money backup', extensions: ['json']),
     ],
   );
   if (location == null) return false;

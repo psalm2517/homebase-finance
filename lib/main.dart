@@ -40,7 +40,7 @@ class HomebaseApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final flavor = ref.watch(flavorProvider);
     return MaterialApp(
-      title: 'Homebase Finance',
+      title: 'Homebase Money',
       // One theme, built from the chosen flavor — the platform's own
       // light/dark setting does not override an explicit choice.
       theme: themeFor(flavor),

@@ -180,7 +180,7 @@ class _FirstRunSetupState extends ConsumerState<_FirstRunSetup> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Welcome to Homebase Finance',
+                Text('Welcome to Homebase Money',
                     style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 8),
                 Text(

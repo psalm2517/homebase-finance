@@ -195,7 +195,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final loggedIn = ref.read(loggedInProfileProvider)!;
 
     final file = await openFile(acceptedTypeGroups: const [
-      XTypeGroup(label: 'Homebase Finance backup', extensions: ['json']),
+      XTypeGroup(label: 'Homebase Money backup', extensions: ['json']),
     ]);
     if (file == null) return;
 

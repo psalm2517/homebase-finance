@@ -1,4 +1,4 @@
-package dev.homebase.homebase_finance
+package dev.homebase.homebase_money
 
 import io.flutter.embedding.android.FlutterActivity
 

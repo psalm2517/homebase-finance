@@ -432,21 +432,28 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// The app's application id changed when the project was renamed from
-  /// homebase to homebase-finance, which moves where getApplicationSupportDirectory
-  /// points (it is keyed off the application id on Linux/Android). Anyone
-  /// with a database under the old id gets it carried forward automatically,
-  /// once, rather than opening to what looks like an empty app.
+  /// The application id has changed twice as the project was renamed
+  /// (homebase -> homebase_finance -> homebase_money), and on Linux and
+  /// Android that id decides where getApplicationSupportDirectory points.
+  /// Without this, a rename would look to the user like their data had been
+  /// wiped. Each previous directory is checked newest first, so an install
+  /// that skipped a rename still finds its database.
   static Future<void> _migrateFromRename(File newFile) async {
     if (newFile.existsSync()) return;
     try {
       final support = await getApplicationSupportDirectory();
-      final oldDir = Directory(
-          p.join(support.parent.path, 'dev.homebase.homebase'));
-      final oldFile = File(p.join(oldDir.path, 'homebase.sqlite'));
-      if (!oldFile.existsSync()) return;
-      await newFile.parent.create(recursive: true);
-      await oldFile.copy(newFile.path);
+      const previousIds = [
+        'dev.homebase.homebase_finance',
+        'dev.homebase.homebase',
+      ];
+      for (final id in previousIds) {
+        final oldFile =
+            File(p.join(support.parent.path, id, 'homebase.sqlite'));
+        if (!oldFile.existsSync()) continue;
+        await newFile.parent.create(recursive: true);
+        await oldFile.copy(newFile.path);
+        return;
+      }
     } catch (_) {
       // Best-effort: if this fails, _openConnection just creates a fresh
       // database, same as any other first run.

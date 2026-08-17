@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:homebase_finance/data/database.dart';
-import 'package:homebase_finance/data/repository.dart';
-import 'package:homebase_finance/util/payoff.dart';
+import 'package:homebase_money/data/database.dart';
+import 'package:homebase_money/data/repository.dart';
+import 'package:homebase_money/util/payoff.dart';
 
 /// The rule these tests protect: statement balance is what the bureaus see,
 /// so it drives utilization only. Everything about money actually owed uses

@@ -7,6 +7,10 @@ nothing is uploaded anywhere.
 Built with Flutter and Drift (SQLite). Linux desktop is the primary target;
 Android is planned as a secondary one.
 
+![Homebase dashboard](docs/screenshots/dashboard1.png)
+
+*All screenshots use generated demo data, not real finances.*
+
 ## What it does
 
 **Accounts.** Checking, savings, cash, investment and retirement balances,
@@ -19,17 +23,25 @@ current balance, since that is the money you really owe. Both are shown side
 by side so the difference is visible rather than silently baked into a
 calculation.
 
+![Cards](docs/screenshots/cards.png)
+
 **Loans.** Payoff progress, a snowball vs. avalanche comparison, and a
 "what if" simulator with a slider for extra monthly payments that shows the
 interest and time you would save.
+
+![Loans](docs/screenshots/loans.png)
 
 **Bills.** Monthly, quarterly, annual or one-time, with autopay support. Paid
 status is recorded against the month it covers, so it resets itself on the
 1st and past months keep their real history.
 
+![Bills](docs/screenshots/bills.png)
+
 **Budget.** What came in, what went out and what is left for the month.
 Paychecks and paid bills post themselves automatically, so most months need
 no manual entry beyond cash spending.
+
+![Budget](docs/screenshots/budget.png)
 
 **Paychecks.** Set a schedule once (weekly, bi-weekly, semi-monthly,
 monthly) and paychecks generate 90 days ahead, mark themselves received on
@@ -78,6 +90,8 @@ All four [Catppuccin](https://catppuccin.com) flavors (Latte, Frappé,
 Macchiato and Mocha) are selectable in Settings, with Mocha as the default.
 Colours come from the official `catppuccin_flutter` package rather than
 being copied into this repository.
+
+![Settings and theme picker](docs/screenshots/settings.png)
 
 ## Building
 
